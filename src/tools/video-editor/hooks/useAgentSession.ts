@@ -14,6 +14,13 @@ type AgentInvocationResponse = {
   turns_added: number;
 };
 
+type AgentMessageAttachment = NonNullable<AgentTurn['attachments']>[number];
+
+type SendMessageInput = {
+  message: string;
+  attachments?: AgentMessageAttachment[];
+};
+
 function toErrorMessage(error: unknown) {
   if (error instanceof Error) {
     return error.message;
@@ -53,6 +60,7 @@ function normalizeTurns(value: unknown): AgentTurn[] {
     return [{
       role,
       content: item.content,
+      attachments: Array.isArray(item.attachments) ? item.attachments : undefined,
       tool_name: typeof item.tool_name === 'string' ? item.tool_name : undefined,
       tool_args: isRecord(item.tool_args) ? item.tool_args : undefined,
       timestamp: item.timestamp,
@@ -224,7 +232,7 @@ export function useCreateSession(timelineId: string | null | undefined) {
 export function useSendMessage(sessionId: string | null | undefined, timelineId?: string | null) {
   const queryClient = useQueryClient();
   const timeoutIdsRef = useRef<Set<number>>(new Set());
-  const lastMessageRef = useRef<string | null>(null);
+  const lastMessageRef = useRef<SendMessageInput | null>(null);
   const [continuationNotice, setContinuationNotice] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
 
@@ -239,12 +247,16 @@ export function useSendMessage(sessionId: string | null | undefined, timelineId?
   }, []);
 
   const mutation = useMutation({
-    mutationFn: async (userMessage: string) => {
+    mutationFn: async (input: SendMessageInput) => {
       if (!sessionId) {
         throw new Error('sessionId is required');
       }
 
-      lastMessageRef.current = userMessage;
+      const { message, attachments } = input;
+      lastMessageRef.current = {
+        message,
+        attachments,
+      };
       setLocalError(null);
 
       const invokeAgent = async (
@@ -255,6 +267,15 @@ export function useSendMessage(sessionId: string | null | undefined, timelineId?
           body: {
             session_id: sessionId,
             ...(nextUserMessage ? { user_message: nextUserMessage } : {}),
+            ...(nextUserMessage && attachments?.length ? {
+              selected_clips: attachments.map((clip) => ({
+                clip_id: clip.clipId,
+                url: clip.url,
+                media_type: clip.mediaType,
+                ...(clip.generationId ? { generation_id: clip.generationId } : {}),
+                ...(clip.prompt ? { prompt: clip.prompt } : {}),
+              })),
+            } : {}),
           },
         });
 
@@ -281,7 +302,7 @@ export function useSendMessage(sessionId: string | null | undefined, timelineId?
         return invokeAgent(undefined, continueCount + 1);
       };
 
-      return invokeAgent(userMessage, 0);
+      return invokeAgent(message, 0);
     },
     onError: (error) => {
       // Only show error briefly — it will be cleared if realtime delivers a successful update

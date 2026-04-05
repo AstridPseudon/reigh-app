@@ -101,11 +101,13 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
     formAssociatedShotId,
     onSwitchToAssociatedShot,
     className,
+    selectedIds,
     generationFilters,
     onCreateShot,
     lastShotNameForTooltip: _lastShotNameForTooltip,
     onBackfillRequest,
     onImageClick,
+    onContextMenu,
     config: configOverrides,
   } = props;
   const config: GalleryConfig = React.useMemo(() => ({
@@ -337,6 +339,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
     onToggleStar,
     onApplySettings,
     onImageClick,
+    onContextMenu,
     isDeleting,
     currentViewingShotId,
     activeLightboxMediaId: stateHook.state.activeLightboxMedia?.id,
@@ -461,6 +464,7 @@ const MediaGallery: React.FC<MediaGalleryProps> = React.memo((props) => {
           itemFeatures={itemFeatures}
           itemActions={itemActions}
           itemLoading={itemLoading}
+          selectedIds={selectedIds}
           hideBottomPagination={hideBottomPagination}
         />
       </div>

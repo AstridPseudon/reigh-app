@@ -9,6 +9,7 @@ import { ShotsProvider } from '@/shared/contexts/ShotsContext';
 import { GenerationTaskProvider } from '@/shared/contexts/GenerationTaskContext';
 import { IncomingTasksProvider } from '@/shared/contexts/IncomingTasksContext';
 import { PanesProvider } from '@/shared/contexts/PanesContext';
+import { GallerySelectionProvider } from '@/shared/contexts/GallerySelectionContext';
 import { LastAffectedShotProvider } from '@/shared/contexts/LastAffectedShotContext';
 import { CurrentShotProvider } from '@/shared/contexts/CurrentShotContext';
 import { ToolPageHeaderProvider } from '@/shared/contexts/ToolPageHeaderContext';
@@ -43,6 +44,7 @@ const AppProviderTree = composeProviders([
   GenerationTaskProvider,
   IncomingTasksProvider,
   PanesProvider,
+  GallerySelectionProvider,
   ShotAdditionSelectionProvider,
   LastAffectedShotProvider,
   CurrentShotProvider,

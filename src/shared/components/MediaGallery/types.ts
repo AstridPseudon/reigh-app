@@ -3,6 +3,7 @@ import type { GalleryFilterState } from '@/shared/contracts/galleryFilters';
 import type { AddToShotHandler } from '@/shared/types/imageHandlers';
 import type { AsyncImageDeleteHandler } from '@/shared/types/imageHandlers';
 import type { DisplayableMetadata } from '@/shared/types/displayableMetadata';
+import type { MouseEvent } from 'react';
 
 export type { DisplayableMetadata } from '@/shared/types/displayableMetadata';
 export type { GalleryFilterState } from '@/shared/contracts/galleryFilters';
@@ -156,6 +157,7 @@ interface MediaGalleryActionsProps {
   /** Called after delete to trigger data refetch. Should invalidate queries and refetch current page. */
   onBackfillRequest?: () => Promise<void>;
   onImageClick?: (image: GeneratedImageWithMetadata) => void;
+  onContextMenu?: (event: MouseEvent, image: GeneratedImageWithMetadata) => void;
   formAssociatedShotId?: string | null;
   onSwitchToAssociatedShot?: (shotId: string) => void;
 }
@@ -194,6 +196,8 @@ interface MediaGalleryDisplayProps {
   columnsPerRow?: ColumnsPerRow;
   /** Additional className to apply to the gallery wrapper (can override default spacing) */
   className?: string;
+  /** Selection state owned by a parent wrapper such as the editor generations pane. */
+  selectedIds?: ReadonlySet<string>;
   /**
    * Boolean config flags controlling gallery appearance and behavior.
    * All fields optional — unset fields use defaults from DEFAULT_GALLERY_CONFIG.

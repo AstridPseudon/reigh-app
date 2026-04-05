@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useRef, useState, type FC } from 'react';
-import { Loader2, Play, RotateCcw, Save, Sparkles, Pencil, Globe, Lock } from 'lucide-react';
+import { Loader2, Play, RotateCcw, Save, Sparkles, Pencil, Globe, Lock, X } from 'lucide-react';
 import { Player } from '@remotion/player';
 import { AbsoluteFill } from 'remotion';
 import { Button } from '@/shared/components/ui/button';
@@ -52,10 +52,12 @@ interface EffectCreatorPanelProps {
 type CompileStatus = 'idle' | 'compiling' | 'success' | 'error';
 
 interface GenerateEffectResponse {
-  code: string;
+  code?: string;
   name?: string;
   description: string;
   parameterSchema?: ParameterSchema;
+  message?: string;
+  isQuestionResponse?: boolean;
   model: string;
 }
 
@@ -193,6 +195,7 @@ export function EffectCreatorPanel({
   const [previewComponent, setPreviewComponent] = useState<FC<EffectComponentProps> | null>(null);
   const [showCode, setShowCode] = useState(false);
   const [previewParams, setPreviewParams] = useState<PreviewParams>(DEFAULT_PREVIEW_PARAMS);
+  const [agentMessage, setAgentMessage] = useState<string | null>(null);
 
   // Mutations
   const createEffect = useCreateEffectResource();
@@ -218,6 +221,7 @@ export function EffectCreatorPanel({
     setPreviewComponent(null);
     setShowCode(false);
     setPreviewParams(DEFAULT_PREVIEW_PARAMS);
+    setAgentMessage(null);
     setIsGenerating(false);
   }, []);
 
@@ -271,6 +275,7 @@ export function EffectCreatorPanel({
     const controller = new AbortController();
     abortRef.current = controller;
 
+    setAgentMessage(null);
     setIsGenerating(true);
     setCompileStatus('idle');
     setCompileError(null);
@@ -292,7 +297,18 @@ export function EffectCreatorPanel({
 
       if (controller.signal.aborted) return;
 
+      if (response.isQuestionResponse) {
+        setAgentMessage(response.message?.trim() || null);
+        setPrompt('');
+        return;
+      }
+
+      if (!response.code?.trim()) {
+        throw new Error('Effect generation returned no code.');
+      }
+
       const nextSchema = response.parameterSchema ?? [];
+      setAgentMessage(response.message?.trim() || null);
       setCode(response.code);
       setParameterSchema(nextSchema);
       setPreviewParamValues(getDefaultValues(nextSchema));
@@ -518,6 +534,23 @@ export function EffectCreatorPanel({
           {compileStatus === 'error' && compileError && (
             <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
               Compile error: {compileError}
+            </div>
+          )}
+
+          {agentMessage && !isGenerating && (
+            <div className="flex gap-2 rounded-lg border border-border bg-muted/40 px-3 py-2">
+              <Sparkles className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+              <div className="min-w-0 flex-1 text-sm text-foreground">{agentMessage}</div>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 shrink-0 text-muted-foreground"
+                aria-label="Dismiss agent message"
+                onClick={() => setAgentMessage(null)}
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
             </div>
           )}
 

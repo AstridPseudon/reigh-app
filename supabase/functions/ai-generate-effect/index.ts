@@ -10,18 +10,23 @@ import { toErrorMessage } from "../_shared/errorMessage.ts";
 import {
   buildGenerateEffectMessages,
   extractEffectCodeAndMeta,
+  extractQuestionResponse,
   type EffectCategory,
 } from "./templates.ts";
 
 // ── Models ───────────────────────────────────────────────────────────
-// Create → Kimi K2.5 via Fireworks, Edit → Qwen via OpenRouter
+// All generation (create + edit + retry) uses Kimi K2.5 via Fireworks
 const FIREWORKS_MODEL = "accounts/fireworks/models/kimi-k2p5";
 const FIREWORKS_URL = "https://api.fireworks.ai/inference/v1/chat/completions";
-const FIREWORKS_TIMEOUT_MS = 60_000;
+const FIREWORKS_TIMEOUT_MS = 150_000; // max out to edge function wall-clock limit
+
+// Legacy edit model kept for reference but no longer used
 const EDIT_MODEL = "qwen/qwen3.5-27b";
 
 const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
 const OPENROUTER_TIMEOUT_MS = 100_000;
+
+const MAX_RETRY_DEPTH = 1; // max number of self-invocation retries
 
 const EFFECT_CATEGORIES: EffectCategory[] = ["entrance", "exit", "continuous"];
 
@@ -254,32 +259,57 @@ serve(async (req) => {
   }
 
   const isEditMode = Boolean(existingCode);
+  const retryDepth = typeof body._retryDepth === "number" ? body._retryDepth : 0;
+  const retryError = typeof body._retryError === "string" ? body._retryError : undefined;
+  const retryFailedCode = typeof body._retryFailedCode === "string" ? body._retryFailedCode : undefined;
 
   try {
-    const { systemMsg, userMsg } = buildGenerateEffectMessages({
-      prompt,
-      name: effectName || undefined,
-      category,
-      existingCode,
-    });
-    const messages = [
-      { role: "system", content: systemMsg },
-      { role: "user", content: userMsg },
-    ];
+    // If this is a retry invocation, build edit-mode messages to fix the failed code
+    let messages: Array<{ role: string; content: string }>;
 
-    let llmResponse: LLMResponse;
-
-    if (isEditMode) {
-      logger.info(`[AI-GENERATE-EFFECT] edit → ${EDIT_MODEL} (OpenRouter)`);
-      await logger.flush();
-      llmResponse = await callOpenRouter(EDIT_MODEL, messages, logger);
+    if (retryDepth > 0 && retryFailedCode && retryError) {
+      logger.info(`[AI-GENERATE-EFFECT] retry depth=${retryDepth} — fixing: ${retryError}`);
+      const retryInput = buildGenerateEffectMessages({
+        prompt,
+        name: effectName || undefined,
+        category,
+        existingCode: retryFailedCode,
+        validationError: retryError,
+      });
+      messages = [
+        { role: "system", content: retryInput.systemMsg },
+        { role: "user", content: retryInput.userMsg },
+      ];
     } else {
-      logger.info(`[AI-GENERATE-EFFECT] create → ${FIREWORKS_MODEL} (Fireworks)`);
-      await logger.flush();
-      llmResponse = await callFireworks(messages, logger);
+      const { systemMsg, userMsg } = buildGenerateEffectMessages({
+        prompt,
+        name: effectName || undefined,
+        category,
+        existingCode,
+      });
+      messages = [
+        { role: "system", content: systemMsg },
+        { role: "user", content: userMsg },
+      ];
     }
 
+    // All generation uses Kimi K2.5 via Fireworks
+    logger.info(`[AI-GENERATE-EFFECT] ${retryDepth > 0 ? `retry(${retryDepth})` : isEditMode ? "edit" : "create"} → ${FIREWORKS_MODEL} (Fireworks)`);
+    await logger.flush();
+    const llmResponse = await callFireworks(messages, logger);
+
     logger.info(`[AI-GENERATE-EFFECT] raw output length=${llmResponse.content.length}, first 200 chars: ${llmResponse.content.slice(0, 200)}`);
+
+    const questionResponse = extractQuestionResponse(llmResponse.content);
+    if (questionResponse) {
+      logger.info(`[AI-GENERATE-EFFECT] question response detected, returning conversational reply (length=${questionResponse.message.length})`);
+      await logger.flush();
+      return jsonResponse({
+        message: questionResponse.message,
+        isQuestionResponse: true,
+        model: llmResponse.model,
+      });
+    }
 
     let extracted;
     try {
@@ -287,18 +317,62 @@ serve(async (req) => {
     } catch (parseErr: unknown) {
       const parseMsg = parseErr instanceof Error ? parseErr.message : String(parseErr);
       logger.info(`[AI-GENERATE-EFFECT] extraction/validation failed: ${parseMsg}`);
-      logger.info(`[AI-GENERATE-EFFECT] full output: ${llmResponse.content.slice(0, 1000)}`);
+
+      // Self-invoke a new instance to retry with the failed code as edit context
+      if (retryDepth < MAX_RETRY_DEPTH) {
+        logger.info(`[AI-GENERATE-EFFECT] spawning retry invocation (depth ${retryDepth + 1})`);
+        await logger.flush();
+
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        if (!supabaseUrl || !serviceKey) {
+          return jsonResponse({ error: parseMsg, rawOutput: llmResponse.content.slice(0, 500) }, 422);
+        }
+
+        // Forward the original auth header so the retry is authenticated
+        const authHeader = req.headers.get("Authorization") ?? `Bearer ${serviceKey}`;
+        const retryResponse = await fetch(`${supabaseUrl}/functions/v1/ai-generate-effect`, {
+          method: "POST",
+          headers: {
+            "Authorization": authHeader,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            prompt,
+            name: effectName || undefined,
+            category,
+            _retryDepth: retryDepth + 1,
+            _retryError: parseMsg,
+            _retryFailedCode: llmResponse.content,
+          }),
+        });
+
+        // Pass through the retry response directly
+        const retryBody = await retryResponse.text();
+        return new Response(retryBody, {
+          status: retryResponse.status,
+          headers: { "Content-Type": "application/json", "Access-Control-Allow-Origin": "*" },
+        });
+      }
+
+      logger.info(`[AI-GENERATE-EFFECT] max retry depth reached, returning error`);
+      logger.info(`[AI-GENERATE-EFFECT] final output: ${llmResponse.content.slice(0, 1000)}`);
       await logger.flush();
       return jsonResponse({ error: parseMsg, rawOutput: llmResponse.content.slice(0, 500) }, 422);
     }
-    const { code, name: generatedName, description, parameterSchema } = extracted;
 
+    const { code, name: generatedName, description, parameterSchema, message } = extracted;
+
+    if (retryDepth > 0) {
+      logger.info(`[AI-GENERATE-EFFECT] retry succeeded at depth ${retryDepth}`);
+    }
     await logger.flush();
     return jsonResponse({
       code,
       name: generatedName,
       description,
       parameterSchema,
+      message: message || undefined,
       model: llmResponse.model,
     });
   } catch (err: unknown) {

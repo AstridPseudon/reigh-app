@@ -279,7 +279,7 @@ export default function AssetPanel({
           media={lightboxQuery.data}
           initialVariantId={lightboxAsset?.variantId ?? lightboxQuery.data.primary_variant_id ?? undefined}
           onClose={() => setLightboxAssetId(null)}
-          readOnly
+          features={{ showTaskDetails: true }}
         />
       )}
     </>

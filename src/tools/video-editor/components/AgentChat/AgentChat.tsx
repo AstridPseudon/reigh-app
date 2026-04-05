@@ -1,8 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Loader2, MessageSquareText, Mic, MicOff, Send, Square, X } from 'lucide-react';
+import { createPortal } from 'react-dom';
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/components/ui/contracts/cn';
+import { useGallerySelection } from '@/shared/contexts/GallerySelectionContext';
 import { useAgentSession, useAgentSessions, useCancelSession, useCreateSession, useSendMessage } from '@/tools/video-editor/hooks/useAgentSession';
+import {
+  buildSummary,
+  useSelectedMediaClips,
+  type SelectedMediaClip,
+} from '@/tools/video-editor/hooks/useSelectedMediaClips';
 import { useAgentVoice } from '@/tools/video-editor/hooks/useAgentVoice';
 import type { AgentTurn } from '@/tools/video-editor/types/agent-session';
 import { AgentChatMessage, AgentChatToolGroup } from './AgentChatMessage';
@@ -19,6 +26,24 @@ export type ToolCallPair = {
 export type RenderedTurn =
   | { kind: 'message'; key: string; turn: AgentTurn }
   | { kind: 'tool_group'; key: string; pairs: ToolCallPair[] };
+
+function mergeSelectedClips(
+  timelineClips: SelectedMediaClip[],
+  galleryClips: SelectedMediaClip[],
+): SelectedMediaClip[] {
+  const clipsByUrl = new Map<string, SelectedMediaClip>();
+
+  for (const clip of [...timelineClips, ...galleryClips]) {
+    const existing = clipsByUrl.get(clip.url);
+    // Prefer gallery entries when the same URL exists in both panes because they retain
+    // generationId metadata that timeline clips for that asset may not carry.
+    if (!existing || (!existing.generationId && clip.generationId)) {
+      clipsByUrl.set(clip.url, clip);
+    }
+  }
+
+  return Array.from(clipsByUrl.values());
+}
 
 function buildRenderedTurns(turns: AgentTurn[]): RenderedTurn[] {
   const items: RenderedTurn[] = [];
@@ -91,6 +116,19 @@ export function AgentChat({ timelineId }: AgentChatProps) {
   const sendMessage = useSendMessage(activeSessionId, timelineId);
   const cancelSession = useCancelSession(activeSessionId);
   const sessionOptions = useMemo(() => sessions.data ?? [], [sessions.data]);
+  const { clips: timelineClips } = useSelectedMediaClips();
+  const {
+    selectedGalleryClips,
+    clearGallerySelection,
+  } = useGallerySelection();
+  const clips = useMemo(
+    () => mergeSelectedClips(timelineClips, selectedGalleryClips),
+    [selectedGalleryClips, timelineClips],
+  );
+  const summary = useMemo(() => {
+    const imageCount = clips.filter((clip) => clip.mediaType === 'image').length;
+    return buildSummary(imageCount, clips.length - imageCount);
+  }, [clips]);
 
   const voice = useAgentVoice({
     onTranscription: (text) => {
@@ -203,17 +241,25 @@ export function AgentChat({ timelineId }: AgentChatProps) {
     const text = (rawText ?? draft).trim();
     if (!text || !activeSessionId || sendingRef.current) return;
 
+    const attachments = clips.map((clip) => ({
+      clipId: clip.clipId,
+      url: clip.url,
+      mediaType: clip.mediaType,
+      generationId: clip.generationId,
+    }));
+
     if (rawText === undefined) setDraft('');
     setOptimisticMessage(text);
     sendingRef.current = true;
     try {
-      await sendMessage.mutateAsync(text);
+      await sendMessage.mutateAsync({ message: text, attachments });
+      clearGallerySelection();
     } finally {
       sendingRef.current = false;
       // Don't clear optimisticMessage here — let the effect clear it
       // when the real turn arrives, avoiding a flash.
     }
-  }, [activeSessionId, draft, sendMessage]);
+  }, [activeSessionId, clearGallerySelection, clips, draft, sendMessage]);
 
   const handleNewSession = useCallback(async () => {
     const session = await createSession.mutateAsync();
@@ -222,16 +268,21 @@ export function AgentChat({ timelineId }: AgentChatProps) {
   }, [createSession]);
 
   const hasMessages = renderedTurns.length > 0;
+  let content: JSX.Element;
 
-  // Recording-only overlay (shown when recording/processing without chat open)
   if (!isOpen && (voice.isRecording || voice.isProcessing)) {
-    return (
+    content = (
       <div className="fixed bottom-5 right-5 z-50 flex items-center gap-3">
         <div className="flex items-center gap-2 rounded-full border border-border/80 bg-background/95 px-4 py-2.5 shadow-lg backdrop-blur">
           {voice.isRecording ? (
             <>
               <span className="inline-flex h-2.5 w-2.5 animate-pulse rounded-full bg-red-500" />
-              <span className="text-sm text-foreground">Recording... {voice.remainingSeconds}s</span>
+              <div className="flex min-w-0 flex-col">
+                <span className="text-sm text-foreground">Recording... {voice.remainingSeconds}s</span>
+                {clips.length > 0 && (
+                  <span className="text-xs text-muted-foreground">{summary}</span>
+                )}
+              </div>
               <Button
                 type="button"
                 size="sm"
@@ -251,11 +302,8 @@ export function AgentChat({ timelineId }: AgentChatProps) {
         </div>
       </div>
     );
-  }
-
-  // Floating bubble when closed
-  if (!isOpen) {
-    return (
+  } else if (!isOpen) {
+    content = (
       <button
         type="button"
         onClick={() => setIsOpen(true)}
@@ -274,172 +322,182 @@ export function AgentChat({ timelineId }: AgentChatProps) {
         )}
       </button>
     );
-  }
-
-  // Expanded chat panel
-  return (
-    <div className="fixed bottom-5 right-5 z-50 flex h-[min(520px,calc(100vh-3rem))] w-[380px] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-border/80 bg-background/95 shadow-2xl backdrop-blur">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-border/70 px-4 py-3">
-        <div className="flex items-center gap-2">
-          <MessageSquareText className="h-4 w-4 text-muted-foreground" />
-          <span className="text-sm font-medium">Timeline Agent</span>
-          {isProcessing && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
-        </div>
-        <div className="flex items-center gap-1">
-          {showKillSwitch && (
-            <Button
-              type="button"
-              size="icon"
-              variant="destructive"
-              className="h-7 w-7"
-              onClick={() => cancelSession.mutate()}
-              disabled={cancelSession.isPending}
-              title="Stop agent"
-            >
-              <Square className="h-3.5 w-3.5" />
-            </Button>
-          )}
-          <Button
-            type="button"
-            size="sm"
-            variant="ghost"
-            className="h-7 px-2 text-xs text-muted-foreground"
-            onClick={() => void handleNewSession()}
-            disabled={createSession.isPending}
-          >
-            New
-          </Button>
-          <Button
-            type="button"
-            size="icon"
-            variant="ghost"
-            className="h-7 w-7"
-            onClick={() => setIsOpen(false)}
-          >
-            <X className="h-4 w-4" />
-          </Button>
-        </div>
-      </div>
-
-      {/* Messages */}
-      <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overscroll-contain px-4 py-3">
-        {activeSession.isLoading && (
-          <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Loading...
+  } else {
+    content = (
+      <div className="fixed bottom-5 right-5 z-50 flex h-[min(520px,calc(100vh-3rem))] w-[380px] max-w-[calc(100vw-2.5rem)] flex-col overflow-hidden rounded-2xl border border-border/80 bg-background/95 shadow-2xl backdrop-blur">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-border/70 px-4 py-3">
+          <div className="flex items-center gap-2">
+            <MessageSquareText className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm font-medium">Timeline Agent</span>
+            {isProcessing && <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />}
           </div>
-        )}
-
-        {!activeSession.isLoading && renderedTurns.length === 0 && (
-          <div className="py-8 text-center text-sm text-muted-foreground">
-            <p>Ask me to edit your timeline.</p>
-            <p className="mt-1 text-xs">Press <kbd className="rounded border border-border px-1 py-0.5 text-[10px]">Cmd+B</kbd> to talk</p>
-          </div>
-        )}
-
-        <div className="flex flex-col gap-2.5">
-          {renderedTurns.map((item) =>
-            item.kind === 'message' ? (
-              <AgentChatMessage key={item.key} turn={item.turn} />
-            ) : (
-              <AgentChatToolGroup key={item.key} pairs={item.pairs} />
-            ),
-          )}
-
-          {optimisticMessage && (
-            <div className="flex w-full justify-end">
-              <div className="max-w-[85%] rounded-2xl bg-primary px-4 py-2.5 text-sm leading-relaxed text-primary-foreground shadow-sm">
-                {optimisticMessage}
-              </div>
-            </div>
-          )}
-
-          {(isProcessing || sendMessage.isPending || optimisticMessage) && (
-            <div className="flex items-center gap-2 py-1 text-xs text-muted-foreground">
-              <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              Thinking...
-            </div>
-          )}
-        </div>
-
-        <div ref={bottomAnchorRef} />
-      </div>
-
-      {/* Input bar */}
-      <div className="border-t border-border/70 px-3 py-3">
-        {voice.isRecording && (
-          <div className="mb-2 flex items-center justify-between rounded-lg bg-red-500/10 px-3 py-2 text-sm">
-            <div className="flex items-center gap-2 text-red-400">
-              <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-red-500" />
-              Recording... {voice.remainingSeconds}s
-            </div>
+          <div className="flex items-center gap-1">
+            {showKillSwitch && (
+              <Button
+                type="button"
+                size="icon"
+                variant="destructive"
+                className="h-7 w-7"
+                onClick={() => cancelSession.mutate()}
+                disabled={cancelSession.isPending}
+                title="Stop agent"
+              >
+                <Square className="h-3.5 w-3.5" />
+              </Button>
+            )}
             <Button
               type="button"
               size="sm"
               variant="ghost"
-              className="h-7 px-2 text-xs text-red-400 hover:text-red-300"
-              onClick={() => voice.stopRecording()}
+              className="h-7 px-2 text-xs text-muted-foreground"
+              onClick={() => void handleNewSession()}
+              disabled={createSession.isPending}
             >
-              Done
+              New
+            </Button>
+            <Button
+              type="button"
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              onClick={() => setIsOpen(false)}
+            >
+              <X className="h-4 w-4" />
             </Button>
           </div>
-        )}
+        </div>
+        {/* Messages */}
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto overscroll-contain px-4 py-3">
+          {activeSession.isLoading && (
+            <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Loading...
+            </div>
+          )}
 
-        {voice.isProcessing && (
-          <div className="mb-2 flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
-            <Loader2 className="h-3.5 w-3.5 animate-spin" />
-            Transcribing...
+          {!activeSession.isLoading && renderedTurns.length === 0 && (
+            <div className="py-8 text-center text-sm text-muted-foreground">
+              <p>Ask me to edit your timeline.</p>
+              <p className="mt-1 text-xs">Press <kbd className="rounded border border-border px-1 py-0.5 text-[10px]">Cmd+B</kbd> to talk</p>
+            </div>
+          )}
+
+          <div className="flex flex-col gap-2.5">
+            {renderedTurns.map((item) =>
+              item.kind === 'message' ? (
+                <AgentChatMessage key={item.key} turn={item.turn} />
+              ) : (
+                <AgentChatToolGroup key={item.key} pairs={item.pairs} />
+              ),
+            )}
+
+            {optimisticMessage && (
+              <div className="flex w-full justify-end">
+                <div className="max-w-[85%] rounded-2xl bg-primary px-4 py-2.5 text-sm leading-relaxed text-primary-foreground shadow-sm">
+                  {optimisticMessage}
+                </div>
+              </div>
+            )}
+
+            {(isProcessing || sendMessage.isPending || optimisticMessage) && (
+              <div className="flex items-center gap-2 py-1 text-xs text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                Thinking...
+              </div>
+            )}
           </div>
-        )}
 
-        {!isProcessing && !sendMessage.isPending && (sendMessage.localError || activeStatus === 'error') && (
-          <div className="mb-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
-            {sendMessage.localError ?? 'Agent error. Try again or start a new conversation.'}
+          <div ref={bottomAnchorRef} />
+        </div>
+
+        {/* Input bar */}
+        <div className="border-t border-border/70 px-3 py-3">
+          {clips.length > 0 && (
+            <div className="mb-2 rounded-lg bg-muted/50 px-3 py-1.5 text-xs text-muted-foreground">
+              {summary}
+            </div>
+          )}
+
+          {voice.isRecording && (
+            <div className="mb-2 flex items-center justify-between rounded-lg bg-red-500/10 px-3 py-2 text-sm">
+              <div className="flex items-center gap-2 text-red-400">
+                <span className="inline-flex h-2 w-2 animate-pulse rounded-full bg-red-500" />
+                Recording... {voice.remainingSeconds}s
+              </div>
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs text-red-400 hover:text-red-300"
+                onClick={() => voice.stopRecording()}
+              >
+                Done
+              </Button>
+            </div>
+          )}
+
+          {voice.isProcessing && (
+            <div className="mb-2 flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
+              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              Transcribing...
+            </div>
+          )}
+
+          {!isProcessing && !sendMessage.isPending && (sendMessage.localError || activeStatus === 'error') && (
+            <div className="mb-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+              {sendMessage.localError ?? 'Agent error. Try again or start a new conversation.'}
+            </div>
+          )}
+
+          <div className="flex items-center gap-2">
+            <input
+              ref={inputRef}
+              type="text"
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              placeholder={voice.isRecording ? 'Recording...' : 'Type or press Cmd+B to talk...'}
+              className="h-10 flex-1 rounded-xl border border-border/70 bg-card px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary/50"
+              disabled={!activeSessionId || isProcessing || voice.isRecording || voice.isProcessing}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' && !event.shiftKey) {
+                  event.preventDefault();
+                  void handleSend();
+                }
+              }}
+            />
+
+            <Button
+              type="button"
+              size="icon"
+              variant={voice.isRecording ? 'destructive' : 'outline'}
+              className="h-10 w-10 shrink-0 rounded-xl"
+              onClick={() => voice.toggleRecording()}
+              disabled={!activeSessionId || voice.isProcessing || sendMessage.isPending}
+              title={voice.isRecording ? 'Stop recording' : 'Voice input (Cmd+B)'}
+            >
+              {voice.isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+            </Button>
+
+            <Button
+              type="button"
+              size="icon"
+              className="h-10 w-10 shrink-0 rounded-xl"
+              onClick={() => void handleSend()}
+              disabled={!draft.trim() || !activeSessionId || isProcessing || sendMessage.isPending}
+              title="Send"
+            >
+              <Send className="h-4 w-4" />
+            </Button>
           </div>
-        )}
-
-        <div className="flex items-center gap-2">
-          <input
-            ref={inputRef}
-            type="text"
-            value={draft}
-            onChange={(event) => setDraft(event.target.value)}
-            placeholder={voice.isRecording ? 'Recording...' : 'Type or press Cmd+B to talk...'}
-            className="h-10 flex-1 rounded-xl border border-border/70 bg-card px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary/50"
-            disabled={!activeSessionId || isProcessing || voice.isRecording || voice.isProcessing}
-            onKeyDown={(event) => {
-              if (event.key === 'Enter' && !event.shiftKey) {
-                event.preventDefault();
-                void handleSend();
-              }
-            }}
-          />
-
-          <Button
-            type="button"
-            size="icon"
-            variant={voice.isRecording ? 'destructive' : 'outline'}
-            className="h-10 w-10 shrink-0 rounded-xl"
-            onClick={() => voice.toggleRecording()}
-            disabled={!activeSessionId || voice.isProcessing || sendMessage.isPending}
-            title={voice.isRecording ? 'Stop recording' : 'Voice input (Cmd+B)'}
-          >
-            {voice.isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-          </Button>
-
-          <Button
-            type="button"
-            size="icon"
-            className="h-10 w-10 shrink-0 rounded-xl"
-            onClick={() => void handleSend()}
-            disabled={!draft.trim() || !activeSessionId || isProcessing || sendMessage.isPending}
-            title="Send"
-          >
-            <Send className="h-4 w-4" />
-          </Button>
         </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  if (typeof document === 'undefined') {
+    return null;
+  }
+
+  return createPortal(content, document.body);
 }

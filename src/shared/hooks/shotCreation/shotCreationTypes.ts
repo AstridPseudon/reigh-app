@@ -1,4 +1,4 @@
-import type { Shot, GenerationRow } from '@/domains/generation/types';
+import type { Shot } from '@/domains/generation/types';
 import type { Dispatch, SetStateAction } from 'react';
 import type { QueryClient } from '@tanstack/react-query';
 
@@ -12,6 +12,7 @@ export interface ShotCreationResult {
 export interface CreateShotOptions {
   name?: string;
   generationId?: string;
+  generationIds?: string[];
   generationPreview?: {
     imageUrl?: string;
     thumbUrl?: string;
@@ -71,6 +72,20 @@ export interface CreateShotWithGenerationPathInput {
   }) => Promise<AtomicCreateResult>;
 }
 
+export interface CreateShotWithGenerationsPathInput {
+  selectedProjectId: string;
+  shotName: string;
+  generationIds: string[];
+  shots: Shot[] | undefined;
+  queryClient: QueryClient;
+  createShot: (input: {
+    name: string;
+    projectId: string;
+    aspectRatio?: string;
+    shouldSelectAfterCreation: boolean;
+  }) => Promise<CreateShotMutationResult>;
+}
+
 export interface CreateShotWithFilesPathInput {
   selectedProjectId: string;
   shotName: string;
@@ -125,6 +140,3 @@ export interface CreateShotActionInput {
   createShotWithImageMutation: CreateShotWithGenerationPathInput['createShotWithImage'];
   handleExternalImageDropMutation: CreateShotWithFilesPathInput['uploadToShot'];
 }
-
-type ShotGenerationPreview = GenerationPreviewInput;
-type ShotGenerationRow = GenerationRow;

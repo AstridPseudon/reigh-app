@@ -15,6 +15,7 @@ import {
   createEmptyShotPath,
   createShotWithFilesPath,
   createShotWithGenerationPath,
+  createShotWithGenerationsPath,
 } from './shotCreationPaths';
 
 export function useCreateShotAction({
@@ -37,6 +38,7 @@ export function useCreateShotAction({
     const {
       name,
       generationId,
+      generationIds,
       generationPreview,
       files,
       aspectRatio,
@@ -45,7 +47,7 @@ export function useCreateShotAction({
     } = options;
 
     const shotName = name || generateShotName();
-    const imageCount = files?.length || (generationId ? 1 : 0);
+    const imageCount = files?.length || generationIds?.length || (generationId ? 1 : 0);
     if (dispatchSkeletonEvents && imageCount > 0) {
       dispatchShotSkeletonEvent(imageCount);
     }
@@ -53,7 +55,16 @@ export function useCreateShotAction({
     setIsCreating(true);
     try {
       let result: ShotCreationResult;
-      if (generationId && !files?.length) {
+      if (generationIds?.length && !files?.length) {
+        result = await createShotWithGenerationsPath({
+          selectedProjectId,
+          shotName,
+          generationIds,
+          shots,
+          queryClient,
+          createShot: createShotMutation,
+        });
+      } else if (generationId && !files?.length) {
         result = await createShotWithGenerationPath({
           selectedProjectId,
           shotName,

@@ -26,13 +26,15 @@ export type ToolHandler = (
 ) => ToolResult | Promise<ToolResult>;
 
 type SupabaseError = { message: string };
+type SupabaseListResult = Promise<{ data: unknown; error: SupabaseError | null }>;
 type SupabaseMaybeSingleResult = Promise<{ data: unknown; error: SupabaseError | null }>;
 type SupabaseUpdateResult = Promise<{ error: SupabaseError | null }>;
+type SupabaseInsertResult = Promise<{ data?: unknown; error: SupabaseError | null }>;
 
 type SupabaseSelectQuery = {
-  eq: (column: string, value: string) => {
-    maybeSingle: () => SupabaseMaybeSingleResult;
-  };
+  eq: (column: string, value: string) => SupabaseSelectQuery;
+  in: (column: string, values: string[]) => SupabaseListResult;
+  maybeSingle: () => SupabaseMaybeSingleResult;
 };
 
 type SupabaseUpdateQuery = {
@@ -42,6 +44,7 @@ type SupabaseUpdateQuery = {
 export type SupabaseAdmin = {
   from: (table: string) => {
     select: (query: string) => SupabaseSelectQuery;
+    insert: (payload: Record<string, unknown> | Record<string, unknown>[]) => SupabaseInsertResult;
     update: (payload: Record<string, unknown>) => SupabaseUpdateQuery;
   };
   rpc: (
@@ -73,9 +76,18 @@ export type LlmMessage = {
   }>;
 };
 
+export type SelectedClipPayload = {
+  clip_id: string;
+  url: string;
+  media_type: "image" | "video";
+  generation_id?: string;
+  prompt?: string;
+};
+
 export interface AgentInvocationBody {
   session_id?: unknown;
   user_message?: unknown;
+  selected_clips?: unknown;
 }
 
 export interface TimelineRow {

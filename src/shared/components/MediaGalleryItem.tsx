@@ -16,7 +16,12 @@ import { useMediaGalleryItemState } from "./MediaGalleryItem/hooks/useMediaGalle
 import { useStableMediaUrls } from "./MediaGalleryItem/hooks/useStableMediaUrls";
 import { useShotPositionChecks } from "./MediaGalleryItem/hooks/useShotPositionChecks";
 import { useItemInteraction } from "./MediaGalleryItem/hooks/useItemInteraction";
-import { setGenerationDragData, createDragPreview } from '@/shared/lib/dnd/dragDrop';
+import {
+  setGenerationDragData,
+  setMultiGenerationDragData,
+  createDragPreview,
+  type GenerationDropData,
+} from '@/shared/lib/dnd/dragDrop';
 import type { GeneratedImageWithMetadata } from '@/shared/components/MediaGallery/types';
 import { parseRatio } from '@/shared/lib/media/aspectRatios';
 import { CreateShotModal } from "@/features/shots/components/CreateShotModal";
@@ -78,6 +83,22 @@ function resolveAspectRatioPadding(
 
   return '100%';
 }
+
+function toGenerationDragData(image: GeneratedImageWithMetadata): GenerationDropData {
+  const generationId = getGenerationId(image) ?? image.id;
+  const variantId = image.primary_variant_id
+    ?? (typeof image.metadata?.variant_id === 'string' ? image.metadata.variant_id : undefined)
+    ?? (image.generation_id ? image.id : undefined);
+
+  return {
+    generationId,
+    variantId,
+    variantType: image.type?.includes('video') || image.isVideo ? 'video' : 'image',
+    imageUrl: image.url,
+    thumbUrl: image.thumbUrl,
+    metadata: image.metadata,
+  };
+}
 import { isImageEditTaskType } from "@/shared/lib/taskParamsUtils";
 import { useMarkVariantViewed } from "@/shared/hooks/variants/useMarkVariantViewed";
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
@@ -89,6 +110,8 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
   features,
   actions,
   loading,
+  isSelected = false,
+  selectedItems = [],
   projectAspectRatio,
   dataTour,
 }) => {
@@ -133,6 +156,7 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
     onDelete,
     onToggleStar,
     onImageClick,
+    onContextMenu,
     onImageLoaded,
   } = actions;
   const {
@@ -263,24 +287,25 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
       e.preventDefault();
       return;
     }
-    const variantId = image.primary_variant_id
-      ?? (typeof image.metadata?.variant_id === 'string' ? image.metadata.variant_id : undefined)
-      ?? (image.generation_id ? image.id : undefined);
-    const variantType = image.type?.includes('video') || image.isVideo ? 'video' : 'image';
+    const selectedDragItems = isSelected && selectedItems.some((item) => item.id === image.id)
+      ? selectedItems
+      : [];
+
     setIsDragging(true);
-    setGenerationDragData(e, {
-      generationId: actualGenerationId ?? image.id,
-      variantId,
-      variantType,
-      imageUrl: image.url,
-      thumbUrl: image.thumbUrl,
-      metadata: image.metadata
-    });
-    const cleanup = createDragPreview(e);
+    if (selectedDragItems.length > 1) {
+      setMultiGenerationDragData(e, selectedDragItems.map(toGenerationDragData));
+    } else {
+      setGenerationDragData(e, toGenerationDragData(image));
+    }
+
+    const cleanup = createDragPreview(
+      e,
+      selectedDragItems.length > 1 ? { badgeText: String(selectedDragItems.length) } : undefined,
+    );
     if (cleanup) {
       setTimeout(cleanup, 0);
     }
-  }, [actualGenerationId, image, isMobile, setIsDragging]);
+  }, [image, isMobile, isSelected, selectedItems, setIsDragging]);
   const handleDragEnd = useCallback(() => {
     setIsDragging(false);
   }, [setIsDragging]);
@@ -324,7 +349,10 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
   }
   const imageContent = (
     <div
-        className={`border rounded-lg overflow-hidden hover:shadow-md transition-all duration-200 relative group bg-card ${
+        data-gallery-item-id={image.id}
+        className={`border rounded-lg overflow-hidden hover:shadow-md transition-[opacity,transform] duration-200 relative group bg-card ${
+          isSelected ? 'outline outline-2 outline-sky-400 -outline-offset-2 ' : ''
+        }${
           isDragging ? 'opacity-50 scale-75' : ''
         } ${!isMobile ? 'cursor-grab active:cursor-grabbing' : ''}`}
         draggable={!isMobile}
@@ -332,6 +360,7 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
         onDragEnd={handleDragEnd}
         onMouseEnter={handleMouseEnter}
         data-tour={dataTour}
+        onContextMenu={(event) => onContextMenu?.(event, image)}
         onTouchStart={isMobile && !enableSingleClick && !isVideoContent ? handleTouchStart : undefined}
         onTouchEnd={isMobile && !enableSingleClick && !isVideoContent ? handleInteraction : undefined}
     >

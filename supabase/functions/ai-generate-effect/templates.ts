@@ -24,6 +24,7 @@ interface ExtractedEffectMeta {
   name: string;
   description: string;
   parameterSchema: ParameterDefinition[];
+  message: string;
 }
 
 interface TextRange {
@@ -36,6 +37,8 @@ export interface BuildGenerateEffectMessagesInput {
   name?: string;
   category: EffectCategory;
   existingCode?: string;
+  /** When set, the effect failed validation and needs a targeted fix. */
+  validationError?: string;
 }
 
 const EFFECT_COMPONENT_CONTRACT = `EffectComponentProps interface:
@@ -63,6 +66,7 @@ const OUTPUT_RULES = `Output requirements:
 - Begin with a single metadata line: // NAME: <fun, playful, creative effect name — be witty and memorable, like naming a cocktail or a wrestling move, 2-4 words>
 - Follow with: // DESCRIPTION: <one concise effect description>
 - Follow with: // PARAMS: <JSON array of parameter definitions>
+- Follow with: // MESSAGE: <brief note>
 - Use [] for // PARAMS when the effect does not need user-adjustable controls
 - Each parameter definition must include name, label, description, type, and default
 - Number params may include min, max, and step
@@ -130,9 +134,27 @@ export function buildGenerateEffectMessages(input: BuildGenerateEffectMessagesIn
   systemMsg: string;
   userMsg: string;
 } {
-  const { prompt, name, category, existingCode } = input;
-  const modeInstructions = existingCode?.trim()
-    ? `Edit mode:
+  const { prompt, name, category, existingCode, validationError } = input;
+
+  let modeInstructions: string;
+
+  if (validationError && existingCode?.trim()) {
+    // Retry mode: the previous generation failed validation
+    modeInstructions = `Fix mode:
+- The code below was generated for this effect but FAILED validation with this error:
+
+  ERROR: ${validationError}
+
+- Fix ONLY the issue described in the error. Keep everything else the same.
+- The rest of the effect logic, structure, and component name are fine — just fix the specific problem.
+- Make sure the fix follows the output requirements and validation rules above.
+
+Code that needs fixing:
+\`\`\`ts
+${existingCode.trim()}
+\`\`\``;
+  } else if (existingCode?.trim()) {
+    modeInstructions = `Edit mode:
 - You are making a TARGETED EDIT to an existing, working effect
 - CRITICAL: Start from the existing code below and modify ONLY what the user asked for
 - Do NOT rewrite the effect from scratch — preserve the existing structure, variable names, and logic
@@ -143,12 +165,27 @@ export function buildGenerateEffectMessages(input: BuildGenerateEffectMessagesIn
 Existing code (modify this, do not replace it):
 \`\`\`ts
 ${existingCode.trim()}
-\`\`\``
-    : `Creation mode:
+\`\`\``;
+  } else {
+    modeInstructions = `Creation mode:
 - Generate a new custom effect from scratch
 - Pick a clear component name that matches the effect`;
+  }
 
-  const systemMsg = `You are a Remotion custom effect generator.
+  const systemMsg = `You are an AI assistant for a video effect creation tool.
+
+TRIAGE:
+- First decide whether the user's latest request is a QUESTION MODE request or an EFFECT MODE request.
+- QUESTION MODE: The user is asking for an explanation, advice, clarification, brainstorming help, or other conversational guidance instead of asking you to create or edit effect code.
+- EFFECT MODE: The user wants a new effect, a revision to an existing effect, or a fix to effect code.
+- QUESTION MODE example: "What kind of entrance effect would feel energetic for a sports intro?"
+- EFFECT MODE example: "Make the shake faster and add a cyan glow."
+- In QUESTION MODE, do NOT generate code. Respond with:
+  // QUESTION_RESPONSE
+  <your conversational answer for the user>
+- In EFFECT MODE, follow all EFFECT MODE rules below and return code with the required metadata.
+
+EFFECT MODE rules:
 
 ${EFFECT_COMPONENT_CONTRACT}
 
@@ -158,7 +195,7 @@ ${OUTPUT_RULES}
 
 ${VALIDATION_RULES}`;
 
-  const userMsg = `Build a ${category} Remotion effect${name ? ` called "${name}"` : ''} for this request:
+  const userMsg = `User request for a ${category} effect${name ? ` called "${name}"` : ''}:
 "${prompt}"
 
 ${CATEGORY_GUIDANCE[category]}
@@ -172,7 +209,8 @@ Implementation guidance:
 - Use effectFrames fallback values when needed so the effect works if the prop is undefined
 - Avoid browser APIs or unsupported globals
 
-Return only the final code plus the required metadata lines.`;
+If this is QUESTION MODE, return only the conversational response.
+If this is EFFECT MODE, return only the final code plus the required metadata lines.`;
 
   return { systemMsg, userMsg };
 }
@@ -180,6 +218,8 @@ Return only the final code plus the required metadata lines.`;
 const NAME_PATTERN = /^\s*\/\/\s*NAME\s*:\s*(.*)$/im;
 const DESCRIPTION_PATTERN = /^\s*\/\/\s*DESCRIPTION\s*:\s*(.*)$/im;
 const PARAMS_PATTERN = /^\s*\/\/\s*PARAMS\s*:\s*/im;
+const QUESTION_RESPONSE_MARKER = /^\s*\/\/\s*QUESTION_RESPONSE\s*$/im;
+const MESSAGE_PATTERN = /^\s*\/\/\s*MESSAGE\s*:\s*(.*)$/im;
 
 function stripMarkdownFences(text: string): string {
   return text
@@ -217,6 +257,21 @@ function extractDescription(text: string): { description: string; range: TextRan
 
   return {
     description: match[1]?.trim() ?? '',
+    range: {
+      start: match.index,
+      end: getLineEnd(text, match.index),
+    },
+  };
+}
+
+function extractMessage(text: string): { message: string; range: TextRange | null } {
+  const match = MESSAGE_PATTERN.exec(text);
+  if (!match || match.index === undefined) {
+    return { message: '', range: null };
+  }
+
+  return {
+    message: match[1]?.trim() ?? '',
     range: {
       start: match.index,
       end: getLineEnd(text, match.index),
@@ -340,12 +395,29 @@ function stripRanges(text: string, ranges: Array<TextRange | null>): string {
     .trim();
 }
 
+export function extractQuestionResponse(responseText: string): { isQuestion: true; message: string } | null {
+  const normalized = stripMarkdownFences(responseText);
+  const match = QUESTION_RESPONSE_MARKER.exec(normalized);
+
+  if (!match || match.index === undefined) {
+    return null;
+  }
+
+  const markerEnd = getLineEnd(normalized, match.index);
+
+  return {
+    isQuestion: true,
+    message: normalized.slice(markerEnd).trim(),
+  };
+}
+
 export function extractEffectCodeAndMeta(responseText: string): ExtractedEffectMeta {
   const normalized = stripMarkdownFences(responseText);
   const { name, range: nameRange } = extractName(normalized);
   const { description, range: descriptionRange } = extractDescription(normalized);
   const { parameterSchema, range: parameterSchemaRange } = extractParameterSchema(normalized);
-  const rawCode = stripRanges(normalized, [nameRange, descriptionRange, parameterSchemaRange]);
+  const { message, range: messageRange } = extractMessage(normalized);
+  const rawCode = stripRanges(normalized, [nameRange, descriptionRange, parameterSchemaRange, messageRange]);
 
   // Auto-fix common LLM typos before validation
   const code = rawCode
@@ -362,6 +434,7 @@ export function extractEffectCodeAndMeta(responseText: string): ExtractedEffectM
     name,
     description,
     parameterSchema,
+    message,
   };
 }
 

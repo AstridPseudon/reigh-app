@@ -13,42 +13,19 @@ import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeErro
 // MIME type for generation drag data
 const GENERATION_MIME_TYPE = 'application/x-generation';
 const GENERATION_TEXT_PREFIX = '__reigh_generation__:';
+export const GENERATION_MULTI_DRAG_TYPE = 'application/x-generation-multi';
+const GENERATION_MULTI_TEXT_PREFIX = '__reigh_generation_multi__:';
 
 // Droppable ID for creating a new shot from a dropped generation
 export const NEW_GROUP_DROPPABLE_ID = 'new-shot-group-dropzone';
 
 /**
- * Cross-browser types list - may be DOMStringList (contains/item) or string[] (includes).
- * All properties optional since we check with typeof before calling.
- */
-interface DataTransferTypesList {
-  contains?: (s: string) => boolean;
-  includes?: (s: string) => boolean;
-  item?: (i: number) => string | null;
-  length?: number;
-  [index: number]: string;
-}
-
-/**
  * Cross-browser safe check for whether a DataTransfer contains a type.
- *
- * In Chromium, `dataTransfer.types` is often a DOMStringList (has `.contains`, may not have `.includes`).
- * In TS typings, it's usually `string[]`.
  */
 function hasDataTransferType(dataTransfer: DataTransfer, type: string): boolean {
-  const types = dataTransfer?.types as DataTransferTypesList | undefined;
+  const types = dataTransfer?.types;
   if (!types) return false;
 
-  // DOMStringList path
-  if (typeof types.contains === 'function') {
-    try {
-      return !!types.contains(type);
-    } catch {
-      // ignore
-    }
-  }
-
-  // Array path
   if (typeof types.includes === 'function') {
     try {
       return !!types.includes(type);
@@ -57,22 +34,9 @@ function hasDataTransferType(dataTransfer: DataTransfer, type: string): boolean 
     }
   }
 
-  // DOMStringList `.item(i)` path
-  if (typeof types.item === 'function' && typeof types.length === 'number') {
-    try {
-      for (let i = 0; i < types.length; i++) {
-        if (types.item(i) === type) return true;
-      }
-    } catch {
-      // ignore
-    }
-  }
-
-  // Final fallback: numeric indexing
-  if (typeof types.length === 'number') {
-    for (let i = 0; i < types.length; i++) {
-      if (types[i] === type) return true;
-    }
+  const length = typeof types.length === 'number' ? types.length : 0;
+  for (let i = 0; i < length; i += 1) {
+    if (types[i] === type) return true;
   }
 
   return false;
@@ -93,7 +57,20 @@ export interface GenerationDropData {
 /**
  * Type of drag operation
  */
-export type DragType = 'generation' | 'file' | 'none';
+export type DragType = 'generation' | 'generation-multi' | 'file' | 'none';
+
+function isMultiGenerationDrag(e: React.DragEvent): boolean {
+  if (hasDataTransferType(e.dataTransfer, GENERATION_MULTI_DRAG_TYPE)) {
+    return true;
+  }
+
+  if (!hasDataTransferType(e.dataTransfer, 'text/plain')) {
+    return false;
+  }
+
+  const textPayload = e.dataTransfer.getData('text/plain');
+  return parseMultiGenerationDropData(textPayload) !== null;
+}
 
 /**
  * Check if the drag event contains generation data.
@@ -123,6 +100,7 @@ export function isFileDrag(e: React.DragEvent): boolean {
  * Determine the type of drag operation
  */
 export function getDragType(e: React.DragEvent): DragType {
+  if (isMultiGenerationDrag(e)) return 'generation-multi';
   if (isGenerationDrag(e)) return 'generation';
   if (isFileDrag(e)) return 'file';
   return 'none';
@@ -139,6 +117,20 @@ export function setGenerationDragData(e: React.DragEvent, data: GenerationDropDa
   // Fallback: some browsers/targets are inconsistent about exposing custom MIME types during dragover.
   try {
     e.dataTransfer.setData('text/plain', `${GENERATION_TEXT_PREFIX}${serialized}`);
+  } catch {
+    // ignore
+  }
+}
+
+export function setMultiGenerationDragData(
+  e: React.DragEvent,
+  items: GenerationDropData[],
+): void {
+  const serialized = JSON.stringify(items);
+  e.dataTransfer.effectAllowed = 'copy';
+  e.dataTransfer.setData(GENERATION_MULTI_DRAG_TYPE, serialized);
+  try {
+    e.dataTransfer.setData('text/plain', `${GENERATION_MULTI_TEXT_PREFIX}${serialized}`);
   } catch {
     // ignore
   }
@@ -166,6 +158,32 @@ function parseGenerationDropData(dataString: string): GenerationDropData | null 
   return data;
 }
 
+function parseMultiGenerationDropData(dataString: string): GenerationDropData[] | null {
+  if (!dataString) {
+    return null;
+  }
+
+  let data: unknown;
+  try {
+    const normalized = dataString.startsWith(GENERATION_MULTI_TEXT_PREFIX)
+      ? dataString.slice(GENERATION_MULTI_TEXT_PREFIX.length)
+      : dataString;
+    data = JSON.parse(normalized);
+  } catch {
+    return null;
+  }
+
+  if (!Array.isArray(data) || data.length === 0) {
+    return null;
+  }
+
+  const items = data
+    .map((item) => parseGenerationDropData(JSON.stringify(item)))
+    .filter((item): item is GenerationDropData => item !== null);
+
+  return items.length === data.length ? items : null;
+}
+
 /**
  * Get and parse generation drag data from the dataTransfer object
  * Call this in onDrop
@@ -183,11 +201,23 @@ export function getGenerationDropData(e: React.DragEvent): GenerationDropData | 
   }
 }
 
+export function getMultiGenerationDropData(e: React.DragEvent): GenerationDropData[] | null {
+  try {
+    const dataString =
+      e.dataTransfer.getData(GENERATION_MULTI_DRAG_TYPE) ||
+      e.dataTransfer.getData('text/plain');
+    return parseMultiGenerationDropData(dataString);
+  } catch (error) {
+    normalizeAndPresentError(error, { context: 'DragDrop', showToast: false });
+    return null;
+  }
+}
+
 /**
  * Check if the drag event is a valid drop target (generation or file)
  */
 export function isValidDropTarget(e: React.DragEvent): boolean {
-  return isGenerationDrag(e) || isFileDrag(e);
+  return isMultiGenerationDrag(e) || isGenerationDrag(e) || isFileDrag(e);
 }
 
 /**
@@ -199,9 +229,10 @@ export function createDragPreview(
   options?: { 
     size?: number; 
     borderColor?: string;
+    badgeText?: string;
   }
 ): (() => void) | null {
-  const { size = 80, borderColor = '#fff' } = options || {};
+  const { size = 80, borderColor = '#fff', badgeText } = options || {};
   
   if (!e.dataTransfer.setDragImage || !(e.currentTarget instanceof HTMLElement)) {
     return null;
@@ -225,6 +256,26 @@ export function createDragPreview(
     imgClone.style.height = '100%';
     imgClone.style.objectFit = 'cover';
     preview.appendChild(imgClone);
+  }
+
+  if (badgeText) {
+    const badge = document.createElement('div');
+    badge.textContent = badgeText;
+    badge.style.position = 'absolute';
+    badge.style.right = '6px';
+    badge.style.top = '6px';
+    badge.style.minWidth = '20px';
+    badge.style.height = '20px';
+    badge.style.padding = '0 6px';
+    badge.style.borderRadius = '9999px';
+    badge.style.background = 'hsl(202 89% 48%)';
+    badge.style.color = '#fff';
+    badge.style.fontSize = '12px';
+    badge.style.fontWeight = '700';
+    badge.style.lineHeight = '20px';
+    badge.style.textAlign = 'center';
+    badge.style.boxShadow = '0 2px 4px hsl(0 0% 0% / 0.25)';
+    preview.appendChild(badge);
   }
 
   document.body.appendChild(preview);

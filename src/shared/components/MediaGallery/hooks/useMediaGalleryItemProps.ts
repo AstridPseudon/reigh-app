@@ -8,6 +8,7 @@ import type {
 } from '@/shared/components/MediaGalleryItem/types';
 import type { DisplayableMetadata, GeneratedImageWithMetadata, SimplifiedShotOption } from '../types';
 import type { AddToShotHandler } from '@/shared/types/imageHandlers';
+import type { MouseEvent } from 'react';
 
 function resolveLightboxDeletingId(
   isDeleting: string | boolean | null | undefined,
@@ -42,6 +43,7 @@ interface UseMediaGalleryItemFeaturesProps {
   onToggleStar?: (id: string, starred: boolean) => void;
   onApplySettings?: (metadata: DisplayableMetadata | undefined) => void;
   onImageClick?: (image: GeneratedImageWithMetadata) => void;
+  onContextMenu?: (event: MouseEvent, image: GeneratedImageWithMetadata) => void;
   isDeleting?: string | boolean | null;
 }
 
@@ -112,6 +114,7 @@ export function useMediaGalleryItemProps({
   onToggleStar,
   onApplySettings,
   onImageClick,
+  onContextMenu,
   isDeleting,
   selectedShotIdLocal,
   setSelectedShotIdLocal,
@@ -230,8 +233,9 @@ export function useMediaGalleryItemProps({
       onDownloadImage,
       onToggleStar,
       onImageClick,
+      onContextMenu,
     }),
-    [onOpenLightbox, onDelete, onApplySettings, onDownloadImage, onToggleStar, onImageClick],
+    [onOpenLightbox, onDelete, onApplySettings, onDownloadImage, onToggleStar, onImageClick, onContextMenu],
   );
 
   const itemLoading = useMemo<Omit<ItemLoading, 'shouldLoad' | 'isPriority' | 'isGalleryLoading'>>(

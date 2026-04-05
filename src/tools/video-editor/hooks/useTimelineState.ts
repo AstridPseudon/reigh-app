@@ -1,4 +1,5 @@
-import { useCallback, useLayoutEffect, useMemo } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
+import { useGallerySelection } from '@/shared/contexts/GallerySelectionContext';
 import { useProjectSelectionContext } from '@/shared/contexts/ProjectContext';
 import { useVideoEditorRuntime } from '@/tools/video-editor/contexts/DataProviderContext';
 import { ROW_HEIGHT, TIMELINE_START_LEFT } from '@/tools/video-editor/lib/coordinate-utils';
@@ -62,8 +63,13 @@ export function useTimelineState(): UseTimelineStateResult {
     dataHook.selectedTrackId,
   );
   const { selectedProjectId } = useProjectSelectionContext();
+  const { clearGallerySelection, registerPeerClear } = useGallerySelection();
 
   const selectClip = useCallback((clipId: string, opts?: SelectClipOptions) => {
+    if (!opts?.toggle) {
+      clearGallerySelection();
+    }
+
     let nextPrimaryClipId = clipId;
 
     if (opts?.toggle) {
@@ -79,9 +85,11 @@ export function useTimelineState(): UseTimelineStateResult {
 
     selectClipState(clipId, opts);
     dataHook.setSelectedClipId(nextPrimaryClipId);
-  }, [dataHook, primaryClipId, selectClipState, selectedClipIdsRef]);
+  }, [clearGallerySelection, dataHook, primaryClipId, selectClipState, selectedClipIdsRef]);
 
   const selectClips = useCallback((clipIds: Iterable<string>) => {
+    clearGallerySelection();
+
     const nextSelection = new Set<string>();
     for (const clipId of clipIds) {
       nextSelection.add(clipId);
@@ -89,7 +97,7 @@ export function useTimelineState(): UseTimelineStateResult {
 
     selectClipsState(nextSelection);
     dataHook.setSelectedClipId(getPrimaryClipId(nextSelection, null));
-  }, [dataHook, selectClipsState]);
+  }, [clearGallerySelection, dataHook, selectClipsState]);
 
   const addToSelection = useCallback((clipIds: Iterable<string>) => {
     const nextSelection = new Set(selectedClipIdsRef.current);
@@ -104,9 +112,22 @@ export function useTimelineState(): UseTimelineStateResult {
   }, [addToSelectionState, dataHook, primaryClipId, selectedClipIdsRef]);
 
   const clearSelection = useCallback(() => {
+    clearGallerySelection();
+    clearSelectionState();
+    dataHook.setSelectedClipId(null);
+  }, [clearGallerySelection, clearSelectionState, dataHook]);
+
+  const clearTimelineOnly = useCallback(() => {
     clearSelectionState();
     dataHook.setSelectedClipId(null);
   }, [clearSelectionState, dataHook]);
+
+  useEffect(() => {
+    registerPeerClear(clearTimelineOnly);
+    return () => {
+      registerPeerClear(null);
+    };
+  }, [clearTimelineOnly, registerPeerClear]);
 
   const setSelectedClipId = useCallback<React.Dispatch<React.SetStateAction<string | null>>>((updater) => {
     const nextClipId = typeof updater === 'function'
@@ -136,8 +157,9 @@ export function useTimelineState(): UseTimelineStateResult {
       return;
     }
 
+    clearGallerySelection();
     selectClipState(dataHook.selectedClipId);
-  }, [dataHook.selectedClipId, primaryClipId, selectClipState]);
+  }, [clearGallerySelection, dataHook.selectedClipId, primaryClipId, selectClipState]);
 
   const dragCoordinator = useDragCoordinator({
     dataRef: dataHook.dataRef,

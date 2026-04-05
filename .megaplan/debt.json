@@ -424,6 +424,278 @@
       "resolved": false,
       "resolved_by": null,
       "resolved_at": null
+    },
+    {
+      "id": "DEBT-026",
+      "subsystem": "edit-mode-persistence",
+      "concern": "legacy persisted 'enhance' values might exist in storage",
+      "flag_ids": [
+        "image-edit-mode-normalization"
+      ],
+      "plan_ids": [
+        "refactor-edit-mode-ownership-20260331-1842"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-31T16:57:09Z",
+      "updated_at": "2026-03-31T16:57:09Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-027",
+      "subsystem": "edit-mode-persistence",
+      "concern": "no-migration assumption for enhance\u2192upscale is under-supported",
+      "flag_ids": [
+        "correctness-1"
+      ],
+      "plan_ids": [
+        "refactor-edit-mode-ownership-20260331-1842"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-31T16:57:09Z",
+      "updated_at": "2026-03-31T16:57:09Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-028",
+      "subsystem": "edit-mode-validation",
+      "concern": "validation grep for 'enhance' will false-fail due to video code",
+      "flag_ids": [
+        "correctness-2"
+      ],
+      "plan_ids": [
+        "refactor-edit-mode-ownership-20260331-1842"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-31T16:57:09Z",
+      "updated_at": "2026-03-31T16:57:09Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-029",
+      "subsystem": "edit-mode-validation",
+      "concern": "grep scope too broad \u2014 hits video submode code",
+      "flag_ids": [
+        "image-edit-mode-validation-scope"
+      ],
+      "plan_ids": [
+        "refactor-edit-mode-ownership-20260331-1842"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-31T16:57:09Z",
+      "updated_at": "2026-03-31T16:57:09Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-030",
+      "subsystem": "edit-mode-persistence",
+      "concern": "enhance/upscale only partially resolved \u2014 persisted values not validated",
+      "flag_ids": [
+        "issue_hints"
+      ],
+      "plan_ids": [
+        "refactor-edit-mode-ownership-20260331-1842"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-31T16:57:09Z",
+      "updated_at": "2026-03-31T16:57:09Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-031",
+      "subsystem": "edit-mode-validation",
+      "concern": "validation scope reaches unrelated video code",
+      "flag_ids": [
+        "scope"
+      ],
+      "plan_ids": [
+        "refactor-edit-mode-ownership-20260331-1842"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-31T16:57:09Z",
+      "updated_at": "2026-03-31T16:57:09Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-032",
+      "subsystem": "edit-mode-persistence",
+      "concern": "no read-side normalization test for legacy 'enhance' values",
+      "flag_ids": [
+        "verification"
+      ],
+      "plan_ids": [
+        "refactor-edit-mode-ownership-20260331-1842"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-03-31T16:57:09Z",
+      "updated_at": "2026-03-31T16:57:09Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-033",
+      "subsystem": "does-the-change-touch-all-locations-and-supporting-infrastructure",
+      "concern": "does the change touch all locations and supporting infrastructure?: searched all `isrecord` imports from `./llm/messages.ts` under `supabase/functions/ai-timeline-agent/` and found four dependent files: `index.ts`, `db.ts`, `tool-calls.ts`, and `selectedclips.ts`. step 6 still lists only `generation.ts`, `create-task.ts`, and `messages.ts` as update targets, so it does not currently touch all locations that depend on the symbol being moved.",
+      "flag_ids": [
+        "all_locations-1"
+      ],
+      "plan_ids": [
+        "cleanup-and-quality-pass-on-20260404-0138"
+      ],
+      "occurrence_count": 2,
+      "created_at": "2026-04-04T00:18:09Z",
+      "updated_at": "2026-04-04T00:18:21Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-034",
+      "subsystem": "does-the-change-touch-all-locations-and-supporting-infrastructure",
+      "concern": "does the change touch all locations and supporting infrastructure?: checked `supabase/functions/ai-timeline-agent/selectedclips.test.ts:1` through `supabase/functions/ai-timeline-agent/selectedclips.ts:1`. the supporting test infrastructure exists and would catch one of these export-chain breaks, but only after later refactors because the plan schedules the edge vitest run in step 9 rather than immediately after the step 6 export move.",
+      "flag_ids": [
+        "all_locations-2"
+      ],
+      "plan_ids": [
+        "cleanup-and-quality-pass-on-20260404-0138"
+      ],
+      "occurrence_count": 2,
+      "created_at": "2026-04-04T00:18:09Z",
+      "updated_at": "2026-04-04T00:18:21Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-035",
+      "subsystem": "are-the-success-criteria-well-prioritized-and-verifiable",
+      "concern": "are the success criteria well-prioritized and verifiable?: checked the two user-visible `must` goals for the selection ring and locked-pane chat. they describe the right product outcomes, but they are mostly manual ui behaviors rather than code-review-verifiable gates, so they are not fully testable from the listed automated checks alone.",
+      "flag_ids": [
+        "criteria_quality-2"
+      ],
+      "plan_ids": [
+        "cleanup-and-quality-pass-on-20260404-0138"
+      ],
+      "occurrence_count": 2,
+      "created_at": "2026-04-04T00:18:09Z",
+      "updated_at": "2026-04-04T00:18:21Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-036",
+      "subsystem": "did-the-work-fully-address-the-issue-hints-user-notes-and-approved-plan-requirements",
+      "concern": "did the work fully address the issue hints, user notes, and approved plan requirements?: checked the revised step 6 against `supabase/functions/ai-timeline-agent/llm/messages.ts:12`, `supabase/functions/ai-timeline-agent/index.ts:6`, `supabase/functions/ai-timeline-agent/db.ts:2`, `supabase/functions/ai-timeline-agent/tool-calls.ts:1-4`, and `supabase/functions/ai-timeline-agent/selectedclips.ts:1`. the plan still does not account for `isrecord` being part of `messages.ts`'s exported api today, so the utility extraction is incomplete unless it either re-exports `isrecord` from `messages.ts` or updates all four downstream imports.",
+      "flag_ids": [
+        "issue_hints"
+      ],
+      "plan_ids": [
+        "cleanup-and-quality-pass-on-20260404-0138"
+      ],
+      "occurrence_count": 2,
+      "created_at": "2026-04-04T00:18:09Z",
+      "updated_at": "2026-04-04T00:18:21Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-037",
+      "subsystem": "search-for-related-code-that-handles-the-same-concept-is-the-reported-issue-a-symptom-of-something-broader",
+      "concern": "search for related code that handles the same concept. is the reported issue a symptom of something broader?: checked the affected edge-agent surface around `llm/messages.ts`. the `isrecord` extraction is broader than the three files listed in step 6 because `messages.ts` is a shared utility module for `index.ts`, `db.ts`, `tool-calls.ts`, and `selectedclips.ts`; the plan still scopes the edit as if only the local definition sites matter.",
+      "flag_ids": [
+        "scope"
+      ],
+      "plan_ids": [
+        "cleanup-and-quality-pass-on-20260404-0138"
+      ],
+      "occurrence_count": 2,
+      "created_at": "2026-04-04T00:18:09Z",
+      "updated_at": "2026-04-04T00:18:21Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-038",
+      "subsystem": "find-the-callers-of-the-changed-function-what-arguments-do-they-actually-pass-does-the-fix-handle-all-of-them",
+      "concern": "find the callers of the changed function. what arguments do they actually pass? does the fix handle all of them?: checked the current callers of `isrecord` from `llm/messages.ts`. `index.ts` uses it to validate `rawsession`, `db.ts` uses it on db rows, `tool-calls.ts` uses it on parsed tool-call payloads and nested `function` objects, and `selectedclips.ts` uses it while normalizing attachments, so preserving that import contract matters to four different call paths.",
+      "flag_ids": [
+        "callers"
+      ],
+      "plan_ids": [
+        "cleanup-and-quality-pass-on-20260404-0138"
+      ],
+      "occurrence_count": 2,
+      "created_at": "2026-04-04T00:18:09Z",
+      "updated_at": "2026-04-04T00:18:21Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-039",
+      "subsystem": "are-the-success-criteria-well-prioritized-and-verifiable",
+      "concern": "are the success criteria well-prioritized and verifiable?: checked the revised `must` criterion about eliminating duplicated server-side helpers. as written, the plan could satisfy 'all import from utils.ts' for `generation.ts`, `create-task.ts`, and `messages.ts` and still break four existing `messages.ts` consumers, so the criterion is incomplete unless it also requires preserving or updating the `messages.ts` export surface.",
+      "flag_ids": [
+        "criteria_quality"
+      ],
+      "plan_ids": [
+        "cleanup-and-quality-pass-on-20260404-0138"
+      ],
+      "occurrence_count": 2,
+      "created_at": "2026-04-04T00:18:09Z",
+      "updated_at": "2026-04-04T00:18:21Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-040",
+      "subsystem": "agent-tool-utils",
+      "concern": "agent-tool-utils: step 6 moves `isrecord` out of `llm/messages.ts` without preserving that module's current export surface for `index.ts`, `db.ts`, `tool-calls.ts`, and `selectedclips.ts`, so the refactor plan can break four existing imports unless it adds a re-export or rewires those callers.",
+      "flag_ids": [
+        "FLAG-006"
+      ],
+      "plan_ids": [
+        "cleanup-and-quality-pass-on-20260404-0138"
+      ],
+      "occurrence_count": 2,
+      "created_at": "2026-04-04T00:18:09Z",
+      "updated_at": "2026-04-04T00:18:21Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-041",
+      "subsystem": "are-the-proposed-changes-technically-correct",
+      "concern": "are the proposed changes technically correct?: checked the actual export surface in `supabase/functions/ai-timeline-agent/llm/messages.ts` and its consumers. step 6 says to 'remove local `isrecord`' from `messages.ts` and import it from `utils.ts`, but without also preserving `messages.ts` as an exporter or rewiring `index.ts`, `db.ts`, `tool-calls.ts`, and `selectedclips.ts`, that change would break the module graph immediately.",
+      "flag_ids": [
+        "correctness"
+      ],
+      "plan_ids": [
+        "cleanup-and-quality-pass-on-20260404-0138"
+      ],
+      "occurrence_count": 2,
+      "created_at": "2026-04-04T00:18:09Z",
+      "updated_at": "2026-04-04T00:18:21Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
     }
   ]
 }

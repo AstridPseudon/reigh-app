@@ -4,6 +4,9 @@ import { cn } from '@/shared/components/ui/contracts/cn';
 import type { AgentTurn } from '@/tools/video-editor/types/agent-session';
 import type { ToolCallPair } from './AgentChat';
 
+const MAX_TOOL_NAME_LENGTH = 80;
+const MAX_ATTACHMENT_SUMMARY_LENGTH = 120;
+
 type AgentChatMessageProps = {
   turn: AgentTurn;
 };
@@ -11,6 +14,25 @@ type AgentChatMessageProps = {
 type AgentChatToolGroupProps = {
   pairs: ToolCallPair[];
 };
+
+function formatAttachmentSummary(attachments: AgentTurn['attachments']) {
+  if (!attachments?.length) {
+    return null;
+  }
+
+  const imageCount = attachments.filter((attachment) => attachment.mediaType === 'image').length;
+  const videoCount = attachments.length - imageCount;
+  const parts = [
+    imageCount > 0 ? `${imageCount} image${imageCount === 1 ? '' : 's'}` : null,
+    videoCount > 0 ? `${videoCount} video${videoCount === 1 ? '' : 's'}` : null,
+  ].filter((part): part is string => part !== null);
+
+  if (parts.length === 0) {
+    return null;
+  }
+
+  return `${parts.join(', ')} attached`;
+}
 
 function formatTimestamp(timestamp: string) {
   if (!timestamp) return '';
@@ -51,7 +73,7 @@ export function AgentChatToolGroup({ pairs }: AgentChatToolGroupProps) {
             <div key={`${pair.call.timestamp}:${index}`} className="flex items-start gap-2 rounded px-2 py-1 text-xs">
               <code className="font-mono text-foreground/70">{commandSummaries[index]}</code>
               {pair.result && (
-                <span className="truncate text-muted-foreground">→ {pair.result.content?.slice(0, 80)}</span>
+                <span className="truncate text-muted-foreground">→ {pair.result.content?.slice(0, MAX_TOOL_NAME_LENGTH)}</span>
               )}
             </div>
           ))}
@@ -61,7 +83,7 @@ export function AgentChatToolGroup({ pairs }: AgentChatToolGroupProps) {
       {/* Show result inline for single commands */}
       {count === 1 && pairs[0].result?.content && (
         <div className="mt-0.5 px-2.5 text-xs text-muted-foreground">
-          {pairs[0].result.content.slice(0, 120)}
+          {pairs[0].result.content.slice(0, MAX_ATTACHMENT_SUMMARY_LENGTH)}
         </div>
       )}
     </div>
@@ -71,6 +93,7 @@ export function AgentChatToolGroup({ pairs }: AgentChatToolGroupProps) {
 export function AgentChatMessage({ turn }: AgentChatMessageProps) {
   const timestamp = formatTimestamp(turn.timestamp);
   const isUser = turn.role === 'user';
+  const attachmentSummary = formatAttachmentSummary(turn.attachments);
 
   return (
     <div className={cn('flex w-full', isUser ? 'justify-end' : 'justify-start')}>
@@ -83,6 +106,16 @@ export function AgentChatMessage({ turn }: AgentChatMessageProps) {
         )}
       >
         <div className="whitespace-pre-wrap text-sm leading-relaxed">{turn.content}</div>
+        {attachmentSummary && (
+          <span
+            className={cn(
+              'mt-1.5 block text-xs',
+              isUser ? 'text-primary-foreground/75' : 'text-muted-foreground',
+            )}
+          >
+            {attachmentSummary}
+          </span>
+        )}
         {timestamp && (
           <div
             className={cn(

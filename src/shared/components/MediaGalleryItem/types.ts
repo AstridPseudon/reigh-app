@@ -4,6 +4,7 @@ import type {
   SimplifiedShotOption,
 } from "../MediaGallery/types";
 import type { AddToShotHandler } from '@/shared/types/imageHandlers';
+import type { MouseEvent } from 'react';
 
 // ── Shot workflow: selector state, optimistic IDs, adding-to-shot state ──
 
@@ -80,6 +81,7 @@ export interface ItemActions {
   onDownloadImage: (rawUrl: string, filename: string, imageId?: string, isVideo?: boolean, originalContentType?: string) => void;
   onToggleStar?: (id: string, starred: boolean) => void;
   onImageClick?: (image: GeneratedImageWithMetadata) => void;
+  onContextMenu?: (event: MouseEvent, image: GeneratedImageWithMetadata) => void;
   /** Callback when the image has fully loaded and is visible */
   onImageLoaded?: (imageId: string) => void;
 }
@@ -113,6 +115,10 @@ export interface MediaGalleryItemProps {
   actions: ItemActions;
   /** Loading and progress state */
   loading: ItemLoading;
+  /** Whether this item is part of the current selection set */
+  isSelected?: boolean;
+  /** Selected gallery items available for multi-drag gestures */
+  selectedItems?: GeneratedImageWithMetadata[];
 
   /** Project aspect ratio for sizing */
   projectAspectRatio?: string;

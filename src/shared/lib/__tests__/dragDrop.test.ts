@@ -4,10 +4,13 @@ import { describe, it, expect } from 'vitest';
 import {
   getDragType,
   setGenerationDragData,
+  setMultiGenerationDragData,
   getGenerationDropData,
+  getMultiGenerationDropData,
   isValidDropTarget,
   isFileDrag,
   NEW_GROUP_DROPPABLE_ID,
+  GENERATION_MULTI_DRAG_TYPE,
 } from '../dnd/dragDrop';
 import type { GenerationDropData } from '../dnd/dragDrop';
 
@@ -42,6 +45,11 @@ describe('getDragType', () => {
   it('returns "file" for Files type', () => {
     const event = createMockDragEvent({ types: ['Files'] });
     expect(getDragType(event)).toBe('file');
+  });
+
+  it('returns "generation-multi" for multi-generation MIME type', () => {
+    const event = createMockDragEvent({ types: [GENERATION_MULTI_DRAG_TYPE] });
+    expect(getDragType(event)).toBe('generation-multi');
   });
 
   it('returns "none" for plain text without generation payload', () => {
@@ -146,9 +154,59 @@ describe('setGenerationDragData / getGenerationDropData round-trip', () => {
   });
 });
 
+describe('setMultiGenerationDragData / getMultiGenerationDropData round-trip', () => {
+  it('round-trips multi-generation data through set and get', () => {
+    const data: GenerationDropData[] = [
+      {
+        generationId: 'gen-123',
+        imageUrl: 'https://example.com/img-1.png',
+      },
+      {
+        generationId: 'gen-456',
+        imageUrl: 'https://example.com/img-2.png',
+        thumbUrl: 'https://example.com/thumb-2.png',
+      },
+    ];
+
+    const storedData: Record<string, string> = {};
+    const setEvent = createMockDragEvent({ data: storedData });
+    setMultiGenerationDragData(setEvent, data);
+
+    expect(storedData[GENERATION_MULTI_DRAG_TYPE]).toBeTruthy();
+    expect(storedData['text/plain']).toContain('__reigh_generation_multi__:');
+
+    const getEvent = createMockDragEvent({
+      types: [GENERATION_MULTI_DRAG_TYPE],
+      data: storedData,
+    });
+
+    expect(getMultiGenerationDropData(getEvent)).toEqual(data);
+    expect(getDragType(getEvent)).toBe('generation-multi');
+  });
+
+  it('returns null for invalid multi-generation payloads', () => {
+    const malformedEvent = createMockDragEvent({
+      data: { [GENERATION_MULTI_DRAG_TYPE]: 'not-json' },
+    });
+    expect(getMultiGenerationDropData(malformedEvent)).toBeNull();
+
+    const invalidShapeEvent = createMockDragEvent({
+      data: {
+        [GENERATION_MULTI_DRAG_TYPE]: JSON.stringify([{ generationId: 'gen-1' }]),
+      },
+    });
+    expect(getMultiGenerationDropData(invalidShapeEvent)).toBeNull();
+  });
+});
+
 describe('isValidDropTarget', () => {
   it('returns true for generation drag', () => {
     const event = createMockDragEvent({ types: ['application/x-generation'] });
+    expect(isValidDropTarget(event)).toBe(true);
+  });
+
+  it('returns true for multi-generation drag', () => {
+    const event = createMockDragEvent({ types: [GENERATION_MULTI_DRAG_TYPE] });
     expect(isValidDropTarget(event)).toBe(true);
   });
 

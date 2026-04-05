@@ -121,37 +121,9 @@ export const VariantCard: React.FC<VariantCardProps> = ({
           </div>
         )}
 
-        {/* Top-right: primary badge + relationship badges */}
+        {/* Top-right: primary badge first, then relationship badges */}
         <div className="absolute top-0.5 right-0.5 flex items-center gap-0.5 pointer-events-auto">
-          {/* Parent relationship badge */}
-          {isParent && !isActive && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="bg-blue-500 rounded-full p-0.5 cursor-default">
-                  <ArrowUp className="w-2 h-2 text-white" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs z-[100001]">
-                Current variant is based on this one
-              </TooltipContent>
-            </Tooltip>
-          )}
-
-          {/* Child relationship badge */}
-          {isChild && !isActive && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="bg-purple-500 rounded-full p-0.5 cursor-default">
-                  <ArrowDown className="w-2 h-2 text-white" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="bottom" className="text-xs z-[100001]">
-                Based on the current variant
-              </TooltipContent>
-            </Tooltip>
-          )}
-
-          {/* Primary/make-main button */}
+          {/* Primary/make-main button - leftmost */}
           {!readOnly && onMakePrimary ? (
             <Tooltip>
               <TooltipTrigger asChild>
@@ -182,6 +154,34 @@ export const VariantCard: React.FC<VariantCardProps> = ({
               <Check className="w-2 h-2 text-white" />
             </div>
           ) : null}
+
+          {/* Parent relationship badge */}
+          {isParent && !isActive && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="bg-blue-500 rounded-full p-0.5 cursor-default">
+                  <ArrowUp className="w-2 h-2 text-white" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs z-[100001]">
+                Current variant is based on this one
+              </TooltipContent>
+            </Tooltip>
+          )}
+
+          {/* Child relationship badge */}
+          {isChild && !isActive && (
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="bg-purple-500 rounded-full p-0.5 cursor-default">
+                  <ArrowDown className="w-2 h-2 text-white" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="text-xs z-[100001]">
+                Based on the current variant
+              </TooltipContent>
+            </Tooltip>
+          )}
         </div>
 
         {/* Top-left: star button */}

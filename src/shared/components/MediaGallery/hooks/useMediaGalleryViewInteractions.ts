@@ -8,6 +8,7 @@ import type {
   SimplifiedShotOption,
 } from '../types';
 import type { AddToShotHandler } from '@/shared/types/imageHandlers';
+import type { MouseEvent } from 'react';
 
 interface MediaGalleryViewActionsHook {
   handleCloseLightbox: () => void;
@@ -79,6 +80,7 @@ interface UseMediaGalleryViewInteractionsParams {
   onToggleStar?: ((id: string, starred: boolean) => void) | undefined;
   onApplySettings?: ((metadata: DisplayableMetadata | undefined) => Promise<void> | void) | undefined;
   onImageClick?: ((image: GeneratedImageWithMetadata) => void) | undefined;
+  onContextMenu?: ((event: MouseEvent, image: GeneratedImageWithMetadata) => void) | undefined;
   isDeleting?: string | boolean | null;
   currentViewingShotId?: string;
   activeLightboxMediaId?: string;
@@ -110,6 +112,7 @@ export function useMediaGalleryViewInteractions(params: UseMediaGalleryViewInter
     onToggleStar,
     onApplySettings,
     onImageClick,
+    onContextMenu,
     isDeleting,
     currentViewingShotId,
     activeLightboxMediaId,
@@ -170,6 +173,7 @@ export function useMediaGalleryViewInteractions(params: UseMediaGalleryViewInter
     onToggleStar,
     onApplySettings,
     onImageClick,
+    onContextMenu,
     isDeleting,
     selectedShotIdLocal: stateHook.state.selectedShotIdLocal,
     setSelectedShotIdLocal: stateHook.setSelectedShotIdLocal,

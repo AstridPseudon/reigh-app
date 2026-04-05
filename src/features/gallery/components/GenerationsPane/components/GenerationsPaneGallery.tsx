@@ -1,6 +1,14 @@
 import React from 'react';
+import type { Shot } from '@/domains/generation/types';
 import { MediaGallery, type GalleryFilterState } from '@/shared/components/MediaGallery';
+import { useGallerySelection } from '@/shared/contexts/GallerySelectionContext';
+import { useShots } from '@/shared/contexts/ShotsContext';
+import { SelectionContextMenu } from '@/shared/components/SelectionContextMenu';
 import { SkeletonGallery } from '@/shared/components/ui/composed/skeleton-gallery';
+import { useShotCreation } from '@/shared/hooks/shotCreation/useShotCreation';
+import { VideoGenerationModal } from '@/tools/travel-between-images/components/VideoGenerationModal';
+import { useLassoSelection } from '../hooks/useLassoSelection';
+import { useModifierKeys } from '../hooks/useModifierKeys';
 
 type MediaGalleryProps = React.ComponentProps<typeof MediaGallery>;
 
@@ -57,72 +65,181 @@ export function GenerationsPaneGallery({
   error,
   gallery,
 }: GenerationsPaneGalleryProps): React.ReactElement {
+  const gallerySurfaceRef = React.useRef<HTMLDivElement | null>(null);
+  const [contextMenuPosition, setContextMenuPosition] = React.useState<{ x: number; y: number } | null>(null);
+  const [videoModalShot, setVideoModalShot] = React.useState<Shot | null>(null);
+  const {
+    selectedGalleryIds,
+    gallerySelectionMap,
+    selectGalleryItem,
+    selectGalleryItems,
+    clearGallerySelection,
+  } = useGallerySelection();
+  const { shots } = useShots();
+  const { createShot, isCreating } = useShotCreation();
+  const modifierKeys = useModifierKeys();
+  const { selectionRect, handleMouseDown } = useLassoSelection({
+    containerRef: gallerySurfaceRef,
+    items: gallery.items,
+    onSelectItems: selectGalleryItems,
+  });
+
+  const buildSelectionMeta = React.useCallback((image: MediaGalleryProps['images'][number]) => ({
+    url: image.url,
+    type: image.type ?? image.contentType ?? (image.isVideo ? 'video/mp4' : 'image/png'),
+    generationId: image.generation_id ?? image.id,
+  }), []);
+
+  const handleImageClick = React.useCallback((image: MediaGalleryProps['images'][number]) => {
+    selectGalleryItem(image.id, buildSelectionMeta(image), { toggle: modifierKeys.isMultiSelectModifier });
+  }, [buildSelectionMeta, modifierKeys.isMultiSelectModifier, selectGalleryItem]);
+
+  const resolveSelectedGenerationIds = React.useCallback(() => (
+    Array.from(gallerySelectionMap.values()).map((entry) => entry.generationId)
+  ), [gallerySelectionMap]);
+
+  const createShotFromSelection = React.useCallback(async (): Promise<Shot | null> => {
+    const generationIds = resolveSelectedGenerationIds();
+    if (generationIds.length === 0) {
+      return null;
+    }
+
+    const result = await createShot({ generationIds });
+    const createdShot = result?.shot ?? shots?.find((shot) => shot.id === result?.shotId) ?? null;
+    if (!createdShot) {
+      return null;
+    }
+
+    clearGallerySelection();
+    return createdShot;
+  }, [clearGallerySelection, createShot, resolveSelectedGenerationIds, shots]);
+
+  const handleContextMenu = React.useCallback((
+    event: React.MouseEvent,
+    image: MediaGalleryProps['images'][number],
+  ) => {
+    event.preventDefault();
+    if (!selectedGalleryIds.has(image.id)) {
+      selectGalleryItem(image.id, buildSelectionMeta(image));
+    }
+    setContextMenuPosition({ x: event.clientX, y: event.clientY });
+  }, [buildSelectionMeta, selectGalleryItem, selectedGalleryIds]);
+
+  const handleCreateShotFromMenu = React.useCallback(async () => {
+    await createShotFromSelection();
+  }, [createShotFromSelection]);
+
+  const handleGenerateVideoFromMenu = React.useCallback(async () => {
+    const createdShot = await createShotFromSelection();
+    if (createdShot) {
+      setVideoModalShot(createdShot);
+    }
+  }, [createShotFromSelection]);
+
   return (
-    <div
-      ref={containerRef}
-      className="flex-grow px-1 sm:px-3 overflow-y-auto overscroll-contain flex flex-col"
-      style={{ WebkitOverflowScrolling: 'touch' }}
-      data-tour="gallery-section"
-    >
-      {loading.isLoading && gallery.items.length === 0 && (
-        <SkeletonGallery
-          count={loading.expectedItemCount ?? layout.itemsPerPage}
-          fixedColumns={layout.columns}
-          gapClasses="gap-2 sm:gap-4"
-          darkSurface
-          showControls={false}
-          projectAspectRatio={projectAspectRatio}
-          className="space-y-0 pb-4 pt-2"
-        />
-      )}
-
-      {error && <p className="text-red-500 text-center">Error: {error.message}</p>}
-
-      {gallery.items.length > 0 && (
-        <div className={loading.isLoading ? 'opacity-60 pointer-events-none transition-opacity duration-200' : ''}>
-          <MediaGallery
-            images={gallery.items}
-            onDelete={gallery.onDelete}
-            onToggleStar={gallery.onToggleStar}
-            isDeleting={gallery.isDeleting}
-            allShots={gallery.allShots}
-            lastShotId={gallery.lastShotId}
-            filters={gallery.filters}
-            onFiltersChange={gallery.onFiltersChange}
-            columnsPerRow={layout.columns}
-            onAddToLastShot={(targetShotId, generationId, imageUrl, thumbUrl) => {
-              return gallery.onAddToShot(targetShotId, generationId, imageUrl, thumbUrl);
-            }}
-            onAddToLastShotWithoutPosition={(targetShotId, generationId, imageUrl, thumbUrl) => {
-              return gallery.onAddToShotWithoutPosition(targetShotId, generationId, imageUrl, thumbUrl);
-            }}
-            className="space-y-0 pb-8"
-            config={{
-              darkSurface: true,
-              reducedSpacing: true,
-              hidePagination: true,
-              hideTopFilters: true,
-              showShare: false,
-            }}
-            pagination={{
-              offset: (pagination.page - 1) * layout.itemsPerPage,
-              totalCount: pagination.totalCount,
-              itemsPerPage: layout.itemsPerPage,
-              serverPage: pagination.page,
-              onServerPageChange: gallery.onServerPageChange,
-            }}
-            generationFilters={gallery.generationFilters}
-            currentViewingShotId={gallery.currentViewingShotId}
-            onCreateShot={gallery.onCreateShot}
+    <>
+      <div
+        ref={containerRef}
+        className="flex-grow px-1 sm:px-3 overflow-y-auto overscroll-contain flex flex-col"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+        data-tour="gallery-section"
+      >
+        {loading.isLoading && gallery.items.length === 0 && (
+          <SkeletonGallery
+            count={loading.expectedItemCount ?? layout.itemsPerPage}
+            fixedColumns={layout.columns}
+            gapClasses="gap-2 sm:gap-4"
+            darkSurface
+            showControls={false}
+            projectAspectRatio={projectAspectRatio}
+            className="space-y-0 pb-4 pt-2"
           />
-        </div>
-      )}
+        )}
 
-      {gallery.items.length === 0 && !loading.isLoading && (
-        <div className="flex-1 flex items-center justify-center text-zinc-500">
-          No generations found for this project.
-        </div>
+        {error && <p className="text-red-500 text-center">Error: {error.message}</p>}
+
+        {gallery.items.length > 0 && (
+          <div className={loading.isLoading ? 'opacity-60 pointer-events-none transition-opacity duration-200' : ''}>
+            <div
+              ref={gallerySurfaceRef}
+              className="relative"
+              onMouseDown={handleMouseDown}
+            >
+              <MediaGallery
+                images={gallery.items}
+                onDelete={gallery.onDelete}
+                onToggleStar={gallery.onToggleStar}
+                isDeleting={gallery.isDeleting}
+                allShots={gallery.allShots}
+                lastShotId={gallery.lastShotId}
+                filters={gallery.filters}
+                onFiltersChange={gallery.onFiltersChange}
+                columnsPerRow={layout.columns}
+                onImageClick={handleImageClick}
+                onContextMenu={handleContextMenu}
+                onAddToLastShot={gallery.onAddToShot}
+                onAddToLastShotWithoutPosition={gallery.onAddToShotWithoutPosition}
+                className="space-y-0 pb-8"
+                selectedIds={selectedGalleryIds}
+                config={{
+                  darkSurface: true,
+                  reducedSpacing: true,
+                  hidePagination: true,
+                  hideTopFilters: true,
+                  showShare: false,
+                  enableSingleClick: true,
+                }}
+                pagination={{
+                  offset: (pagination.page - 1) * layout.itemsPerPage,
+                  totalCount: pagination.totalCount,
+                  itemsPerPage: layout.itemsPerPage,
+                  serverPage: pagination.page,
+                  onServerPageChange: gallery.onServerPageChange,
+                }}
+                generationFilters={gallery.generationFilters}
+                currentViewingShotId={gallery.currentViewingShotId}
+                onCreateShot={gallery.onCreateShot}
+              />
+              {selectionRect && (
+                <div
+                  className="pointer-events-none absolute border border-sky-400 bg-sky-400/10"
+                  style={{
+                    left: selectionRect.left,
+                    top: selectionRect.top,
+                    width: selectionRect.width,
+                    height: selectionRect.height,
+                  }}
+                />
+              )}
+            </div>
+          </div>
+        )}
+
+        {gallery.items.length === 0 && !loading.isLoading && (
+          <div className="flex-1 flex items-center justify-center text-zinc-500">
+            No generations found for this project.
+          </div>
+        )}
+      </div>
+
+      <SelectionContextMenu
+        position={contextMenuPosition}
+        onClose={() => setContextMenuPosition(null)}
+        onCreateShot={handleCreateShotFromMenu}
+        onGenerateVideo={handleGenerateVideoFromMenu}
+        isCreating={isCreating}
+      />
+
+      {videoModalShot && (
+        <>
+          {/* VideoGenerationModal only uses app-wide providers, so it can open from gallery selection flow. */}
+          <VideoGenerationModal
+            isOpen={true}
+            onClose={() => setVideoModalShot(null)}
+            shot={videoModalShot}
+          />
+        </>
       )}
-    </div>
+    </>
   );
 }

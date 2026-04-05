@@ -3,8 +3,11 @@ import type {
   CreateEmptyShotPathInput,
   CreateShotWithFilesPathInput,
   CreateShotWithGenerationPathInput,
+  CreateShotWithGenerationsPathInput,
 } from './shotCreationTypes';
 import { applyAtomicShotCacheUpdate } from './shotCacheUpdate';
+import { enqueueGenerationsInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
+import { insertAutoPositionedShotGeneration } from '@/shared/hooks/shots/addImageToShotHelpers';
 
 export async function createShotWithGenerationPath(
   input: CreateShotWithGenerationPathInput,
@@ -86,6 +89,51 @@ export async function createShotWithFilesPath(
     shotName: created.shot?.name || shotName,
     shot: created.shot,
     generationIds: uploadResult.generationIds,
+  };
+}
+
+export async function createShotWithGenerationsPath(
+  input: CreateShotWithGenerationsPathInput,
+): Promise<ShotCreationResult> {
+  const {
+    selectedProjectId,
+    shotName,
+    generationIds,
+    queryClient,
+    createShot,
+  } = input;
+
+  const createResult = await createShot({
+    name: shotName,
+    projectId: selectedProjectId,
+    shouldSelectAfterCreation: false,
+  });
+
+  if (!createResult?.shot?.id) {
+    throw new Error('Shot creation failed - no ID returned');
+  }
+
+  const shotId = createResult.shot.id;
+  // The add_generation_to_shot RPC computes timeline_frame from
+  // MAX(shot_generations.timeline_frame) + 50 without row-level locking, so
+  // parallel calls can race and assign duplicate positions. Keep insertion serial.
+  for (const generationId of generationIds) {
+    await insertAutoPositionedShotGeneration(shotId, generationId);
+  }
+
+  enqueueGenerationsInvalidation(queryClient, shotId, {
+    reason: 'create-shot-with-generations',
+    scope: 'all',
+    includeShots: true,
+    projectId: selectedProjectId,
+    includeProjectUnified: true,
+  });
+
+  return {
+    shotId,
+    shotName: createResult.shot.name || shotName,
+    shot: createResult.shot,
+    generationIds,
   };
 }
 

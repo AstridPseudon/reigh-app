@@ -106,8 +106,7 @@ function PreviewPanelComponent() {
           media={lightboxQuery.data}
           initialVariantId={lightboxAsset?.variantId ?? lightboxQuery.data.primary_variant_id ?? undefined}
           onClose={() => setLightboxAssetKey(null)}
-          readOnly
-          features={{ showDownload: true }}
+          features={{ showDownload: true, showTaskDetails: true }}
         />
       )}
     </div>

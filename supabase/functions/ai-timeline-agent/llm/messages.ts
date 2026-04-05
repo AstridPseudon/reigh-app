@@ -1,5 +1,6 @@
 import { toErrorMessage } from "../../_shared/errorMessage.ts";
 import { MAX_CONTEXT_TURNS } from "../config.ts";
+import { isRecord } from "../utils.ts";
 import type {
   AgentSession,
   AgentSessionStatus,
@@ -8,10 +9,7 @@ import type {
   TimelineRow,
 } from "../types.ts";
 import type { AssetRegistry, TimelineConfig } from "../../../../src/tools/video-editor/types/index.ts";
-
-export function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === "object" && value !== null;
-}
+export { isRecord } from "../utils.ts";
 
 export function isSessionStatus(value: unknown): value is AgentSessionStatus {
   return value === "waiting_user"
@@ -40,6 +38,7 @@ export function normalizeTurns(value: unknown): AgentTurn[] {
     return [{
       role,
       content: item.content,
+      attachments: Array.isArray(item.attachments) ? item.attachments : undefined,
       tool_name: typeof item.tool_name === "string" ? item.tool_name : undefined,
       tool_args: isRecord(item.tool_args) ? item.tool_args : undefined,
       timestamp: item.timestamp,

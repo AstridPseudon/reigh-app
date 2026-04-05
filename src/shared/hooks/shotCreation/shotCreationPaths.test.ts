@@ -2,16 +2,28 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   applyAtomicShotCacheUpdate: vi.fn(),
+  enqueueGenerationsInvalidation: vi.fn(),
+  insertAutoPositionedShotGeneration: vi.fn(),
 }));
 
 vi.mock('./shotCacheUpdate', () => ({
   applyAtomicShotCacheUpdate: (...args: unknown[]) => mocks.applyAtomicShotCacheUpdate(...args),
 }));
 
+vi.mock('@/shared/hooks/invalidation/useGenerationInvalidation', () => ({
+  enqueueGenerationsInvalidation: (...args: unknown[]) => mocks.enqueueGenerationsInvalidation(...args),
+}));
+
+vi.mock('@/shared/hooks/shots/addImageToShotHelpers', () => ({
+  insertAutoPositionedShotGeneration: (...args: unknown[]) =>
+    mocks.insertAutoPositionedShotGeneration(...args),
+}));
+
 import {
   createEmptyShotPath,
   createShotWithFilesPath,
   createShotWithGenerationPath,
+  createShotWithGenerationsPath,
 } from './shotCreationPaths';
 
 describe('shotCreationPaths', () => {
@@ -98,6 +110,65 @@ describe('shotCreationPaths', () => {
       shot: { id: 'shot-2', name: 'Uploads' },
       generationIds: ['gen-a', 'gen-b'],
     });
+  });
+
+  it('creates a shot from multiple generations in order and invalidates the shot caches once', async () => {
+    const createShot = vi.fn().mockResolvedValue({
+      shot: { id: 'shot-3', name: 'Shot 3' },
+    });
+
+    let resolveFirst: (() => void) | undefined;
+    let resolveSecond: (() => void) | undefined;
+    mocks.insertAutoPositionedShotGeneration
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        resolveFirst = () => resolve({});
+      }))
+      .mockImplementationOnce(() => new Promise((resolve) => {
+        resolveSecond = () => resolve({});
+      }));
+
+    const pendingResult = createShotWithGenerationsPath({
+      selectedProjectId: 'project-1',
+      shotName: 'Shot 3',
+      generationIds: ['gen-1', 'gen-2'],
+      shots: [{ id: 'shot-0' }] as never,
+      queryClient: { id: 'query-client' } as never,
+      createShot,
+    });
+    await Promise.resolve();
+
+    expect(createShot).toHaveBeenCalledWith({
+      name: 'Shot 3',
+      projectId: 'project-1',
+      shouldSelectAfterCreation: false,
+    });
+    expect(mocks.insertAutoPositionedShotGeneration).toHaveBeenCalledTimes(1);
+    expect(mocks.insertAutoPositionedShotGeneration).toHaveBeenNthCalledWith(1, 'shot-3', 'gen-1');
+
+    resolveFirst?.();
+    await Promise.resolve();
+
+    expect(mocks.insertAutoPositionedShotGeneration).toHaveBeenCalledTimes(2);
+    expect(mocks.insertAutoPositionedShotGeneration).toHaveBeenNthCalledWith(2, 'shot-3', 'gen-2');
+
+    resolveSecond?.();
+
+    await expect(pendingResult).resolves.toEqual({
+      shotId: 'shot-3',
+      shotName: 'Shot 3',
+      shot: { id: 'shot-3', name: 'Shot 3' },
+      generationIds: ['gen-1', 'gen-2'],
+    });
+    expect(mocks.enqueueGenerationsInvalidation).toHaveBeenCalledWith(
+      { id: 'query-client' },
+      'shot-3',
+      expect.objectContaining({
+        reason: 'create-shot-with-generations',
+        includeShots: true,
+        includeProjectUnified: true,
+        projectId: 'project-1',
+      }),
+    );
   });
 
   it('throws when createShot does not return a usable shot id', async () => {

@@ -182,48 +182,13 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
     <>
     <TooltipProvider delayDuration={300}>
       <div className="flex flex-col gap-2 p-2 bg-background/90 backdrop-blur-sm rounded-lg border border-border/50 shadow-lg overflow-hidden">
-        {/* Header section */}
-        <div className={cn("flex gap-2", isMobile ? "flex-col" : "items-center justify-between")}>
-          {/* Row 1: Label + Action buttons */}
-          <div className="flex items-center justify-between gap-2">
-            <span className="text-sm font-medium text-muted-foreground">Variants ({variants.length})</span>
-            {!readOnly && (
-            <div className="flex items-center gap-1">
-              {onPromoteToGeneration && (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={actions.handlePromoteToGeneration}
-                      disabled={actions.localIsPromoting || isPromoting}
-                      className={cn(
-                        "h-auto min-h-6 text-xs px-2 py-1 gap-1 whitespace-normal text-left",
-                        actions.promoteSuccess && "bg-green-500/20 border-green-500/50 text-green-400"
-                      )}
-                    >
-                      {actions.localIsPromoting || isPromoting ? (
-                        <Loader2 className="w-3 h-3 animate-spin shrink-0" />
-                      ) : actions.promoteSuccess ? (
-                        <Check className="w-3 h-3 shrink-0" />
-                      ) : (
-                        <ImagePlus className="w-3 h-3 shrink-0" />
-                      )}
-                      {actions.promoteSuccess ? 'Created!' : 'New image'}
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent side="top" className="z-[100001]">
-                    <p>Create a standalone image from this variant</p>
-                  </TooltipContent>
-                </Tooltip>
-              )}
-            </div>
-            )}
-          </div>
+        {/* Header section - single row with label, filters, and actions */}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm font-medium text-muted-foreground shrink-0">Variants ({variants.length})</span>
 
-          {/* Filter buttons (relationships + starred) */}
+          {/* Filter buttons (relationships + starred) - inline after label */}
           {showFilterRow && (
-            <div className="flex items-center gap-1 justify-start">
+            <div className="flex items-center gap-1">
               {hasRelationships && (
                 <>
                   <Tooltip>
@@ -301,6 +266,58 @@ export const VariantSelector: React.FC<VariantSelectorProps> = ({
                 >
                   <X className="w-3 h-3" />
                 </button>
+              )}
+            </div>
+          )}
+
+          {/* Action buttons - pushed to the right */}
+          {!readOnly && (onPromoteToGeneration || (onMakePrimary && activeVariantId && !variants.find(v => v.id === activeVariantId)?.is_primary)) && (
+            <div className="flex items-center gap-1 ml-auto">
+              {onMakePrimary && activeVariantId && !variants.find(v => v.id === activeVariantId)?.is_primary && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onMakePrimary(activeVariantId)}
+                      className="h-auto min-h-6 text-xs px-2 py-1 gap-1 bg-orange-500/90 hover:bg-orange-600 text-white border-none"
+                    >
+                      <Star className="w-3 h-3 shrink-0" />
+                      Make main
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="z-[100001]">
+                    <p>Set this variant as the main variant</p>
+                  </TooltipContent>
+                </Tooltip>
+              )}
+              {onPromoteToGeneration && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={actions.handlePromoteToGeneration}
+                      disabled={actions.localIsPromoting || isPromoting}
+                      className={cn(
+                        "h-auto min-h-6 text-xs px-2 py-1 gap-1 whitespace-normal text-left",
+                        actions.promoteSuccess && "bg-green-500/20 border-green-500/50 text-green-400"
+                      )}
+                    >
+                      {actions.localIsPromoting || isPromoting ? (
+                        <Loader2 className="w-3 h-3 animate-spin shrink-0" />
+                      ) : actions.promoteSuccess ? (
+                        <Check className="w-3 h-3 shrink-0" />
+                      ) : (
+                        <ImagePlus className="w-3 h-3 shrink-0" />
+                      )}
+                      {actions.promoteSuccess ? 'Created!' : 'New image'}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="top" className="z-[100001]">
+                    <p>Create a standalone image from this variant</p>
+                  </TooltipContent>
+                </Tooltip>
               )}
             </div>
           )}

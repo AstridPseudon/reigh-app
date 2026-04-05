@@ -65,7 +65,7 @@ async function insertUnpositionedShotGeneration(
   return data as Record<string, unknown>;
 }
 
-async function insertAutoPositionedShotGeneration(
+export async function insertAutoPositionedShotGeneration(
   shotId: string,
   generationId: string,
 ): Promise<Record<string, unknown>> {

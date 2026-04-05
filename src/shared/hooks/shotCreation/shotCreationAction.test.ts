@@ -11,6 +11,7 @@ const mocks = vi.hoisted(() => ({
   createEmptyShotPath: vi.fn(),
   createShotWithFilesPath: vi.fn(),
   createShotWithGenerationPath: vi.fn(),
+  createShotWithGenerationsPath: vi.fn(),
 }));
 
 vi.mock('@/shared/components/ui/runtime/sonner', () => ({
@@ -32,6 +33,7 @@ vi.mock('./shotCreationPaths', () => ({
   createEmptyShotPath: (...args: unknown[]) => mocks.createEmptyShotPath(...args),
   createShotWithFilesPath: (...args: unknown[]) => mocks.createShotWithFilesPath(...args),
   createShotWithGenerationPath: (...args: unknown[]) => mocks.createShotWithGenerationPath(...args),
+  createShotWithGenerationsPath: (...args: unknown[]) => mocks.createShotWithGenerationsPath(...args),
 }));
 
 import { useCreateShotAction } from './shotCreationAction';
@@ -110,6 +112,55 @@ describe('useCreateShotAction', () => {
       expect.objectContaining({ generationId: 'gen-1' }),
     );
     expect(onSuccess).toHaveBeenCalledWith(generationResult);
+    expect(setIsCreating).toHaveBeenCalledWith(true);
+    expect(setIsCreating).toHaveBeenLastCalledWith(false);
+  });
+
+  it('uses the ordered multi-generation path when generationIds are provided', async () => {
+    const setIsCreating = vi.fn();
+    const applyPostCreationEffects = vi.fn();
+    const createShotMutation = vi.fn();
+    const generationResult = {
+      shotId: 'shot-2',
+      shotName: 'Generated Shot',
+      generationIds: ['gen-1', 'gen-2'],
+    };
+    mocks.createShotWithGenerationsPath.mockResolvedValueOnce(generationResult);
+
+    const { result } = renderHook(() =>
+      useCreateShotAction({
+        selectedProjectId: 'project-1',
+        shots: [{ id: 'shot-0' }] as never,
+        queryClient: { id: 'query-client' } as never,
+        setIsCreating,
+        generateShotName: () => 'Generated Shot',
+        applyPostCreationEffects,
+        createShotMutation,
+        createShotWithImageMutation: vi.fn(),
+        handleExternalImageDropMutation: vi.fn(),
+      }),
+    );
+
+    await act(async () => {
+      await result.current({
+        generationIds: ['gen-1', 'gen-2'],
+      });
+    });
+
+    expect(mocks.dispatchShotSkeletonEvent).toHaveBeenCalledWith(2);
+    expect(mocks.createShotWithGenerationsPath).toHaveBeenCalledWith(
+      expect.objectContaining({
+        selectedProjectId: 'project-1',
+        shotName: 'Generated Shot',
+        generationIds: ['gen-1', 'gen-2'],
+        createShot: createShotMutation,
+      }),
+    );
+    expect(mocks.createShotWithGenerationPath).not.toHaveBeenCalled();
+    expect(applyPostCreationEffects).toHaveBeenCalledWith(
+      generationResult,
+      expect.objectContaining({ generationIds: ['gen-1', 'gen-2'] }),
+    );
     expect(setIsCreating).toHaveBeenCalledWith(true);
     expect(setIsCreating).toHaveBeenLastCalledWith(false);
   });

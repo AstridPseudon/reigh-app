@@ -5,6 +5,7 @@ import { jsonResponse } from "../_shared/http.ts";
 import { persistSessionState } from "./db.ts";
 import { isRecord, normalizeSessionRow } from "./llm/messages.ts";
 import { runAgentLoop } from "./loop.ts";
+import { enrichClipsWithPrompts, normalizeSelectedClips } from "./selectedClips.ts";
 import { TIMELINE_AGENT_TOOLS } from "./tool-schemas.ts";
 import type { AgentInvocationBody } from "./types.ts";
 
@@ -24,6 +25,7 @@ serve((req) => withEdgeRequest<AgentInvocationBody>(
     const userMessage = body.user_message === undefined || body.user_message === null
       ? undefined
       : typeof body.user_message === "string" ? body.user_message.trim() : null;
+    const selectedClips = normalizeSelectedClips(body.selected_clips);
     if (!sessionId) return jsonResponse({ error: "session_id is required" }, 400);
     if (userMessage === null) return jsonResponse({ error: "user_message must be a string when provided" }, 400);
 
@@ -42,7 +44,14 @@ serve((req) => withEdgeRequest<AgentInvocationBody>(
     const nextUserMessage = userMessage && lastTurn?.role === "user" && lastTurn.content === userMessage ? undefined : userMessage;
 
     try {
-      const result = await runAgentLoop({ session, userMessage: nextUserMessage, supabaseAdmin, logger });
+      const enrichedSelectedClips = await enrichClipsWithPrompts(supabaseAdmin, selectedClips);
+      const result = await runAgentLoop({
+        session,
+        userMessage: nextUserMessage,
+        selectedClips: enrichedSelectedClips,
+        supabaseAdmin,
+        logger,
+      });
       await persistSessionState(supabaseAdmin, {
         sessionId: session.id,
         status: result.status,

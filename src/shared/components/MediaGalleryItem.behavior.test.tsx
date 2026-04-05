@@ -13,6 +13,9 @@ const mocks = vi.hoisted(() => ({
   hasLoadedImage: vi.fn(() => false),
   setImageLoadStatus: vi.fn(),
   getGenerationId: vi.fn((image: { id?: string }) => image.id ?? null),
+  setGenerationDragData: vi.fn(),
+  setMultiGenerationDragData: vi.fn(),
+  createDragPreview: vi.fn(),
 }));
 
 vi.mock('@/shared/components/DraggableImage', () => ({
@@ -96,8 +99,9 @@ vi.mock('@/shared/lib/media/mediaTypeHelpers', () => ({
 }));
 
 vi.mock('@/shared/lib/dnd/dragDrop', () => ({
-  setGenerationDragData: vi.fn(),
-  createDragPreview: vi.fn(),
+  setGenerationDragData: (...args: unknown[]) => mocks.setGenerationDragData(...args),
+  setMultiGenerationDragData: (...args: unknown[]) => mocks.setMultiGenerationDragData(...args),
+  createDragPreview: (...args: unknown[]) => mocks.createDragPreview(...args),
 }));
 
 vi.mock('@/domains/generation/components/GenerationDetails', () => ({
@@ -200,6 +204,7 @@ describe('MediaGalleryItem behavior', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.hasLoadedImage.mockReturnValue(false);
+    mocks.createDragPreview.mockReturnValue(undefined);
   });
 
   it('renders the placeholder fallback when the item has no persisted id and only a placeholder url', () => {
@@ -232,6 +237,38 @@ describe('MediaGalleryItem behavior', () => {
     expect(props.actions.onOpenLightbox).toHaveBeenCalledWith(props.image);
   });
 
+  it('forwards context menu events to the item action handler', () => {
+    const onContextMenu = vi.fn();
+    const props = buildProps({
+      actions: {
+        onContextMenu,
+      },
+    });
+
+    const { container } = render(<MediaGalleryItem {...props} />);
+    const root = container.querySelector('[data-gallery-item-id="img-1"]');
+
+    fireEvent.contextMenu(root as HTMLElement);
+
+    expect(onContextMenu).toHaveBeenCalledWith(expect.any(Object), props.image);
+  });
+
+  it('applies the selection ring only when the item is selected', () => {
+    const selected = buildProps({ isSelected: true });
+    const unselected = buildProps();
+
+    const { container: selectedContainer } = render(<MediaGalleryItem {...selected} />);
+    const { container: unselectedContainer } = render(<MediaGalleryItem {...unselected} />);
+
+    const selectedRoot = selectedContainer.querySelector('[data-gallery-item-id="img-1"]');
+    const unselectedRoot = unselectedContainer.querySelector('[data-gallery-item-id="img-1"]');
+
+    expect(selectedRoot).toHaveClass('outline', 'outline-2', 'outline-sky-400', 'rounded-lg', 'transition-[opacity,transform]');
+    expect(selectedRoot).not.toHaveClass('transition-all');
+    expect(unselectedRoot).not.toHaveClass('outline');
+    expect(unselectedRoot).not.toHaveClass('outline-sky-400');
+  });
+
   it('shows add-to-shot affordances and executes the add action for the selected shot', async () => {
     mocks.hasLoadedImage.mockReturnValue(true);
     const props = buildProps();
@@ -253,5 +290,93 @@ describe('MediaGalleryItem behavior', () => {
     const shotActions = container.querySelector('.absolute.top-1\\.5.left-1\\.5.right-1\\.5');
     expect(shotActions).not.toBeNull();
     expect(within(shotActions as HTMLElement).getByTestId('shot-selector')).toHaveTextContent('shot-1');
+  });
+
+  it('uses multi-generation drag data when dragging a selected item from a multi-selection', () => {
+    const props = buildProps({
+      isSelected: true,
+      selectedItems: [
+        {
+          id: 'img-1',
+          generation_id: 'gen-1',
+          url: 'https://cdn/image.png',
+          thumbUrl: 'https://cdn/thumb.png',
+          metadata: { taskId: 'task-1' },
+        },
+        {
+          id: 'img-2',
+          generation_id: 'gen-2',
+          url: 'https://cdn/image-2.png',
+          thumbUrl: 'https://cdn/thumb-2.png',
+          isVideo: true,
+          type: 'video/mp4',
+        },
+      ],
+    });
+
+    const { container } = render(<MediaGalleryItem {...props} />);
+    const dragTarget = container.querySelector('[data-gallery-item-id="img-1"]');
+
+    fireEvent.dragStart(dragTarget as HTMLElement, {
+      dataTransfer: {
+        setData: vi.fn(),
+        setDragImage: vi.fn(),
+      },
+    });
+
+    expect(mocks.setMultiGenerationDragData).toHaveBeenCalledWith(
+      expect.anything(),
+      [
+        expect.objectContaining({
+          generationId: 'img-1',
+          imageUrl: 'https://cdn/image.png',
+          variantType: 'image',
+        }),
+        expect.objectContaining({
+          generationId: 'img-2',
+          imageUrl: 'https://cdn/image-2.png',
+          variantType: 'video',
+        }),
+      ],
+    );
+    expect(mocks.setGenerationDragData).not.toHaveBeenCalled();
+    expect(mocks.createDragPreview).toHaveBeenCalledWith(
+      expect.anything(),
+      { badgeText: '2' },
+    );
+  });
+
+  it('falls back to the existing single-item drag payload when the drag is not a multi-selection drag', () => {
+    const props = buildProps({
+      isSelected: true,
+      selectedItems: [
+        {
+          id: 'img-2',
+          generation_id: 'gen-2',
+          url: 'https://cdn/image-2.png',
+        },
+      ],
+    });
+
+    const { container } = render(<MediaGalleryItem {...props} />);
+    const dragTarget = container.querySelector('[data-gallery-item-id="img-1"]');
+
+    fireEvent.dragStart(dragTarget as HTMLElement, {
+      dataTransfer: {
+        setData: vi.fn(),
+        setDragImage: vi.fn(),
+      },
+    });
+
+    expect(mocks.setGenerationDragData).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        generationId: 'img-1',
+        imageUrl: 'https://cdn/image.png',
+        variantType: 'image',
+      }),
+    );
+    expect(mocks.setMultiGenerationDragData).not.toHaveBeenCalled();
+    expect(mocks.createDragPreview).toHaveBeenCalledWith(expect.anything(), undefined);
   });
 });

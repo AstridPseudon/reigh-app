@@ -1,19 +1,72 @@
-import { render, screen } from '@testing-library/react';
+// @vitest-environment jsdom
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ComponentProps } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GenerationsPaneGallery } from './GenerationsPaneGallery';
 
 const mocks = vi.hoisted(() => ({
   MediaGallery: vi.fn(() => <div data-testid="media-gallery" />),
   SkeletonGallery: vi.fn(() => <div data-testid="skeleton-gallery" />),
+  SelectionContextMenu: vi.fn(({
+    position,
+    onCreateShot,
+    onGenerateVideo,
+  }: {
+    position: { x: number; y: number } | null;
+    onCreateShot: () => void;
+    onGenerateVideo: () => void;
+  }) => (
+    position ? (
+      <div data-testid="selection-context-menu">
+        <button type="button" onClick={onCreateShot}>Create Shot</button>
+        <button type="button" onClick={onGenerateVideo}>Generate Video</button>
+      </div>
+    ) : null
+  )),
+  VideoGenerationModal: vi.fn(({ shot }: { shot: { name: string } }) => (
+    <div data-testid="video-generation-modal">{shot.name}</div>
+  )),
+  useGallerySelection: vi.fn(),
+  useShots: vi.fn(),
+  useShotCreation: vi.fn(),
+  useModifierKeys: vi.fn(),
+  useLassoSelection: vi.fn(),
 }));
 
 vi.mock('@/shared/components/MediaGallery', () => ({
   MediaGallery: (props: unknown) => mocks.MediaGallery(props),
 }));
 
+vi.mock('@/shared/components/SelectionContextMenu', () => ({
+  SelectionContextMenu: (props: unknown) => mocks.SelectionContextMenu(props),
+}));
+
 vi.mock('@/shared/components/ui/composed/skeleton-gallery', () => ({
   SkeletonGallery: (props: unknown) => mocks.SkeletonGallery(props),
+}));
+
+vi.mock('@/shared/contexts/GallerySelectionContext', () => ({
+  useGallerySelection: () => mocks.useGallerySelection(),
+}));
+
+vi.mock('@/shared/contexts/ShotsContext', () => ({
+  useShots: () => mocks.useShots(),
+}));
+
+vi.mock('@/shared/hooks/shotCreation/useShotCreation', () => ({
+  useShotCreation: () => mocks.useShotCreation(),
+}));
+
+vi.mock('@/tools/travel-between-images/components/VideoGenerationModal', () => ({
+  VideoGenerationModal: (props: unknown) => mocks.VideoGenerationModal(props),
+}));
+
+vi.mock('../hooks/useModifierKeys', () => ({
+  useModifierKeys: () => mocks.useModifierKeys(),
+}));
+
+vi.mock('../hooks/useLassoSelection', () => ({
+  useLassoSelection: (props: unknown) => mocks.useLassoSelection(props),
 }));
 
 function buildProps(overrides: Partial<ComponentProps<typeof GenerationsPaneGallery>> = {}) {
@@ -45,6 +98,35 @@ function buildProps(overrides: Partial<ComponentProps<typeof GenerationsPaneGall
 }
 
 describe('GenerationsPaneGallery', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+
+    mocks.useGallerySelection.mockReturnValue({
+      selectedGalleryIds: new Set(['g2']),
+      gallerySelectionMap: new Map([
+        ['g2', { url: 'https://example.com/2.mp4', mediaType: 'video', generationId: 'gen-2' }],
+      ]),
+      selectGalleryItem: vi.fn(),
+      selectGalleryItems: vi.fn(),
+      clearGallerySelection: vi.fn(),
+    });
+    mocks.useShots.mockReturnValue({ shots: [{ id: 'shot-9', name: 'Shot 9' }] });
+    mocks.useShotCreation.mockReturnValue({
+      createShot: vi.fn(),
+      isCreating: false,
+    });
+    mocks.useModifierKeys.mockReturnValue({
+      shiftKey: false,
+      metaKey: false,
+      ctrlKey: false,
+      isMultiSelectModifier: false,
+    });
+    mocks.useLassoSelection.mockReturnValue({
+      selectionRect: null,
+      handleMouseDown: vi.fn(),
+    });
+  });
+
   it('renders loading skeleton when loading and no items exist', () => {
     render(
       <GenerationsPaneGallery
@@ -66,7 +148,11 @@ describe('GenerationsPaneGallery', () => {
 
   it('renders media gallery with mapped pagination props when items are present', () => {
     const gallery = buildProps().gallery;
-    const items = [{ id: 'g1' }, { id: 'g2' }];
+    const items = [
+      { id: 'g1', url: 'https://example.com/1.png', type: 'image/png' },
+      { id: 'g2', url: 'https://example.com/2.mp4', isVideo: true, generation_id: 'gen-2' },
+    ];
+
     render(
       <GenerationsPaneGallery
         {...buildProps({
@@ -79,6 +165,10 @@ describe('GenerationsPaneGallery', () => {
     expect(mocks.MediaGallery).toHaveBeenCalledWith(
       expect.objectContaining({
         images: items,
+        selectedIds: new Set(['g2']),
+        config: expect.objectContaining({
+          enableSingleClick: true,
+        }),
         pagination: expect.objectContaining({
           offset: 12,
           totalCount: 25,
@@ -86,6 +176,239 @@ describe('GenerationsPaneGallery', () => {
         }),
       }),
     );
+  });
+
+  it('selects a single gallery item on single click', () => {
+    const selectGalleryItem = vi.fn();
+    mocks.useGallerySelection.mockReturnValue({
+      selectedGalleryIds: new Set(),
+      gallerySelectionMap: new Map(),
+      selectGalleryItem,
+      selectGalleryItems: vi.fn(),
+      clearGallerySelection: vi.fn(),
+    });
+
+    const image = {
+      id: 'g1',
+      url: 'https://example.com/1.png',
+      type: 'image/png',
+      generation_id: 'gen-1',
+    };
+
+    render(
+      <GenerationsPaneGallery
+        {...buildProps({
+          gallery: { ...buildProps().gallery, items: [image] } as never,
+        })}
+      />,
+    );
+
+    const mediaGalleryProps = mocks.MediaGallery.mock.calls[0]?.[0];
+    mediaGalleryProps.onImageClick(image);
+
+    expect(selectGalleryItem).toHaveBeenCalledWith(
+      'g1',
+      {
+        url: 'https://example.com/1.png',
+        type: 'image/png',
+        generationId: 'gen-1',
+      },
+      { toggle: false },
+    );
+  });
+
+  it('toggles selection on modifier-assisted click and renders lasso overlay', () => {
+    const selectGalleryItem = vi.fn();
+    mocks.useGallerySelection.mockReturnValue({
+      selectedGalleryIds: new Set(['g1']),
+      gallerySelectionMap: new Map([
+        ['g1', { url: 'https://example.com/1.png', mediaType: 'video', generationId: 'g1' }],
+      ]),
+      selectGalleryItem,
+      selectGalleryItems: vi.fn(),
+      clearGallerySelection: vi.fn(),
+    });
+    mocks.useModifierKeys.mockReturnValue({
+      shiftKey: true,
+      metaKey: false,
+      ctrlKey: false,
+      isMultiSelectModifier: true,
+    });
+    mocks.useLassoSelection.mockReturnValue({
+      selectionRect: {
+        left: 10,
+        top: 20,
+        width: 30,
+        height: 40,
+      },
+      handleMouseDown: vi.fn(),
+    });
+
+    const image = {
+      id: 'g1',
+      url: 'https://example.com/1.png',
+      isVideo: true,
+    };
+
+    render(
+      <GenerationsPaneGallery
+        {...buildProps({
+          gallery: { ...buildProps().gallery, items: [image] } as never,
+        })}
+      />,
+    );
+
+    expect(document.querySelector('.border-sky-400.bg-sky-400\\/10')).toBeInTheDocument();
+
+    const mediaGalleryProps = mocks.MediaGallery.mock.calls[0]?.[0];
+    mediaGalleryProps.onImageClick(image);
+
+    expect(selectGalleryItem).toHaveBeenCalledWith(
+      'g1',
+      {
+        url: 'https://example.com/1.png',
+        type: 'video/mp4',
+        generationId: 'g1',
+      },
+      { toggle: true },
+    );
+  });
+
+  it('selects an unselected item before opening the context menu', () => {
+    const selectGalleryItem = vi.fn();
+    mocks.useGallerySelection.mockReturnValue({
+      selectedGalleryIds: new Set(),
+      gallerySelectionMap: new Map(),
+      selectGalleryItem,
+      selectGalleryItems: vi.fn(),
+      clearGallerySelection: vi.fn(),
+    });
+
+    const image = {
+      id: 'g1',
+      url: 'https://example.com/1.png',
+      type: 'image/png',
+      generation_id: 'gen-1',
+    };
+
+    render(
+      <GenerationsPaneGallery
+        {...buildProps({
+          gallery: { ...buildProps().gallery, items: [image] } as never,
+        })}
+      />,
+    );
+
+    const mediaGalleryProps = mocks.MediaGallery.mock.calls[0]?.[0];
+    act(() => {
+      mediaGalleryProps.onContextMenu({
+        preventDefault: vi.fn(),
+        clientX: 20,
+        clientY: 30,
+      }, image);
+    });
+
+    expect(selectGalleryItem).toHaveBeenCalledWith('g1', {
+      url: 'https://example.com/1.png',
+      type: 'image/png',
+      generationId: 'gen-1',
+    });
+    expect(screen.getByTestId('selection-context-menu')).toBeInTheDocument();
+  });
+
+  it('creates a shot from gallery selection order and clears the selection', async () => {
+    const createShot = vi.fn().mockResolvedValue({
+      shotId: 'shot-9',
+      shot: { id: 'shot-9', name: 'Shot 9' },
+    });
+    const clearGallerySelection = vi.fn();
+    mocks.useShotCreation.mockReturnValue({ createShot, isCreating: false });
+    mocks.useGallerySelection.mockReturnValue({
+      selectedGalleryIds: new Set(['g2', 'g1']),
+      gallerySelectionMap: new Map([
+        ['g2', { url: 'https://example.com/2.mp4', mediaType: 'video', generationId: 'gen-2' }],
+        ['g1', { url: 'https://example.com/1.png', mediaType: 'image', generationId: 'gen-1' }],
+      ]),
+      selectGalleryItem: vi.fn(),
+      selectGalleryItems: vi.fn(),
+      clearGallerySelection,
+    });
+
+    const image = {
+      id: 'g2',
+      url: 'https://example.com/2.mp4',
+      type: 'video/mp4',
+      generation_id: 'gen-2',
+    };
+
+    render(
+      <GenerationsPaneGallery
+        {...buildProps({
+          gallery: { ...buildProps().gallery, items: [image] } as never,
+        })}
+      />,
+    );
+
+    const mediaGalleryProps = mocks.MediaGallery.mock.calls[0]?.[0];
+    act(() => {
+      mediaGalleryProps.onContextMenu({
+        preventDefault: vi.fn(),
+        clientX: 20,
+        clientY: 30,
+      }, image);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Create Shot' }));
+
+    await waitFor(() => {
+      expect(createShot).toHaveBeenCalledWith({ generationIds: ['gen-2', 'gen-1'] });
+    });
+    expect(clearGallerySelection).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens the video generation modal with the newly created shot', async () => {
+    const createShot = vi.fn().mockResolvedValue({
+      shotId: 'shot-9',
+      shot: { id: 'shot-9', name: 'Shot 9' },
+    });
+    mocks.useShotCreation.mockReturnValue({ createShot, isCreating: false });
+    mocks.useGallerySelection.mockReturnValue({
+      selectedGalleryIds: new Set(['g1']),
+      gallerySelectionMap: new Map([
+        ['g1', { url: 'https://example.com/1.png', mediaType: 'image', generationId: 'gen-1' }],
+      ]),
+      selectGalleryItem: vi.fn(),
+      selectGalleryItems: vi.fn(),
+      clearGallerySelection: vi.fn(),
+    });
+
+    const image = {
+      id: 'g1',
+      url: 'https://example.com/1.png',
+      type: 'image/png',
+      generation_id: 'gen-1',
+    };
+
+    render(
+      <GenerationsPaneGallery
+        {...buildProps({
+          gallery: { ...buildProps().gallery, items: [image] } as never,
+        })}
+      />,
+    );
+
+    const mediaGalleryProps = mocks.MediaGallery.mock.calls[0]?.[0];
+    act(() => {
+      mediaGalleryProps.onContextMenu({
+        preventDefault: vi.fn(),
+        clientX: 20,
+        clientY: 30,
+      }, image);
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Generate Video' }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('video-generation-modal')).toHaveTextContent('Shot 9');
+    });
   });
 
   it('renders error and empty states when applicable', () => {

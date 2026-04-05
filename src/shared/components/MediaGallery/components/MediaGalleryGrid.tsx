@@ -21,6 +21,7 @@ interface MediaGalleryGridLayoutProps {
   gridColumnClasses: string;
   columnsPerRow?: number;
   projectAspectRatio?: string;
+  selectedIds?: ReadonlySet<string>;
   hideBottomPagination?: boolean;
 }
 
@@ -92,6 +93,7 @@ const MediaGalleryGridInner: React.FC<MediaGalleryGridProps> = ({
   gridColumnClasses,
   columnsPerRow = 5,
   projectAspectRatio,
+  selectedIds,
 
   // Loading props
   isLoading = false,
@@ -221,6 +223,10 @@ const MediaGalleryGridInner: React.FC<MediaGalleryGridProps> = ({
     isMobile,
     ...itemMobileInteraction,
   }), [isMobile, itemMobileInteraction]);
+  const selectedItems = React.useMemo(
+    () => (selectedIds ? paginatedImages.filter((image) => selectedIds.has(image.id)) : []),
+    [paginatedImages, selectedIds],
+  );
 
   // Show full skeleton gallery when loading new data
   if (isLoading) {
@@ -309,6 +315,8 @@ const MediaGalleryGridInner: React.FC<MediaGalleryGridProps> = ({
                           isPriority: loadingStrategy.shouldLoadInInitialBatch,
                           isGalleryLoading,
                         }}
+                        isSelected={Boolean(selectedIds?.has(image.id))}
+                        selectedItems={selectedItems}
                         projectAspectRatio={projectAspectRatio}
                       />
                     );
