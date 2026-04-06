@@ -26,8 +26,8 @@ export function getShotColor(shotId: string): string {
   return SHOT_COLORS[hash % SHOT_COLORS.length];
 }
 
-function flushGroup(groups: ShotGroup[], group: ShotGroup | null) {
-  if (group && group.clipIds.length >= 2) {
+function flushGroup(groups: ShotGroup[], group: ShotGroup | null, minClips: number = 2) {
+  if (group && group.clipIds.length >= minClips) {
     groups.push(group);
   }
 }
@@ -41,6 +41,7 @@ export function useShotGroups(
   meta: Record<string, ClipMeta>,
   registry: AssetRegistry,
   shots: Shot[] | undefined,
+  finalVideoShotIds?: Set<string>,
 ): ShotGroup[] {
   return useMemo(() => {
     if (!shots?.length || rows.length === 0) {
@@ -70,10 +71,13 @@ export function useShotGroups(
         }
       }
 
-      if (imageIndexByGenerationId.size < 2) {
+      const hasFinalVideo = finalVideoShotIds?.has(shot.id) ?? false;
+      // Allow single-image shots when they have a final video available
+      if (imageIndexByGenerationId.size < 2 && !(imageIndexByGenerationId.size === 1 && hasFinalVideo)) {
         continue;
       }
 
+      const minClips = hasFinalVideo ? 1 : 2;
       const color = getShotColor(shot.id);
 
       for (const [rowIndex, row] of rows.entries()) {
@@ -86,7 +90,7 @@ export function useShotGroups(
           const imageIndex = generationId ? imageIndexByGenerationId.get(generationId) : undefined;
 
           if (imageIndex === undefined) {
-            flushGroup(groups, currentGroup);
+            flushGroup(groups, currentGroup, minClips);
             currentGroup = null;
             lastImageIndex = -1;
             lastEnd = 0;
@@ -114,7 +118,7 @@ export function useShotGroups(
             continue;
           }
 
-          flushGroup(groups, currentGroup);
+          flushGroup(groups, currentGroup, minClips);
           currentGroup = {
             shotId: shot.id,
             shotName: shot.name,
@@ -127,10 +131,10 @@ export function useShotGroups(
           lastEnd = action.end;
         }
 
-        flushGroup(groups, currentGroup);
+        flushGroup(groups, currentGroup, minClips);
       }
     }
 
     return groups;
-  }, [rows, meta, registry, shots]);
+  }, [rows, meta, registry, shots, finalVideoShotIds]);
 }

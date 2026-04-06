@@ -264,12 +264,6 @@ function TimelineEditorComponent() {
   }, [selectClip, setSelectedTrackId]);
 
   const pixelsPerSecond = scaleWidth / scale;
-  const shotGroups = useShotGroups(
-    data?.rows ?? [],
-    data?.meta ?? EMPTY_CLIP_META,
-    data?.registry ?? EMPTY_ASSET_REGISTRY,
-    shots,
-  );
   const finalVideoShotIds = useMemo(() => {
     const shotIds = new Set<string>();
     for (const shotId of finalVideoMap.keys()) {
@@ -279,6 +273,13 @@ function TimelineEditorComponent() {
     }
     return shotIds;
   }, [dismissedShotIds, finalVideoMap]);
+  const shotGroups = useShotGroups(
+    data?.rows ?? [],
+    data?.meta ?? EMPTY_CLIP_META,
+    data?.registry ?? EMPTY_ASSET_REGISTRY,
+    shots,
+    finalVideoShotIds,
+  );
   const assetGenerationMap = useMemo<Record<string, string>>(() => {
     const assets = data?.registry?.assets;
     if (!assets) {

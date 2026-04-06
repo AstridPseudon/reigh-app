@@ -430,7 +430,7 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
         actions.push(override ? { ...action, ...override } : action);
       }
 
-      if (actions.length < 2) {
+      if (actions.length === 0) {
         return [];
       }
 
