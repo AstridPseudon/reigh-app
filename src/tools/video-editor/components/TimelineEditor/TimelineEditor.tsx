@@ -540,7 +540,7 @@ function TimelineEditorComponent() {
           finalVideoShotIds={finalVideoShotIds}
           onShotGroupNavigate={handleShotGroupNavigate}
           onShotGroupGenerateVideo={handleShotGroupGenerateVideo}
-          onShotGroupSwitchToFinalVideo={handleSwitchToFinalVideo}
+          onShotGroupSwitchToFinalVideo={(group) => { handleSwitchToFinalVideo(group); dismissShot(group.shotId); }}
           onShotGroupDismissFinalVideo={dismissShot}
           onSelectClips={selectClips}
           dragSessionRef={dragSessionRef}
