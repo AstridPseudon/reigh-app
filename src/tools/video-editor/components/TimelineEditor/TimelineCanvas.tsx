@@ -773,8 +773,8 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
             <React.Fragment key={group.key}>
               <div
                 className={cn(
-                  'pointer-events-none absolute rounded-md border',
-                  group.isPinned ? 'border-solid' : 'border-dashed',
+                  'pointer-events-none absolute rounded-md transition-colors',
+                  group.isPinned ? 'border-2 border-solid' : 'border border-dashed',
                 )}
                 data-shot-group-kind={group.isPinned ? 'pinned' : 'suggested'}
                 style={{
@@ -784,18 +784,12 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
                   height: group.height + 4,
                   zIndex: 1,
                   borderColor: group.isPinned
-                    ? `color-mix(in srgb, ${group.color} 72%, transparent)`
+                    ? `color-mix(in srgb, ${group.color} 60%, transparent)`
                     : `color-mix(in srgb, ${group.color} 48%, transparent)`,
-                  backgroundColor: group.isPinned
-                    ? `color-mix(in srgb, ${group.color} 18%, transparent)`
-                    : `color-mix(in srgb, ${group.color} 10%, transparent)`,
                 }}
               />
               <div
-                className={cn(
-                  'absolute rounded-t-sm transition-opacity',
-                  group.isPinned ? 'opacity-100' : 'opacity-0 hover:opacity-100',
-                )}
+                className="absolute rounded-t-sm opacity-0 transition-opacity hover:opacity-100"
                 title={group.shotName}
                 onDoubleClick={(e) => {
                   e.stopPropagation();
