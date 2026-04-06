@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Loader2, MessageSquareText, Mic, Pause, Send, Square, X } from 'lucide-react';
+import { Loader2, MessageSquareText, Mic, Send, Square, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/components/ui/contracts/cn';
@@ -475,17 +475,31 @@ export function AgentChat({ timelineId }: AgentChatProps) {
               }}
             />
 
-            <Button
-              type="button"
-              size="icon"
-              variant={voice.isRecording ? 'destructive' : 'outline'}
-              className="h-10 w-10 shrink-0 rounded-xl"
-              onClick={() => voice.toggleRecording()}
-              disabled={!activeSessionId || voice.isProcessing || sendMessage.isPending}
-              title={voice.isRecording ? 'Stop recording' : 'Voice input (Cmd+B)'}
-            >
-              {voice.isRecording ? <Pause className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-            </Button>
+            <div className="relative shrink-0">
+              <Button
+                type="button"
+                size="icon"
+                variant={voice.isRecording ? 'destructive' : 'outline'}
+                className="h-10 w-10 rounded-xl"
+                onClick={() => voice.isRecording ? voice.stopRecording() : voice.startRecording()}
+                disabled={!activeSessionId || voice.isProcessing || sendMessage.isPending}
+                title={voice.isRecording ? 'Stop recording' : 'Voice input (Cmd+B)'}
+              >
+                {voice.isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              </Button>
+              {voice.isRecording && (
+                <Button
+                  type="button"
+                  size="icon"
+                  variant="ghost"
+                  className="absolute -top-2 -right-2 h-5 w-5 rounded-full bg-muted hover:bg-destructive hover:text-destructive-foreground"
+                  onClick={() => voice.cancelRecording()}
+                  title="Cancel recording"
+                >
+                  <X className="h-3 w-3" />
+                </Button>
+              )}
+            </div>
 
             <Button
               type="button"

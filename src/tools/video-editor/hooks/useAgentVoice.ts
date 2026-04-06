@@ -9,6 +9,7 @@ export function useAgentVoice({ onTranscription, onError }: UseAgentVoiceOptions
   const {
     startRecording,
     stopRecording,
+    cancelRecording,
     toggleRecording,
     isRecording,
     isProcessing,
@@ -25,6 +26,7 @@ export function useAgentVoice({ onTranscription, onError }: UseAgentVoiceOptions
   return {
     startRecording,
     stopRecording,
+    cancelRecording,
     toggleRecording,
     isRecording,
     isProcessing,
