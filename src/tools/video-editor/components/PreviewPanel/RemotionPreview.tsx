@@ -32,23 +32,31 @@ const RemotionPreviewComponent = forwardRef<PreviewHandle, RemotionPreviewProps>
   const [isPlaying, setIsPlaying] = useState(false);
   useRenderDiagnostic('RemotionPreview');
   const markEventsEffect = useEffectDiagnostic('remotionPreview:events');
-  const inputProps = useMemo(() => ({ config }), [config]);
-  const metadata = useMemo(() => {
-    const fps = config.output.fps;
-    const { width, height } = parseResolution(config.output.resolution);
+  // Throttle config updates to the Player to avoid stutter during drag operations.
+  // The timeline canvas shows immediate visual feedback; the Player catches up after 150ms idle.
+  const [deferredConfig, setDeferredConfig] = useState(config);
+  const deferTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    if (deferTimerRef.current) clearTimeout(deferTimerRef.current);
+    deferTimerRef.current = setTimeout(() => setDeferredConfig(config), 150);
+    return () => { if (deferTimerRef.current) clearTimeout(deferTimerRef.current); };
+  }, [config]);
 
-    // This assumes useTimelineData keeps config.clips referentially stable when
-    // the config signature has not changed, so Remotion does not remount on poll churn.
+  const inputProps = useMemo(() => ({ config: deferredConfig }), [deferredConfig]);
+  const metadata = useMemo(() => {
+    const fps = deferredConfig.output.fps;
+    const { width, height } = parseResolution(deferredConfig.output.resolution);
+
     return {
       fps,
       durationInFrames: Math.max(
         1,
-        ...config.clips.map((clip) => secondsToFrames(clip.at, fps) + getClipDurationInFrames(clip, fps)),
+        ...deferredConfig.clips.map((clip) => secondsToFrames(clip.at, fps) + getClipDurationInFrames(clip, fps)),
       ),
       compositionWidth: Math.max(1, width),
       compositionHeight: Math.max(1, height),
     };
-  }, [config.clips, config.output.fps, config.output.resolution]);
+  }, [deferredConfig.clips, deferredConfig.output.fps, deferredConfig.output.resolution]);
 
   useEffect(() => {
     markEventsEffect();
