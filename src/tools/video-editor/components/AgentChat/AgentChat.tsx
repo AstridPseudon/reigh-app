@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Loader2, MessageSquareText, Mic, MicOff, Send, Square, X } from 'lucide-react';
+import { Loader2, MessageSquareText, Mic, Pause, Send, Square, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/components/ui/contracts/cn';
@@ -484,7 +484,7 @@ export function AgentChat({ timelineId }: AgentChatProps) {
               disabled={!activeSessionId || voice.isProcessing || sendMessage.isPending}
               title={voice.isRecording ? 'Stop recording' : 'Voice input (Cmd+B)'}
             >
-              {voice.isRecording ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              {voice.isRecording ? <Pause className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
             </Button>
 
             <Button
