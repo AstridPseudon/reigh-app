@@ -86,24 +86,26 @@ serve(async (req) => {
   }
 
   const { supabaseAdmin, logger, auth, body } = bootstrap.value;
-  if (!auth?.userId) {
+  if (!auth?.userId && !auth?.isServiceRole) {
     return jsonResponse({ error: "Authentication failed" }, 401);
   }
 
-  // Rate limit by user ID (this is an expensive AI endpoint)
-  const rateLimitDenied = await enforceRateLimit({
-    supabaseAdmin,
-    functionName: 'ai-prompt',
-    userId: auth.userId,
-    config: RATE_LIMITS.expensive,
-    logger,
-    logPrefix: '[AI-PROMPT]',
-    responses: {
-      serviceUnavailable: () => jsonResponse({ error: 'Rate limit service unavailable' }, 503),
-    },
-  });
-  if (rateLimitDenied) {
-    return rateLimitDenied;
+  // Rate limit by user ID (skip for service role — internal agent calls)
+  if (auth.userId) {
+    const rateLimitDenied = await enforceRateLimit({
+      supabaseAdmin,
+      functionName: 'ai-prompt',
+      userId: auth.userId,
+      config: RATE_LIMITS.expensive,
+      logger,
+      logPrefix: '[AI-PROMPT]',
+      responses: {
+        serviceUnavailable: () => jsonResponse({ error: 'Rate limit service unavailable' }, 503),
+      },
+    });
+    if (rateLimitDenied) {
+      return rateLimitDenied;
+    }
   }
 
   const task = body.task as string | undefined;
