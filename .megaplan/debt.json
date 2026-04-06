@@ -1395,6 +1395,40 @@
       "resolved": false,
       "resolved_by": null,
       "resolved_at": null
+    },
+    {
+      "id": "DEBT-083",
+      "subsystem": "task-reference-matching",
+      "concern": "task reference matching: reusing `taskreferencesgeneration` as the only matcher will miss active video-generation tasks for source clips. the helper does not inspect `input_image_generation_ids`, `start_image_generation_id`, or `end_image_generation_id`, even though this repo stores and later reads those fields to identify which timeline generations a travel task is using. that means spinners would fail to appear for at least some travel/video tasks.",
+      "flag_ids": [
+        "FLAG-001"
+      ],
+      "plan_ids": [
+        "show-in-progress-spinners-on-20260406-0925"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T07:34:43Z",
+      "updated_at": "2026-04-06T07:34:43Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-084",
+      "subsystem": "immediate-task-feedback",
+      "concern": "immediate task feedback: the plan does not cover the repo's existing optimistic-pending pattern, so it does not reliably meet the stated 'appear immediately when a task is created' behavior. with only realtime plus 5s polling, spinner appearance still depends on network/realtime latency.",
+      "flag_ids": [
+        "FLAG-002"
+      ],
+      "plan_ids": [
+        "show-in-progress-spinners-on-20260406-0925"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T07:34:43Z",
+      "updated_at": "2026-04-06T07:34:43Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
     }
   ]
 }

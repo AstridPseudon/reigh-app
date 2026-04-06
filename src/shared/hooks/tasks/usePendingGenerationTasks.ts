@@ -9,7 +9,6 @@
 
 import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { TASK_STATUS } from '@/types/tasks';
 import { taskQueryKeys } from '@/shared/lib/queryKeys/tasks';
 
@@ -32,7 +31,10 @@ interface UsePendingGenerationTasksReturn {
  * Check if task params reference a specific generation ID as a source.
  * Checks common param fields where source generation is stored.
  */
-function taskReferencesGeneration(params: Record<string, unknown> | null, generationId: string): boolean {
+export function taskReferencesGeneration(
+  params: Record<string, unknown> | null,
+  generationId: string
+): boolean {
   if (!params || !generationId) return false;
 
   // Direct source references
@@ -41,8 +43,13 @@ function taskReferencesGeneration(params: Record<string, unknown> | null, genera
   if (params.generation_id === generationId) return true;
   if (params.input_generation_id === generationId) return true;
   if (params.parent_generation_id === generationId) return true;
+  if (params.start_image_generation_id === generationId) return true;
+  if (params.end_image_generation_id === generationId) return true;
   // Video segment tasks use pair_shot_generation_id
   if (params.pair_shot_generation_id === generationId) return true;
+  if (Array.isArray(params.input_image_generation_ids) && params.input_image_generation_ids.includes(generationId)) {
+    return true;
+  }
 
   // Check nested in orchestrator_details
   const orchDetails = params.orchestrator_details as Record<string, unknown> | undefined;
@@ -50,6 +57,12 @@ function taskReferencesGeneration(params: Record<string, unknown> | null, genera
     if (orchDetails.based_on === generationId) return true;
     if (orchDetails.source_generation_id === generationId) return true;
     if (orchDetails.parent_generation_id === generationId) return true;
+    if (
+      Array.isArray(orchDetails.input_image_generation_ids)
+      && orchDetails.input_image_generation_ids.includes(generationId)
+    ) {
+      return true;
+    }
     // Check pair_shot_generation_ids array
     if (Array.isArray(orchDetails.pair_shot_generation_ids)) {
       if (orchDetails.pair_shot_generation_ids.includes(generationId)) return true;
@@ -84,7 +97,8 @@ export function usePendingGenerationTasks(
       if (!generationId || !projectId) return [];
 
       // Query tasks that are Queued or In Progress
-      const { data, error } = await supabase().from('tasks')
+      const { getSupabaseClient } = await import('@/integrations/supabase/client');
+      const { data, error } = await getSupabaseClient().from('tasks')
         .select('id, status, task_type, params')
         .eq('project_id', projectId)
         .in('status', [TASK_STATUS.QUEUED, TASK_STATUS.IN_PROGRESS]);

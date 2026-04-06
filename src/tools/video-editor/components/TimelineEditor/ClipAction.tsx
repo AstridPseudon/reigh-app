@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowRight, Clapperboard, FolderPlus, ImageIcon, Layers, Music2, RefreshCw, Scissors, Trash2, Type, X } from 'lucide-react';
+import { ArrowRight, Clapperboard, FolderPlus, ImageIcon, Layers, Loader2, Music2, RefreshCw, Scissors, Trash2, Type, X } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import type { Shot } from '@/domains/generation/types';
 import { usePortalMousedownGuard } from '@/shared/hooks/usePortalMousedownGuard';
@@ -31,6 +31,7 @@ interface ClipActionProps {
   onDeleteClip?: (clipId: string) => void;
   onDeleteClips?: (clipIds: string[]) => void;
   onToggleMuteClips?: (clipIds: string[]) => void;
+  isTaskActive?: boolean;
   /** True when the clip's file no longer matches the generation's current primary variant */
   isVariantStale?: boolean;
   /** True when the clip is linked to a generation (enables "Update to current variant" in menu) */
@@ -72,6 +73,7 @@ function ClipContextMenu(props: ClipContextMenuProps) {
   const [adjusted, setAdjusted] = useState<{ x: number; y: number } | null>(null);
   const [createdShot, setCreatedShot] = useState<Shot | null>(null);
   const [isCreatingLocal, setIsCreatingLocal] = useState(false);
+  const { onCreateShotFromSelection } = props;
 
   useLayoutEffect(() => {
     if (!props.menuRef.current) {
@@ -88,14 +90,14 @@ function ClipContextMenu(props: ClipContextMenuProps) {
   usePortalMousedownGuard(props.menuRef);
 
   const handleCreateShot = useCallback(async () => {
-    if (!props.onCreateShotFromSelection) return;
+    if (!onCreateShotFromSelection) return;
     setIsCreatingLocal(true);
-    const shot = await props.onCreateShotFromSelection();
+    const shot = await onCreateShotFromSelection();
     setIsCreatingLocal(false);
     if (shot) {
       setCreatedShot(shot);
     }
-  }, [props.onCreateShotFromSelection]);
+  }, [onCreateShotFromSelection]);
 
   const pos = adjusted ?? props.contextMenu;
   const visibleExistingShots = (props.existingShots ?? []).filter((shot) => shot.id !== createdShot?.id);
@@ -205,7 +207,7 @@ function ClipActionComponent({
   action,
   clipMeta,
   isSelected,
-  isPrimary = false,
+  isPrimary: _isPrimary = false,
   selectedClipIds = [],
   thumbnailSrc,
   onSelect,
@@ -215,6 +217,7 @@ function ClipActionComponent({
   onDeleteClip,
   onDeleteClips,
   onToggleMuteClips,
+  isTaskActive,
   isVariantStale,
   isGenerationAsset,
   onUpdateVariant,
@@ -346,7 +349,14 @@ function ClipActionComponent({
             </div>
           )}
         </div>
-        {isVariantStale && (
+        {isTaskActive ? (
+          <div
+            className="absolute right-1 top-1 z-20 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white"
+            title="Task in progress"
+          >
+            <Loader2 className="h-2.5 w-2.5 animate-spin" />
+          </div>
+        ) : isVariantStale ? (
           <div
             className="absolute right-1 top-1 z-20 flex h-4 w-4 cursor-pointer items-center justify-center rounded-full bg-amber-500 text-white hover:bg-amber-400"
             title="Variant outdated"
@@ -359,7 +369,7 @@ function ClipActionComponent({
           >
             <RefreshCw className="h-2.5 w-2.5" />
           </div>
-        )}
+        ) : null}
       </button>
 
       {contextMenu && (
@@ -401,6 +411,7 @@ function areClipActionPropsEqual(prev: ClipActionProps, next: ClipActionProps): 
   if (prev.thumbnailSrc !== next.thumbnailSrc) return false;
   if (prev.audioSrc !== next.audioSrc) return false;
   if (prev.clipWidth !== next.clipWidth) return false;
+  if (prev.isTaskActive !== next.isTaskActive) return false;
   if (prev.isVariantStale !== next.isVariantStale) return false;
   if (prev.isGenerationAsset !== next.isGenerationAsset) return false;
   if (prev.canCreateShotFromSelection !== next.canCreateShotFromSelection) return false;

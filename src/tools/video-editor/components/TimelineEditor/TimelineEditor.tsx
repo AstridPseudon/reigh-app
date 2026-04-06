@@ -24,6 +24,7 @@ import {
   useTimelineEditorOps,
 } from '@/tools/video-editor/contexts/TimelineEditorContext';
 import { useClipDrag } from '@/tools/video-editor/hooks/useClipDrag';
+import { useActiveTaskClips } from '@/tools/video-editor/hooks/useActiveTaskClips';
 import { useFinalVideoAvailable } from '@/tools/video-editor/hooks/useFinalVideoAvailable';
 import { useMarqueeSelect } from '@/tools/video-editor/hooks/useMarqueeSelect';
 import { useShotGroups } from '@/tools/video-editor/hooks/useShotGroups';
@@ -214,6 +215,7 @@ function TimelineEditorComponent() {
     patchRegistry,
     registerAsset,
   });
+  const { activeTaskAssetKeys } = useActiveTaskClips({ registry: resolvedConfig?.registry });
   const { finalVideoMap, dismissedShotIds, dismissShot } = useFinalVideoAvailable();
 
   useLayoutEffect(() => {
@@ -421,6 +423,7 @@ function TimelineEditorComponent() {
     const isStale = assetKey ? staleAssetKeys.has(assetKey) : false;
     const isDismissed = assetKey ? dismissedAssetKeys.has(assetKey) : false;
     const isGenAsset = assetKey ? generationAssetKeys.has(assetKey) : false;
+    const isTaskActive = assetKey ? activeTaskAssetKeys.has(assetKey) : false;
 
     return (
       <ClipAction
@@ -439,6 +442,7 @@ function TimelineEditorComponent() {
         onDeleteClips={handleDeleteClips}
         onDeleteClip={handleDeleteClip}
         onToggleMuteClips={handleToggleMuteClips}
+        isTaskActive={isTaskActive}
         isVariantStale={isStale && !isDismissed}
         isGenerationAsset={isGenAsset}
         onUpdateVariant={isGenAsset && assetKey ? () => void updateAssetToCurrentVariant(assetKey) : undefined}
@@ -455,6 +459,7 @@ function TimelineEditorComponent() {
   }, [
     selectionShotCreationState.canCreateShot,
     existingShotsForSelection,
+    activeTaskAssetKeys,
     data,
     dismissAsset,
     dismissedAssetKeys,
