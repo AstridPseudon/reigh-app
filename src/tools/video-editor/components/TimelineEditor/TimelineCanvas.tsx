@@ -14,7 +14,7 @@ import React, {
 import { DndContext, closestCenter, type DragEndEvent, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Layers, Video } from 'lucide-react';
+import { Layers, Loader2, Video } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { usePortalMousedownGuard } from '@/shared/hooks/usePortalMousedownGuard';
 import {
@@ -65,6 +65,7 @@ interface PositionedShotGroup {
   rowId: string;
   color: string;
   hasFinalVideo: boolean;
+  hasActiveTask: boolean;
   left: number;
   top: number;
   width: number;
@@ -95,6 +96,7 @@ export interface TimelineCanvasProps {
   onActionResizeEnd?: (params: { action: TimelineAction; row: TimelineRow; start: number; end: number; dir: ResizeDir }) => void;
   shotGroups?: ShotGroup[];
   finalVideoShotIds?: Set<string>;
+  activeTaskClipIds?: Set<string>;
   onShotGroupNavigate?: (shotId: string) => void;
   onShotGroupGenerateVideo?: (shotId: string) => void;
   onShotGroupSwitchToFinalVideo?: (group: { shotId: string; clipIds: string[]; rowId: string }) => void;
@@ -325,6 +327,7 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
   onActionResizeEnd,
   shotGroups = [],
   finalVideoShotIds,
+  activeTaskClipIds,
   onShotGroupNavigate,
   onShotGroupGenerateVideo,
   onShotGroupSwitchToFinalVideo,
@@ -453,13 +456,14 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
         rowId: group.rowId,
         color: group.color,
         hasFinalVideo: finalVideoShotIds?.has(group.shotId) ?? false,
+        hasActiveTask: activeTaskClipIds ? group.clipIds.some((id) => activeTaskClipIds.has(id)) : false,
         left: startLeft + first.start * pixelsPerSecond,
         top: group.rowIndex * rowHeight + ACTION_VERTICAL_MARGIN,
         width: Math.max((last.end - first.start) * pixelsPerSecond, 1),
         height: actionHeight,
       }];
     });
-  }, [actionHeight, finalVideoShotIds, pixelsPerSecond, resizeOverrides, rowActionMaps, rowHeight, rows, shotGroups, startLeft]);
+  }, [actionHeight, activeTaskClipIds, finalVideoShotIds, pixelsPerSecond, resizeOverrides, rowActionMaps, rowHeight, rows, shotGroups, startLeft]);
   const hideShotGroups = dragSessionRef?.current !== null || hasResizeOverrides;
   const openShotGroupMenu = useCallback((x: number, y: number, group: Pick<PositionedShotGroup, 'shotId' | 'shotName' | 'clipIds' | 'rowId' | 'hasFinalVideo'>) => {
     setShotGroupMenu({ x, y, ...group });
@@ -804,6 +808,20 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
                 >
                   <Video className="h-3 w-3" />
                 </button>
+              )}
+              {group.hasActiveTask && (
+                <div
+                  className="pointer-events-none absolute flex h-5 w-5 items-center justify-center rounded-full shadow-sm"
+                  title="Task in progress"
+                  style={{
+                    left: group.left + group.width - 8,
+                    top: group.top - 8,
+                    zIndex: 9,
+                    backgroundColor: 'rgba(255,255,255,0.9)',
+                  }}
+                >
+                  <Loader2 className="h-3 w-3 animate-spin" style={{ color: group.color }} />
+                </div>
               )}
             </React.Fragment>
           ))}

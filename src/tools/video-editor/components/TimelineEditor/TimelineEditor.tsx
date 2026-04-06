@@ -252,6 +252,19 @@ function TimelineEditorComponent() {
     registerAsset,
   });
   const { activeTaskAssetKeys } = useActiveTaskClips({ registry: resolvedConfig?.registry });
+  const activeTaskClipIds = useMemo(() => {
+    if (activeTaskAssetKeys.size === 0 || !data?.rows || !data?.meta) return new Set<string>();
+    const clipIds = new Set<string>();
+    for (const row of data.rows) {
+      for (const action of row.actions) {
+        const assetKey = data.meta[action.id]?.asset;
+        if (assetKey && activeTaskAssetKeys.has(assetKey)) {
+          clipIds.add(action.id);
+        }
+      }
+    }
+    return clipIds;
+  }, [activeTaskAssetKeys, data?.rows, data?.meta]);
   const { finalVideoMap, dismissedFinalVideoIds, dismissFinalVideo } = useFinalVideoAvailable();
 
   useLayoutEffect(() => {
@@ -579,6 +592,7 @@ function TimelineEditorComponent() {
           onActionResizeEnd={onActionResizeEnd}
           shotGroups={shotGroups}
           finalVideoShotIds={finalVideoShotIds}
+          activeTaskClipIds={activeTaskClipIds}
           onShotGroupNavigate={handleShotGroupNavigate}
           onShotGroupGenerateVideo={handleShotGroupGenerateVideo}
           onShotGroupSwitchToFinalVideo={(group) => {
