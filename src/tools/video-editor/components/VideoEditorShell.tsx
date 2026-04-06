@@ -23,7 +23,7 @@ import { useTimelinePlaybackContext } from '@/tools/video-editor/contexts/Timeli
 import { useKeyboardShortcuts } from '@/tools/video-editor/hooks/useKeyboardShortcuts';
 import { useTimelineRealtime } from '@/tools/video-editor/hooks/useTimelineRealtime';
 import { getTimelineDurationInFrames, parseResolution } from '@/tools/video-editor/lib/config-utils';
-import { MemoryPressureDetector } from '@/tools/video-editor/lib/perf-diagnostics';
+import { bootDiagnostics, MemoryPressureDetector } from '@/tools/video-editor/lib/perf-diagnostics';
 import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 const MIN_TIMELINE_HEIGHT = 140;
@@ -77,6 +77,7 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
   });
 
   useEffect(() => {
+    bootDiagnostics();
     MemoryPressureDetector.start();
     return MemoryPressureDetector.stop;
   }, []);

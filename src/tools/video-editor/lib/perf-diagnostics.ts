@@ -4,6 +4,14 @@ type RafState = CounterState & { last: number };
 const now = () => (typeof performance === 'undefined' ? Date.now() : performance.now());
 const logPerf = (message: string) => console.error(`[PERF] ${message}`);
 
+// One-time confirmation that diagnostics loaded
+let _booted = false;
+export function bootDiagnostics() {
+  if (_booted) return;
+  _booted = true;
+  console.error('[PERF] diagnostics active');
+}
+
 const createWindowDetector = (
   label: string,
   threshold: number,
@@ -55,15 +63,15 @@ export const RafLoopDetector = {
     }
     state.count += 1;
     state.last = time;
-    if (!state.fired && state.count > 1000) {
+    if (!state.fired && state.count > 300) {
       state.fired = true;
       logPerf(`raf-loop: ${id} exceeded 1000 callbacks in 5s`);
     }
   },
 };
 
-export const RenderStormDetector = createWindowDetector('render-storm', 50, 1000);
-export const EffectLoopDetector = createWindowDetector('effect-loop', 30, 1000);
+export const RenderStormDetector = createWindowDetector('render-storm', 20, 1000);
+export const EffectLoopDetector = createWindowDetector('effect-loop', 15, 1000);
 
 type PerfWithMemory = Performance & { memory?: { usedJSHeapSize?: number } };
 
