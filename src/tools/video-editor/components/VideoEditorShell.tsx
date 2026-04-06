@@ -71,6 +71,9 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
   const [isTimelineMaximized, setIsTimelineMaximized] = useState(false);
   /** In condensed mode: 'preview' (default) or 'properties' for the right panel. */
   const [condensedRightPanel, setCondensedRightPanel] = useState<'preview' | 'properties'>('preview');
+  // Track playback state across layout transitions (condensed ↔ full)
+  const wasPlayingRef = useRef(false);
+  const prevCondensedRef = useRef<boolean | null>(null);
   const conflict = useTimelineRealtime({
     timelineId,
     conflictExhausted: chrome.isConflictExhausted,
@@ -170,6 +173,28 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
   }, [forceCondensed, aspectRatio, isTimelineMaximized]);
 
   const condensed = forceCondensed || tooSmall;
+
+  // Capture playback state when layout transitions between condensed ↔ full
+  const autoPlay = (() => {
+    if (prevCondensedRef.current !== null && prevCondensedRef.current !== condensed) {
+      // Layout just changed — use the saved wasPlaying state
+      const shouldAutoPlay = wasPlayingRef.current;
+      wasPlayingRef.current = false;
+      prevCondensedRef.current = condensed;
+      return shouldAutoPlay;
+    }
+    prevCondensedRef.current = condensed;
+    return false;
+  })();
+
+  // Keep wasPlaying in sync with the current Player's state
+  useEffect(() => {
+    const checkPlaying = () => {
+      wasPlayingRef.current = playback.previewRef.current?.isPlaying ?? false;
+    };
+    const id = setInterval(checkPlaying, 500);
+    return () => clearInterval(id);
+  }, [playback.previewRef]);
 
   const gridTemplateRows = isTimelineMaximized
     ? `${MIN_PREVIEW_HEIGHT}px auto 1fr`
@@ -420,6 +445,7 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
                         initialTime={playback.currentTime}
                         onTimeUpdate={playback.onPreviewTimeUpdate}
                         playerContainerRef={playback.playerContainerRef}
+                        autoPlay={autoPlay}
                       />
                     )}
                   </div>
@@ -456,7 +482,7 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
           >
             <div className="relative min-h-0">
               {previewOverlay}
-              <PreviewPanel />
+              <PreviewPanel autoPlay={autoPlay} />
             </div>
 
             <div className="row-span-2 min-h-0 overflow-hidden">

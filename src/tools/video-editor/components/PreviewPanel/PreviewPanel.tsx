@@ -8,7 +8,7 @@ import {
 import { useTimelinePlaybackContext } from '@/tools/video-editor/contexts/TimelinePlaybackContext';
 import { useRenderDiagnostic } from '@/tools/video-editor/hooks/usePerfDiagnostics';
 
-function PreviewPanelComponent() {
+function PreviewPanelComponent({ autoPlay = false }: { autoPlay?: boolean }) {
   useRenderDiagnostic('PreviewPanel');
   const {
     data,
@@ -57,6 +57,7 @@ function PreviewPanelComponent() {
             initialTime={currentTime}
             onTimeUpdate={onPreviewTimeUpdate}
             playerContainerRef={playerContainerRef}
+            autoPlay={autoPlay}
           />
           <OverlayEditor
             rows={data.rows}
