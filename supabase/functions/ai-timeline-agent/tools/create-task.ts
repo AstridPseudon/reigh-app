@@ -162,14 +162,16 @@ export async function executeCreateTask(
   let shotId = generationIds.length ? await findShotForGenerations(supabaseAdmin, generationIds) : null;
   let shotNote = "";
   const shotName = asTrimmedString(args.shot_name);
-  if (!shotId && shotName && generationIds.length > 0) {
+  const needsAutoShot = !shotId && generationIds.length > 0 && taskType === "image-to-video";
+  if (!shotId && (shotName || needsAutoShot) && generationIds.length > 0) {
+    const effectiveShotName = shotName || `Shot ${new Date().toISOString().slice(11, 19)}`;
     shotId = await createShotWithGenerations(supabaseAdmin, {
       projectId: timelineState.projectId,
-      shotName,
+      shotName: effectiveShotName,
       generationIds,
       position: APPEND_SHOT_POSITION,
     });
-    shotNote = ` Created shot ${shotName} (${shotId}).`;
+    shotNote = ` Created shot ${effectiveShotName} (${shotId}).`;
   } else if (shotId) {
     shotNote = ` Reused shot ${shotId}.`;
   }
