@@ -88,6 +88,10 @@ export const TIMELINE_AGENT_TOOLS: TimelineAgentToolDefinition[] = [
             type: "string",
             description: "Generation ID this task derives from. Overrides auto-detected value from selected clips.",
           },
+          as_new: {
+            type: "boolean",
+            description: "When true, create a standalone generation instead of a variant of the source image. Defaults to false.",
+          },
           shot_name: { type: "string", description: "Optional shot name to use if a new shot must be created." },
           amount_of_motion: {
             type: "number",

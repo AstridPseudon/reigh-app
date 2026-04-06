@@ -165,9 +165,12 @@ export async function executeCreateTask(
     shotNote = ` Reused shot ${shotId}.`;
   }
 
-  const basedOn = asTrimmedString(args.based_on) ?? (taskType === "video-enhance"
-    ? selectedVideoClip?.generation_id
-    : selectedReferenceClips[0]?.generation_id);
+  const asNew = args.as_new === true;
+  const basedOn = asNew
+    ? undefined
+    : (asTrimmedString(args.based_on) ?? (taskType === "video-enhance"
+      ? selectedVideoClip?.generation_id
+      : selectedReferenceClips[0]?.generation_id));
   const generationId = taskType === "image-upscale" ? selectedReferenceClips[0]?.generation_id : undefined;
   const defaultModelName = taskType === "image-to-video"
     ? travelContext?.selectedModel

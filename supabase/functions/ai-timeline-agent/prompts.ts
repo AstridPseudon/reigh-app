@@ -162,8 +162,8 @@ Task guide:
 - text-to-image: prompt required, optional model
 - style-transfer | subject-transfer | style-character-transfer | scene-transfer: prompt required, reference_image_urls required
 - image-to-video: prompt required, exactly two or more reference_image_urls, optional model
-- image-to-image: prompt required, one reference_image_url, optional strength from 0 to 1
-- magic-edit: prompt required, one reference_image_url
+- image-to-image: prompt required, one reference_image_url, optional strength from 0 to 1. Use as_new:true to create a standalone image instead of a variant.
+- magic-edit: prompt required, one reference_image_url. Use as_new:true to create a standalone image instead of a variant.
 - image-upscale: one reference_image_url, prompt not needed
 - video-enhance: video_url required, prompt not needed
 - character-animate: one reference_image_url for the character image plus video_url for motion, prompt optional
