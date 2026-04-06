@@ -161,7 +161,7 @@ ${activeLorasSection ? `${activeLorasSection}
 Task guide:
 - text-to-image: prompt required, optional model
 - style-transfer | subject-transfer | style-character-transfer | scene-transfer: prompt required, reference_image_urls required
-- image-to-video: prompt required, exactly two or more reference_image_urls, optional model
+- image-to-video: prompt required, one or more reference_image_urls (1 image = animate, 2+ = travel between), optional model
 - image-to-image: prompt required, one reference_image_url, optional strength from 0 to 1. Use as_new:true to create a standalone image instead of a variant.
 - magic-edit: prompt required, one reference_image_url. Use as_new:true to create a standalone image instead of a variant.
 - image-upscale: one reference_image_url, prompt not needed

@@ -141,8 +141,8 @@ export async function executeCreateTask(
   if (strength !== undefined && (strength < 0 || strength > 1)) {
     return { result: "create_task strength must be between 0 and 1." };
   }
-  if (taskType === "image-to-video" && referenceImageUrls.length < 2) {
-    return { result: "create_task image-to-video requires at least two reference_image_urls." };
+  if (taskType === "image-to-video" && referenceImageUrls.length < 1) {
+    return { result: "create_task image-to-video requires at least one reference_image_url." };
   }
   if (TASK_TYPES_REQUIRING_REFERENCE_IMAGE.has(taskType) && referenceImageUrls.length === 0) {
     return { result: `create_task ${taskType} requires reference_image_urls.` };
