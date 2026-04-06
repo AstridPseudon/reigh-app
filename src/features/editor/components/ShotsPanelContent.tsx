@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { ArrowDownWideNarrow, ArrowUpWideNarrow, Check, Copy, Loader2, Pencil, Plus, Search, Trash2, X } from 'lucide-react';
+import { ArrowDownWideNarrow, ArrowUpWideNarrow, Check, Copy, Loader2, Pencil, Play, Plus, Search, Trash2, X } from 'lucide-react';
 import { useShotCreation } from '@/shared/hooks/shotCreation/useShotCreation';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { useShots } from '@/shared/contexts/ShotsContext';
@@ -177,8 +177,10 @@ function ShotCard({
           </div>
         )}
         {finalVideo && dropState === 'idle' && !isDropTarget && (
-          <div className="absolute bottom-0.5 right-0.5 rounded bg-background/70 px-1 py-0.5 text-[8px] font-medium text-foreground backdrop-blur-sm">
-            Video
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="flex h-5 w-5 items-center justify-center rounded-full bg-background/70 text-foreground backdrop-blur-sm">
+              <Play className="h-2.5 w-2.5 fill-current" />
+            </div>
           </div>
         )}
       </div>

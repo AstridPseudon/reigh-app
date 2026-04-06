@@ -510,11 +510,14 @@ function TimelineEditorComponent() {
     const isDismissed = assetKey ? dismissedAssetKeys.has(assetKey) : false;
     const isGenAsset = assetKey ? generationAssetKeys.has(assetKey) : false;
     const isTaskActive = assetKey && !shotGroupClipIds.has(action.id) ? activeTaskAssetKeys.has(assetKey) : false;
+    const assetType = assetKey ? data?.registry?.assets[assetKey]?.type : undefined;
+    const isVideoClip = typeof assetType === 'string' && assetType.startsWith('video');
 
     return (
       <ClipAction
         action={action}
         clipMeta={clipMeta}
+        isVideoClip={isVideoClip}
         isSelected={isClipSelected(action.id)}
         isPrimary={primaryClipId === action.id}
         selectedClipIds={[...selectedClipIds]}

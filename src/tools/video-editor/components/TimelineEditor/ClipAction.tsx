@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowRight, Clapperboard, FolderPlus, ImageIcon, Layers, Loader2, Music2, RefreshCw, Scissors, Trash2, Type, X } from 'lucide-react';
+import { ArrowRight, Clapperboard, Film, FolderPlus, ImageIcon, Layers, Loader2, Music2, RefreshCw, Scissors, Trash2, Type, X } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import type { Shot } from '@/domains/generation/types';
 import { usePortalMousedownGuard } from '@/shared/hooks/usePortalMousedownGuard';
@@ -31,6 +31,7 @@ interface ClipActionProps {
   onDeleteClip?: (clipId: string) => void;
   onDeleteClips?: (clipIds: string[]) => void;
   onToggleMuteClips?: (clipIds: string[]) => void;
+  isVideoClip?: boolean;
   isTaskActive?: boolean;
   /** True when the clip's file no longer matches the generation's current primary variant */
   isVariantStale?: boolean;
@@ -217,6 +218,7 @@ function ClipActionComponent({
   onDeleteClip,
   onDeleteClips,
   onToggleMuteClips,
+  isVideoClip,
   isTaskActive,
   isVariantStale,
   isGenerationAsset,
@@ -286,7 +288,9 @@ function ClipActionComponent({
     ? <Type className="h-3 w-3" />
     : clipMeta.track.startsWith('A')
       ? <Music2 className="h-3 w-3" />
-      : <ImageIcon className="h-3 w-3" />;
+      : isVideoClip
+        ? <Film className="h-3 w-3" />
+        : <ImageIcon className="h-3 w-3" />;
   const hasBatchSelection = isSelected && selectedClipIds.length > 1;
   const showShotActions = canCreateShotFromSelection && (
     typeof onCreateShotFromSelection === 'function' || typeof onGenerateVideoFromSelection === 'function'
@@ -411,6 +415,7 @@ function areClipActionPropsEqual(prev: ClipActionProps, next: ClipActionProps): 
   if (prev.thumbnailSrc !== next.thumbnailSrc) return false;
   if (prev.audioSrc !== next.audioSrc) return false;
   if (prev.clipWidth !== next.clipWidth) return false;
+  if (prev.isVideoClip !== next.isVideoClip) return false;
   if (prev.isTaskActive !== next.isTaskActive) return false;
   if (prev.isVariantStale !== next.isVariantStale) return false;
   if (prev.isGenerationAsset !== next.isGenerationAsset) return false;
