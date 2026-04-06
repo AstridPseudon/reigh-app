@@ -6,10 +6,10 @@ import type { TimelineCanvasHandle } from '@/tools/video-editor/types/timeline-c
 export interface UseTimelinePlaybackResult {
   currentTime: number;
   setCurrentTime: React.Dispatch<React.SetStateAction<number>>;
-  timelineRef: React.RefObject<TimelineCanvasHandle | null>;
-  previewRef: React.RefObject<PreviewHandle | null>;
-  playerContainerRef: React.RefObject<HTMLDivElement | null>;
-  timelineWrapperRef: React.RefObject<HTMLDivElement | null>;
+  timelineRef: React.RefObject<TimelineCanvasHandle>;
+  previewRef: React.RefObject<PreviewHandle>;
+  playerContainerRef: React.RefObject<HTMLDivElement>;
+  timelineWrapperRef: React.RefObject<HTMLDivElement>;
   onPreviewTimeUpdate: (time: number) => void;
   onCursorDrag: (time: number) => void;
   onClickTimeArea: (time: number) => undefined;
@@ -19,8 +19,8 @@ export interface UseTimelinePlaybackResult {
 export function useTimelinePlayback(): UseTimelinePlaybackResult {
   const timelineRef = useRef<TimelineCanvasHandle>(null);
   const previewRef = useRef<PreviewHandle>(null);
-  const playerContainerRef = useRef<HTMLDivElement | null>(null);
-  const timelineWrapperRef = useRef<HTMLDivElement | null>(null);
+  const playerContainerRef = useRef<HTMLDivElement>(null);
+  const timelineWrapperRef = useRef<HTMLDivElement>(null);
   const isSyncingFromPreview = useRef(false);
   const isSyncingFromTimeline = useRef(false);
 

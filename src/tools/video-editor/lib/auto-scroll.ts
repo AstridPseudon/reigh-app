@@ -1,3 +1,5 @@
+import { RafLoopDetector } from '@/tools/video-editor/lib/perf-diagnostics';
+
 const EDGE_ZONE_PX = 40;
 const MAX_SCROLL_SPEED = 12;
 
@@ -25,6 +27,7 @@ export function createAutoScroller(
     container.scrollLeft += dx;
     container.scrollTop += dy;
     onTick?.(lastClientX, lastClientY);
+    RafLoopDetector.track('autoScroll');
     frameId = requestAnimationFrame(tick);
   };
 

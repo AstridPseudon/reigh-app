@@ -4,6 +4,7 @@ import { Maximize2, RotateCcw } from 'lucide-react';
 import {
   hasRenderableBounds,
 } from '@/tools/video-editor/lib/render-bounds';
+import { useEffectDiagnostic, useRenderDiagnostic } from '@/tools/video-editor/hooks/usePerfDiagnostics';
 import type { ClipMeta } from '@/tools/video-editor/lib/timeline-data';
 import type { TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 import type { ResolvedTimelineConfig } from '@/tools/video-editor/types';
@@ -13,7 +14,7 @@ interface OverlayEditorProps {
   meta: Record<string, ClipMeta>;
   registry: ResolvedTimelineConfig['registry'];
   currentTime: number;
-  playerContainerRef: RefObject<HTMLDivElement | null>;
+  playerContainerRef: RefObject<HTMLDivElement>;
   trackScaleMap: Record<string, number>;
   compositionWidth: number;
   compositionHeight: number;
@@ -153,6 +154,8 @@ function OverlayEditorComponent({
     cropValues: CropValues;
     hasChanges: boolean;
   } | null>(null);
+  useRenderDiagnostic('OverlayEditor');
+  const markLayoutEffect = useEffectDiagnostic('overlayEditor:layout');
 
   const getTrackDefaultBounds = useCallback((trackId: string): OverlayBounds => {
     const trackScale = Math.max(trackScaleMap[trackId] ?? 1, 0.01);
@@ -300,6 +303,7 @@ function OverlayEditorComponent({
   }, [compositionHeight, compositionWidth, playerContainerRef]);
 
   useEffect(() => {
+    markLayoutEffect();
     const updateLayout = () => setLayout(computeLayout());
 
     updateLayout();
@@ -314,7 +318,7 @@ function OverlayEditorComponent({
       window.removeEventListener('resize', updateLayout);
       observer?.disconnect();
     };
-  }, [computeLayout, playerContainerRef]);
+  }, [computeLayout, markLayoutEffect, playerContainerRef]);
 
   const commitDragChange = useCallback(() => {
     dragState.current = null;

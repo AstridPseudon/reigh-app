@@ -9,6 +9,7 @@ import {
   type DropPosition,
 } from '@/tools/video-editor/lib/drop-position';
 import type { GhostRect } from '@/tools/video-editor/lib/multi-drag-utils';
+import { RafLoopDetector } from '@/tools/video-editor/lib/perf-diagnostics';
 import type { TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { TrackKind } from '@/tools/video-editor/types';
 
@@ -149,6 +150,7 @@ export function useDragCoordinator({
     pendingIndicatorRef.current = toIndicatorPosition(nextPosition);
 
     if (frameRef.current === null) {
+      RafLoopDetector.track('dragCoordinator');
       frameRef.current = window.requestAnimationFrame(flushIndicator);
     }
 

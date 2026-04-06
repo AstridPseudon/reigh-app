@@ -28,6 +28,7 @@ import { TimeRuler } from '@/tools/video-editor/components/TimelineEditor/TimeRu
 import { LABEL_WIDTH } from '@/tools/video-editor/lib/coordinate-utils';
 import { snapResize } from '@/tools/video-editor/lib/snap-edges';
 import { getSourceTime, type TimelineData } from '@/tools/video-editor/lib/timeline-data';
+import { useRenderDiagnostic } from '@/tools/video-editor/hooks/usePerfDiagnostics';
 import type { TrackDefinition } from '@/tools/video-editor/types';
 import type { TimelineAction, TimelineCanvasHandle, TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 import type { DragSession } from '@/tools/video-editor/hooks/useClipDrag';
@@ -356,6 +357,7 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
   const [resizeOverrides, setResizeOverrides] = useState<Record<string, ResizeOverride>>({});
   const [shotGroupMenu, setShotGroupMenu] = useState<ShotGroupMenuState>(null);
   const shotGroupMenuRef = useRef<HTMLDivElement>(null);
+  useRenderDiagnostic('TimelineCanvas');
 
   usePortalMousedownGuard(shotGroupMenuRef, Boolean(shotGroupMenu));
 

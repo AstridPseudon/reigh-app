@@ -3,8 +3,8 @@ import type { PreviewHandle } from '@/tools/video-editor/components/PreviewPanel
 import type { TimelineCanvasHandle } from '@/tools/video-editor/types/timeline-canvas';
 
 interface UseTimelineSyncOptions {
-  timelineRef: React.RefObject<TimelineCanvasHandle | null>;
-  previewRef: React.RefObject<PreviewHandle | null>;
+  timelineRef: React.RefObject<TimelineCanvasHandle>;
+  previewRef: React.RefObject<PreviewHandle>;
   setCurrentTime: React.Dispatch<React.SetStateAction<number>>;
   isSyncingFromPreview: React.MutableRefObject<boolean>;
   isSyncingFromTimeline: React.MutableRefObject<boolean>;

@@ -26,6 +26,7 @@ import {
   isGenerationDragType,
   type TimelineDropPosition,
 } from '@/tools/video-editor/lib/external-drop-utils';
+import { RafLoopDetector } from '@/tools/video-editor/lib/perf-diagnostics';
 import type { TrackKind } from '@/tools/video-editor/types';
 import { createAutoScroller } from '@/tools/video-editor/lib/auto-scroll';
 
@@ -237,6 +238,7 @@ export function useExternalDrop({
     }
 
     externalDragFrameRef.current = window.requestAnimationFrame(() => {
+      RafLoopDetector.track('externalDrop');
       externalDragFrameRef.current = null;
       const currentDrag = latestExternalDragRef.current;
       if (!currentDrag) {

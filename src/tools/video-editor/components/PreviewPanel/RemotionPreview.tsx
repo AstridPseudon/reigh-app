@@ -4,6 +4,7 @@ import { Pause, Play, SkipBack } from 'lucide-react';
 import { Player, type PlayerRef } from '@remotion/player';
 import { Button } from '@/shared/components/ui/button';
 import { TimelineRenderer } from '@/tools/video-editor/compositions/TimelineRenderer';
+import { useEffectDiagnostic, useRenderDiagnostic } from '@/tools/video-editor/hooks/usePerfDiagnostics';
 import { getClipDurationInFrames, parseResolution, secondsToFrames } from '@/tools/video-editor/lib/config-utils';
 import type { ResolvedTimelineConfig } from '@/tools/video-editor/types';
 
@@ -18,7 +19,7 @@ export interface PreviewHandle {
 interface RemotionPreviewProps {
   config: ResolvedTimelineConfig;
   onTimeUpdate: (time: number) => void;
-  playerContainerRef: RefObject<HTMLDivElement | null>;
+  playerContainerRef: RefObject<HTMLDivElement>;
   compact?: boolean;
   initialTime?: number;
 }
@@ -29,6 +30,8 @@ const RemotionPreviewComponent = forwardRef<PreviewHandle, RemotionPreviewProps>
 ) {
   const playerRef = useRef<PlayerRef>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  useRenderDiagnostic('RemotionPreview');
+  const markEventsEffect = useEffectDiagnostic('remotionPreview:events');
   const inputProps = useMemo(() => ({ config }), [config]);
   const metadata = useMemo(() => {
     const fps = config.output.fps;
@@ -48,6 +51,7 @@ const RemotionPreviewComponent = forwardRef<PreviewHandle, RemotionPreviewProps>
   }, [config.clips, config.output.fps, config.output.resolution]);
 
   useEffect(() => {
+    markEventsEffect();
     const player = playerRef.current;
     if (!player) {
       return;
@@ -68,7 +72,7 @@ const RemotionPreviewComponent = forwardRef<PreviewHandle, RemotionPreviewProps>
       player.removeEventListener('play', onPlay);
       player.removeEventListener('pause', onPause);
     };
-  }, [metadata.fps, onTimeUpdate]);
+  }, [markEventsEffect, metadata.fps, onTimeUpdate]);
 
   useImperativeHandle(ref, () => ({
     seek(time: number) {

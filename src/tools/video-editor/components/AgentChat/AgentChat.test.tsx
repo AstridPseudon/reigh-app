@@ -141,11 +141,11 @@ describe('AgentChat', () => {
   it('merges timeline and gallery attachments by URL and clears gallery selection after send', async () => {
     render(<AgentChat timelineId="timeline-1" />);
 
-    fireEvent.click(screen.getByTitle('Timeline Agent (Cmd+B to talk)'));
+    fireEvent.click(screen.getByTitle('Timeline Agent (Cmd+Shift+R to talk)'));
 
     expect(await screen.findByText('attaching 1 image, 1 video')).toBeInTheDocument();
 
-    const input = screen.getByPlaceholderText('Type or press Cmd+B to talk...');
+    const input = screen.getByPlaceholderText('Type or press Cmd+Shift+R to talk...');
     await waitFor(() => expect(input).not.toBeDisabled());
 
     fireEvent.change(input, { target: { value: 'Use these references' } });
