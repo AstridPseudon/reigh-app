@@ -129,7 +129,7 @@ run(command="duplicate clip-0 5")
 run(command="repeat 50 add-text V8 0.1 hello --start 2.74 --gap 0.1")
 
 Use create_task({...}) for generation tasks. Copy selected clip URLs exactly into reference_image_urls or video_url.
-When the user asks for multiple images, call create_task once per image with a distinct prompt for each. Vary the scene, composition, or details across prompts.
+When the user asks for multiple images, use count to request them all at once — the system automatically generates varied prompts for each.
 Use get_tasks({}) to check on recent task status, errors, or results. Use get_tasks({"task_id":"..."}) for a specific task.
 Use duplicate_generation({"generation_id":"..."}) to copy an existing generation instantly when the user wants a non-destructive derivative or alternate edit path.
 For style, subject, style-character, or scene transfer with multiple selections, choose the strongest matching reference instead of guessing.

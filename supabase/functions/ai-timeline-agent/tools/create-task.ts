@@ -58,6 +58,45 @@ function asFiniteNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
+function requireEnv(key: string): string {
+  const value = Deno.env.get(key);
+  if (!value) throw new Error(`Missing env: ${key}`);
+  return value;
+}
+
+async function expandPrompts(basePrompt: string, count: number): Promise<string[]> {
+  try {
+    const supabaseUrl = requireEnv("SUPABASE_URL");
+    const serviceRoleKey = requireEnv("SUPABASE_SERVICE_ROLE_KEY");
+    const response = await fetch(`${supabaseUrl}/functions/v1/ai-prompt`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${serviceRoleKey}`,
+        apikey: serviceRoleKey,
+      },
+      body: JSON.stringify({
+        task: "generate_prompts",
+        overallPromptText: basePrompt,
+        numberToGenerate: count,
+        existingPrompts: [],
+        temperature: 0.9,
+      }),
+    });
+    if (!response.ok) return Array(count).fill(basePrompt);
+    const data = await response.json() as { prompts?: string[] };
+    if (Array.isArray(data.prompts) && data.prompts.length > 0) {
+      // Pad or trim to exact count
+      const prompts = data.prompts.slice(0, count);
+      while (prompts.length < count) prompts.push(basePrompt);
+      return prompts;
+    }
+  } catch {
+    // Fall back to repeating the base prompt
+  }
+  return Array(count).fill(basePrompt);
+}
+
 export async function executeCreateTask(
   args: Record<string, unknown>,
   timelineState: TimelineState,
@@ -189,6 +228,37 @@ export async function executeCreateTask(
     ? Object.fromEntries(Object.entries(travelParams).filter(([, value]) => value !== undefined))
     : undefined;
 
+  const requestedCount = asPositiveNumber(args.count) ?? 1;
+  const taskParams = taskType === "image-to-video"
+    ? (filteredTravelParams && Object.keys(filteredTravelParams).length > 0 ? filteredTravelParams : undefined)
+    : (Object.keys(mergedParams).length > 0 ? mergedParams : undefined);
+
+  // When count > 1 and there's a prompt, expand into varied prompts and create separate tasks
+  if (requestedCount > 1 && prompt) {
+    const prompts = await expandPrompts(prompt, Math.min(requestedCount, 10));
+    const results: string[] = [];
+    for (const expandedPrompt of prompts) {
+      const result = await createGenerationTask({
+        project_id: timelineState.projectId,
+        prompt: expandedPrompt,
+        count: 1,
+        task_type: taskType,
+        reference_mode: referenceMode,
+        reference_image_url: referenceImageUrls[0],
+        image_urls: taskType === "image-to-video" ? referenceImageUrls : undefined,
+        video_url: videoUrl ?? undefined,
+        strength,
+        model_name: effectiveModel,
+        params: taskParams,
+        based_on: basedOn ?? undefined,
+        generation_id: generationId ?? undefined,
+        shot_id: shotId ?? undefined,
+      });
+      results.push(result.result);
+    }
+    return { result: `Queued ${prompts.length} tasks with varied prompts.${shotNote}`.trim() };
+  }
+
   const result = await createGenerationTask({
     project_id: timelineState.projectId,
     prompt: prompt ?? undefined,
@@ -200,9 +270,7 @@ export async function executeCreateTask(
     video_url: videoUrl ?? undefined,
     strength,
     model_name: effectiveModel,
-    params: taskType === "image-to-video"
-      ? (filteredTravelParams && Object.keys(filteredTravelParams).length > 0 ? filteredTravelParams : undefined)
-      : (Object.keys(mergedParams).length > 0 ? mergedParams : undefined),
+    params: taskParams,
     based_on: basedOn ?? undefined,
     generation_id: generationId ?? undefined,
     shot_id: shotId ?? undefined,
