@@ -10,6 +10,7 @@ describe('buildBatchTaskParams', () => {
       projectId: 'project-1',
       prompts: [{ id: 'prompt-1', fullPrompt, shortPrompt: '' }],
       imagesPerPrompt: 1,
+      loras: [{ path: '/loras/landscape.safetensors', strength: 0.65 }],
       shotId: null,
       beforePromptText: 'Before',
       afterPromptText: 'After',
@@ -22,6 +23,7 @@ describe('buildBatchTaskParams', () => {
 
     const combinedFullPrompt = `Before, ${fullPrompt.trim()}, After, Boost`;
     expect(result.prompts[0].shortPrompt).toBe(toShortPrompt(combinedFullPrompt));
+    expect(result.loras).toEqual([{ path: '/loras/landscape.safetensors', strength: 0.65 }]);
   });
 
   it('passes through explicit subject reference image without rewriting it', () => {
@@ -29,6 +31,7 @@ describe('buildBatchTaskParams', () => {
       projectId: 'project-1',
       prompts: [{ id: 'prompt-1', fullPrompt: 'Prompt', shortPrompt: 'Prompt' }],
       imagesPerPrompt: 1,
+      loras: [],
       shotId: null,
       beforePromptText: '',
       afterPromptText: '',
@@ -52,6 +55,7 @@ describe('buildBatchTaskParams', () => {
       projectId: 'project-1',
       prompts: [{ id: 'prompt-1', fullPrompt: 'Prompt', shortPrompt: 'Prompt' }],
       imagesPerPrompt: 1,
+      loras: [],
       shotId: null,
       beforePromptText: '',
       afterPromptText: '',

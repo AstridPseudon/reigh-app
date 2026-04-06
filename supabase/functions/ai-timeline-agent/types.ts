@@ -104,6 +104,7 @@ export interface AgentProjectImageSettings {
   selectedTextModel?: AgentTextToImageModel;
   references?: AgentProjectImageSettingsReference[];
   selectedReferenceIdByShot?: Record<string, string | null>;
+  selectedLorasByCategory?: Partial<Record<"qwen" | "z-image", Array<{ path: string; strength: number }>>>;
 }
 
 export interface ResolvedReference {

@@ -1,4 +1,5 @@
 import type { FormEvent, MutableRefObject } from 'react';
+import type { ActiveLora } from '@/domains/lora/types/lora';
 import type { AIPromptItem, GeneratePromptsParams } from '@/types/ai';
 import type { BatchImageGenerationTaskParams } from '@/shared/types/imageGeneration';
 import type {
@@ -49,6 +50,7 @@ export interface FormSubmissionFormState {
 export interface FormSubmissionPromptConfig {
   generationSourceRef: MutableRefObject<GenerationSource>;
   selectedTextModelRef: MutableRefObject<TextToImageModel>;
+  selectedLoras: ActiveLora[];
   styleReferenceImageGeneration: string | null;
   styleReferenceStrength: number;
   subjectStrength: number;

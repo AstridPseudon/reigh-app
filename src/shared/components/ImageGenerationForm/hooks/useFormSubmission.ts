@@ -15,8 +15,6 @@ import type {
   UseFormSubmissionReturn,
 } from './formSubmission/types';
 
-;
-
 export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmissionReturn {
   const { formState, promptConfig, effects } = props;
   const {
@@ -26,11 +24,13 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
     effectivePromptMode, masterPromptText, actionablePromptsCount,
   } = formState;
   const {
-    generationSourceRef, selectedTextModelRef, styleReferenceImageGeneration,
+    generationSourceRef, selectedTextModelRef, selectedLoras, styleReferenceImageGeneration,
     styleReferenceStrength, subjectStrength, effectiveSubjectDescription,
     inThisScene, inThisSceneStrength, referenceMode,
   } = promptConfig;
   const { aiGeneratePrompts, onGenerate, setPrompts, automatedSubmitButton } = effects;
+  const selectedLorasRef = useRef(selectedLoras);
+  selectedLorasRef.current = selectedLoras;
 
   const formStateRef = useRef<FormStateSnapshot>();
   useEffect(() => {
@@ -66,6 +66,7 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
     hiresFixConfig,
     generationSourceRef,
     selectedTextModelRef,
+    selectedLorasRef,
     styleReferenceImageGeneration,
     styleReferenceStrength,
     subjectStrength,
@@ -85,6 +86,7 @@ export function useFormSubmission(props: UseFormSubmissionProps): UseFormSubmiss
     styleReferenceImageGeneration,
     generationSourceRef,
     selectedTextModelRef,
+    selectedLorasRef,
   }, formStateRef);
 
   const commands = useSubmissionOrchestrator({

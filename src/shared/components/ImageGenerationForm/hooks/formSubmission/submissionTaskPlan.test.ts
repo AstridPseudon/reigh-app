@@ -31,6 +31,9 @@ function baseContext() {
     hiresFixConfig: { enabled: true },
     generationSource: 'just-text' as const,
     selectedTextModel: 'qwen-image' as const,
+    selectedLoras: [
+      { id: 'lora-1', name: 'LoRA 1', path: '/loras/one.safetensors', strength: 0.8 },
+    ],
     styleReferenceImageGeneration: null,
     styleReferenceStrength: 0.7,
     subjectStrength: 0.6,
@@ -103,6 +106,7 @@ describe('buildSubmissionTaskParams', () => {
       prompts: [{ id: 'p1', fullPrompt: 'keep this' }],
       imagesPerPrompt: 3,
       modelName: 'qwen-image',
+      loras: [{ path: '/loras/one.safetensors', strength: 0.8 }],
       styleBoostTerms: 'style-boost',
       referenceParams: { ref: 'params' },
     }));

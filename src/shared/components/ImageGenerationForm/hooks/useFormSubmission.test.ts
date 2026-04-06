@@ -43,6 +43,7 @@ function buildProps(
     promptConfig: {
       generationSourceRef: { current: 'just-text' },
       selectedTextModelRef: { current: 'qwen-image' },
+      selectedLoras: [],
       styleReferenceImageGeneration: 'style-ref-1',
       styleReferenceStrength: 1.1,
       subjectStrength: 0.4,

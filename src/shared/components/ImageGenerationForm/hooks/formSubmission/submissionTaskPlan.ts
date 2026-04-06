@@ -1,4 +1,5 @@
 import { toast } from '@/shared/components/ui/runtime/sonner';
+import type { ActiveLora } from '@/domains/lora/types/lora';
 import { buildBatchTaskParams } from '../../lib/buildBatchTaskParams';
 import { buildReferenceParams } from './referenceParams';
 import type { BatchImageGenerationTaskParams } from '@/shared/types/imageGeneration';
@@ -21,6 +22,7 @@ interface SubmissionTaskContext {
   hiresFixConfig: HiresFixConfig;
   generationSource: GenerationSource;
   selectedTextModel: TextToImageModel;
+  selectedLoras: ActiveLora[];
   styleReferenceImageGeneration: string | null;
   styleReferenceStrength: number;
   subjectStrength: number;
@@ -87,6 +89,7 @@ export function buildSubmissionTaskParams(
     modelName: context.generationSource === 'just-text'
       ? context.selectedTextModel
       : 'qwen-image',
+    loras: context.selectedLoras.map((lora) => ({ path: lora.path, strength: lora.strength })),
     referenceParams,
   });
 }

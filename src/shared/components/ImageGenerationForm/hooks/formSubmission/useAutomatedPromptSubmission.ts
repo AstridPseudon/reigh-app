@@ -28,6 +28,7 @@ export function useAutomatedPromptSubmission(
   const {
     generationSourceRef,
     selectedTextModelRef,
+    selectedLorasRef,
     formStateRef,
   } = context;
 
@@ -80,6 +81,7 @@ export function useAutomatedPromptSubmission(
           hiresFixConfig: state.hiresFixConfig,
           generationSource: currentGenerationSource,
           selectedTextModel: currentTextModel,
+          selectedLoras: selectedLorasRef.current,
           styleReferenceImageGeneration: state.styleReferenceImageGeneration,
           styleReferenceStrength: state.styleReferenceStrength,
           subjectStrength: state.subjectStrength,
@@ -96,6 +98,8 @@ export function useAutomatedPromptSubmission(
         return result || undefined;
       },
     });
+  // selectedLorasRef is intentionally read via .current inside the callback.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     aiGeneratePrompts,
     formStateRef,

@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import type { MutableRefObject } from 'react';
+import type { ActiveLora } from '@/domains/lora/types/lora';
 import type {
   GenerationSource,
   HiresFixConfig,
@@ -21,6 +22,7 @@ interface UseTaskParamsBuilderProps {
   hiresFixConfig: HiresFixConfig;
   generationSourceRef: MutableRefObject<GenerationSource>;
   selectedTextModelRef: MutableRefObject<TextToImageModel>;
+  selectedLorasRef: MutableRefObject<ActiveLora[]>;
   styleReferenceImageGeneration: string | null;
   styleReferenceStrength: number;
   subjectStrength: number;
@@ -42,6 +44,7 @@ export function useTaskParamsBuilder(props: UseTaskParamsBuilderProps): GetTaskP
     hiresFixConfig,
     generationSourceRef,
     selectedTextModelRef,
+    selectedLorasRef,
     styleReferenceImageGeneration,
     styleReferenceStrength,
     subjectStrength,
@@ -63,6 +66,7 @@ export function useTaskParamsBuilder(props: UseTaskParamsBuilderProps): GetTaskP
       hiresFixConfig,
       generationSource: generationSourceRef.current,
       selectedTextModel: selectedTextModelRef.current,
+      selectedLoras: selectedLorasRef.current,
       styleReferenceImageGeneration,
       styleReferenceStrength,
       subjectStrength,
@@ -71,6 +75,8 @@ export function useTaskParamsBuilder(props: UseTaskParamsBuilderProps): GetTaskP
       inThisSceneStrength,
       referenceMode,
     }, promptsToUse, options);
+  // selectedLorasRef is intentionally read via .current inside the callback.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     styleReferenceImageGeneration,
     styleReferenceStrength,

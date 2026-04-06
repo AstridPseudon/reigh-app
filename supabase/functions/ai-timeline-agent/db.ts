@@ -29,6 +29,107 @@ function asReferenceMode(value: unknown): AgentReferenceMode | undefined {
     : undefined;
 }
 
+type AgentLoraCategory = "qwen" | "z-image";
+type AgentPathLora = { path: string; strength: number };
+
+const AGENT_LORA_CATEGORIES: AgentLoraCategory[] = ["qwen", "z-image"];
+
+function normalizePathLora(value: unknown): AgentPathLora | null {
+  if (!isRecord(value)) {
+    return null;
+  }
+
+  const path = asTrimmedString(value.path);
+  const strength = asOptionalNumber(value.strength);
+  if (!path || strength === undefined) {
+    return null;
+  }
+
+  return { path, strength };
+}
+
+function pushUniqueLora(
+  target: Partial<Record<AgentLoraCategory, AgentPathLora[]>>,
+  seenPaths: Record<AgentLoraCategory, Set<string>>,
+  category: AgentLoraCategory,
+  lora: AgentPathLora,
+): void {
+  if (seenPaths[category].has(lora.path)) {
+    return;
+  }
+
+  seenPaths[category].add(lora.path);
+  target[category] = [...(target[category] ?? []), lora];
+}
+
+function hasNormalizedLoras(
+  value: Partial<Record<AgentLoraCategory, AgentPathLora[]>>,
+): boolean {
+  return AGENT_LORA_CATEGORIES.some((category) => (value[category]?.length ?? 0) > 0);
+}
+
+function normalizeSelectedLorasByCategory(
+  value: unknown,
+): Partial<Record<AgentLoraCategory, AgentPathLora[]>> | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const normalized: Partial<Record<AgentLoraCategory, AgentPathLora[]>> = {};
+  const seenPaths: Record<AgentLoraCategory, Set<string>> = {
+    qwen: new Set<string>(),
+    "z-image": new Set<string>(),
+  };
+
+  for (const category of AGENT_LORA_CATEGORIES) {
+    const rawLoras = value[category];
+    if (!Array.isArray(rawLoras)) {
+      continue;
+    }
+
+    for (const rawLora of rawLoras) {
+      const lora = normalizePathLora(rawLora);
+      if (!lora) {
+        continue;
+      }
+      pushUniqueLora(normalized, seenPaths, category, lora);
+    }
+  }
+
+  return hasNormalizedLoras(normalized) ? normalized : undefined;
+}
+
+function normalizeLegacySelectedLorasByTextModel(
+  value: unknown,
+): Partial<Record<AgentLoraCategory, AgentPathLora[]>> | undefined {
+  if (!isRecord(value)) {
+    return undefined;
+  }
+
+  const normalized: Partial<Record<AgentLoraCategory, AgentPathLora[]>> = {};
+  const seenPaths: Record<AgentLoraCategory, Set<string>> = {
+    qwen: new Set<string>(),
+    "z-image": new Set<string>(),
+  };
+
+  for (const [modelName, rawLoras] of Object.entries(value)) {
+    if (!Array.isArray(rawLoras)) {
+      continue;
+    }
+
+    const category: AgentLoraCategory = modelName.startsWith("z-") ? "z-image" : "qwen";
+    for (const rawLora of rawLoras) {
+      const lora = normalizePathLora(rawLora);
+      if (!lora) {
+        continue;
+      }
+      pushUniqueLora(normalized, seenPaths, category, lora);
+    }
+  }
+
+  return hasNormalizedLoras(normalized) ? normalized : undefined;
+}
+
 function normalizeProjectImageReference(value: unknown): AgentProjectImageSettingsReference | null {
   if (!isRecord(value)) {
     return null;
@@ -69,6 +170,10 @@ function normalizeProjectImageSettings(value: unknown): AgentProjectImageSetting
       .map((reference) => normalizeProjectImageReference(reference))
       .filter((reference): reference is AgentProjectImageSettingsReference => reference !== null)
     : undefined;
+  const selectedLorasByCategory = normalizeSelectedLorasByCategory(value.selectedLorasByCategory)
+    ?? (value.selectedLorasByCategory === undefined
+      ? normalizeLegacySelectedLorasByTextModel(value.selectedLorasByTextModel)
+      : undefined);
 
   return {
     selectedTextModel: value.selectedTextModel === "qwen-image" || value.selectedTextModel === "qwen-image-2512" || value.selectedTextModel === "z-image"
@@ -76,6 +181,7 @@ function normalizeProjectImageSettings(value: unknown): AgentProjectImageSetting
       : undefined,
     ...(references ? { references } : {}),
     ...(selectedReferenceIdByShot ? { selectedReferenceIdByShot } : {}),
+    ...(selectedLorasByCategory ? { selectedLorasByCategory } : {}),
   };
 }
 

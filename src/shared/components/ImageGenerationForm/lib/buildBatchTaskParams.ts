@@ -5,6 +5,7 @@
  * Single source of truth for building task parameters.
  */
 
+import type { PathLoraConfig } from '@/domains/lora/types/lora';
 import { joinPromptParts } from '@/shared/lib/tasks/promptAssembly';
 import type { BatchImageGenerationTaskParams } from '@/shared/types/imageGeneration';
 import { PromptEntry, HiresFixConfig, ReferenceApiParams } from '../types';
@@ -21,6 +22,7 @@ interface BuildBatchTaskParamsInput {
   isLocalGenerationEnabled: boolean;
   hiresFixConfig: HiresFixConfig;
   modelName: string; // Model name for task type mapping (e.g., 'qwen-image', 'qwen-image-2512', 'z-image')
+  loras: PathLoraConfig[];
   // Reference params grouped together - snake_case to match API directly
   referenceParams: Partial<ReferenceApiParams>;
 }
@@ -72,7 +74,7 @@ export function buildBatchTaskParams(input: BuildBatchTaskParamsInput): BatchIma
       };
     }),
     imagesPerPrompt: input.imagesPerPrompt,
-    loras: [],
+    loras: input.loras,
     shot_id: input.shotId || undefined,
     model_name: input.modelName,
     steps: input.isLocalGenerationEnabled ? input.hiresFixConfig.base_steps : undefined,

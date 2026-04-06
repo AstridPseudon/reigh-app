@@ -332,6 +332,7 @@ export async function runAgentLoop(
       ? {
         defaultModelName: imageSettings.selectedTextModel ?? "qwen-image",
         activeReference,
+        selectedLorasByCategory: imageSettings.selectedLorasByCategory,
       }
       : undefined;
     const timelineSummary = viewTimeline(timelineState.config, timelineState.registry).result;

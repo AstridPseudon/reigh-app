@@ -58,6 +58,7 @@ const TASK_TYPES_REQUIRING_VIDEO = new Set([
 export interface CreateTaskImageContext {
   defaultModelName?: AgentTextToImageModel;
   activeReference?: ResolvedReference | null;
+  selectedLorasByCategory?: Partial<Record<"qwen" | "z-image", Array<{ path: string; strength: number }>>>;
 }
 
 export async function executeCreateTask(
@@ -152,6 +153,15 @@ export async function executeCreateTask(
         : {}),
     }
     : undefined;
+  const effectiveModel = asTrimmedString(args.model) ?? defaultModelName ?? undefined;
+  const loraCategory = TASK_TYPE_TO_REFERENCE_MODE[taskType]
+    ? "qwen"
+    : (effectiveModel?.startsWith("z-") ? "z-image" : "qwen");
+  const loras = imageContext?.selectedLorasByCategory?.[loraCategory] ?? [];
+  const mergedParams = {
+    ...(activeReferenceParams ?? {}),
+    ...(loras.length > 0 ? { loras } : {}),
+  };
 
   const result = await createGenerationTask({
     project_id: timelineState.projectId,
@@ -163,8 +173,8 @@ export async function executeCreateTask(
     image_urls: taskType === "image-to-video" ? referenceImageUrls : undefined,
     video_url: videoUrl ?? undefined,
     strength,
-    model_name: asTrimmedString(args.model) ?? defaultModelName ?? undefined,
-    params: activeReferenceParams && Object.keys(activeReferenceParams).length > 0 ? activeReferenceParams : undefined,
+    model_name: effectiveModel,
+    params: Object.keys(mergedParams).length > 0 ? mergedParams : undefined,
     based_on: basedOn ?? undefined,
     generation_id: generationId ?? undefined,
     shot_id: shotId ?? undefined,

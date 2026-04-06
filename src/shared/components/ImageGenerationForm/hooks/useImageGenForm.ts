@@ -350,6 +350,7 @@ export function useImageGenForm({
     promptConfig: {
       generationSourceRef,
       selectedTextModelRef,
+      selectedLoras: loraManager.selectedLoras,
       styleReferenceImageGeneration,
       styleReferenceStrength,
       subjectStrength,

@@ -1,4 +1,5 @@
 import type { MutableRefObject } from 'react';
+import type { ActiveLora } from '@/domains/lora/types/lora';
 import type { FormStateSnapshot, FormSubmissionFormState, FormSubmissionPromptConfig } from './types';
 
 export interface SubmissionRuntimeContext {
@@ -9,12 +10,14 @@ export interface SubmissionRuntimeContext {
   styleReferenceImageGeneration: FormSubmissionPromptConfig['styleReferenceImageGeneration'];
   generationSourceRef: FormSubmissionPromptConfig['generationSourceRef'];
   selectedTextModelRef: FormSubmissionPromptConfig['selectedTextModelRef'];
+  selectedLorasRef: MutableRefObject<ActiveLora[]>;
   formStateRef: MutableRefObject<FormStateSnapshot | undefined>;
 }
 
 export function buildSubmissionRuntimeContext(
   props: Pick<FormSubmissionFormState, 'prompts' | 'promptMultiplier' | 'imagesPerPrompt' | 'actionablePromptsCount'>
-    & Pick<FormSubmissionPromptConfig, 'styleReferenceImageGeneration' | 'generationSourceRef' | 'selectedTextModelRef'>,
+    & Pick<FormSubmissionPromptConfig, 'styleReferenceImageGeneration' | 'generationSourceRef' | 'selectedTextModelRef'>
+    & { selectedLorasRef: MutableRefObject<ActiveLora[]> },
   formStateRef: MutableRefObject<FormStateSnapshot | undefined>,
 ): SubmissionRuntimeContext {
   return {
@@ -25,6 +28,7 @@ export function buildSubmissionRuntimeContext(
     styleReferenceImageGeneration: props.styleReferenceImageGeneration,
     generationSourceRef: props.generationSourceRef,
     selectedTextModelRef: props.selectedTextModelRef,
+    selectedLorasRef: props.selectedLorasRef,
     formStateRef,
   };
 }
