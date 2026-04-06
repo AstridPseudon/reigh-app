@@ -27,6 +27,23 @@ export function bootDiagnostics() {
     }
   }
 
+  // Monitor slow resource loads (video/image assets)
+  if (typeof PerformanceObserver !== 'undefined') {
+    try {
+      const resourceObserver = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          const res = entry as PerformanceResourceTiming;
+          if (res.duration > 2000 && (res.name.includes('supabase') || res.name.includes('storage'))) {
+            console.error(`[PERF] slow-resource: ${Math.round(res.duration)}ms | ${res.initiatorType} | ${res.name.slice(0, 120)}`);
+          }
+        }
+      });
+      resourceObserver.observe({ type: 'resource', buffered: false });
+    } catch {
+      // resource timing not supported
+    }
+  }
+
   // Monitor frame rate — report when fps drops below 30
   let lastFrameTime = now();
   let slowFrameCount = 0;
