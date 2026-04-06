@@ -82,6 +82,24 @@ function replacePinnedGroup(
   return pinnedShotGroups.map((group, index) => (index === existingIndex ? nextGroup : group));
 }
 
+function registerFinalVideoAsset(
+  finalVideo: ShotFinalVideo,
+  patchRegistry: TimelinePatchRegistry,
+  registerAsset: TimelineRegisterAsset,
+): string {
+  const assetKey = generateUUID();
+  const assetEntry: AssetRegistryEntry = {
+    file: finalVideo.location,
+    type: 'video/mp4',
+    generationId: finalVideo.id,
+  };
+  patchRegistry(assetKey, assetEntry, finalVideo.location);
+  void registerAsset(assetKey, assetEntry).catch((error) => {
+    console.error('[TimelineEditor] Failed to persist final video asset:', error);
+  });
+  return assetKey;
+}
+
 export function useSwitchToFinalVideo({
   applyEdit,
   dataRef,
@@ -134,12 +152,7 @@ export function useSwitchToFinalVideo({
       return;
     }
 
-    const assetKey = generateUUID();
-    const assetEntry: AssetRegistryEntry = { file: finalVideo.location, type: 'video/mp4', generationId: finalVideo.id };
-    patchRegistry(assetKey, assetEntry, finalVideo.location);
-    void registerAsset(assetKey, assetEntry).catch((error) => {
-      console.error('[TimelineEditor] Failed to persist final video asset:', error);
-    });
+    const assetKey = registerFinalVideoAsset(finalVideo, patchRegistry, registerAsset);
 
     const videoClipId = getNextClipId(current.meta);
     const targetTrack = current.tracks.find((track) => track.id === rowId);
@@ -205,6 +218,55 @@ export function useSwitchToFinalVideo({
       metaUpdates: { [videoClipId]: videoMeta },
       metaDeletes: sourceClipIds,
       clipOrderOverride: nextClipOrder,
+      pinnedShotGroupsOverride: nextPinnedShotGroups,
+    });
+  }, [applyEdit, dataRef, finalVideoMap, patchRegistry, registerAsset]);
+
+  const updateToLatestVideo = useCallback(({ shotId, rowId }: { shotId: string; rowId: string }) => {
+    const current = dataRef.current;
+    const finalVideo = finalVideoMap.get(shotId);
+    if (!current || !finalVideo) {
+      return;
+    }
+
+    const existingPinnedGroups = current.config.pinnedShotGroups ?? [];
+    const pinnedGroup = existingPinnedGroups.find((group) => (
+      group.shotId === shotId
+      && group.trackId === rowId
+      && group.mode === 'video'
+      && typeof group.videoAssetKey === 'string'
+      && group.videoAssetKey.length > 0
+    ));
+    const videoClipId = pinnedGroup?.clipIds[0];
+    const targetRow = current.rows.find((row) => row.id === rowId);
+    const videoAction = videoClipId ? targetRow?.actions.find((action) => action.id === videoClipId) : undefined;
+    const videoMeta = videoClipId ? current.meta[videoClipId] : undefined;
+    const currentGenerationId = pinnedGroup?.videoAssetKey
+      ? current.registry.assets[pinnedGroup.videoAssetKey]?.generationId
+      : undefined;
+    if (!pinnedGroup || !videoClipId || !videoAction || !videoMeta || currentGenerationId === finalVideo.id) {
+      return;
+    }
+
+    const assetKey = registerFinalVideoAsset(finalVideo, patchRegistry, registerAsset);
+    const nextPinnedShotGroups = replacePinnedGroup(
+      existingPinnedGroups,
+      {
+        ...pinnedGroup,
+        videoAssetKey: assetKey,
+      },
+      shotId,
+      rowId,
+    );
+
+    applyEdit({
+      type: 'rows',
+      rows: current.rows,
+      metaUpdates: {
+        [videoClipId]: {
+          asset: assetKey,
+        },
+      },
       pinnedShotGroupsOverride: nextPinnedShotGroups,
     });
   }, [applyEdit, dataRef, finalVideoMap, patchRegistry, registerAsset]);
@@ -296,6 +358,7 @@ export function useSwitchToFinalVideo({
 
   return {
     switchToFinalVideo,
+    updateToLatestVideo,
     switchToImages,
   };
 }

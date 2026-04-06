@@ -1973,6 +1973,40 @@
       "resolved": false,
       "resolved_by": null,
       "resolved_at": null
+    },
+    {
+      "id": "DEBT-117",
+      "subsystem": "final-video-duration-handling",
+      "concern": "final-video duration handling: recurring debt: step 4 still swaps in a new final-video asset without any duration source, so a shorter regenerated final video can be asked to play for the old group span and overrun the real media length.",
+      "flag_ids": [
+        "FLAG-001"
+      ],
+      "plan_ids": [
+        "unify-shot-group-sync-into-a-20260406-1746"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T16:02:32Z",
+      "updated_at": "2026-04-06T16:02:32Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-118",
+      "subsystem": "final-video-refresh-path",
+      "concern": "final-video refresh path: the plan assumes `useshotfinalvideos()` refreshes every 30s, but in this repo it does not poll; stale detection only refreshes when some other invalidation fires. the badge/update flow is under-specified unless the implementation explicitly relies on the existing invalidation path or adds refetching.",
+      "flag_ids": [
+        "FLAG-002"
+      ],
+      "plan_ids": [
+        "unify-shot-group-sync-into-a-20260406-1746"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T16:02:32Z",
+      "updated_at": "2026-04-06T16:02:32Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
     }
   ]
 }

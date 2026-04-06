@@ -232,6 +232,32 @@ function TimelineEditorComponent() {
     return clipIds;
   }, [activeTaskAssetKeys, data?.rows, data?.meta]);
   const { finalVideoMap, dismissFinalVideo } = useFinalVideoAvailable();
+  const staleShotGroupIds = useMemo(() => {
+    const pinnedShotGroups = data?.config.pinnedShotGroups ?? [];
+    const registry = resolvedConfig?.registry;
+    if (pinnedShotGroups.length === 0 || !registry) {
+      return new Set<string>();
+    }
+
+    const staleIds = new Set<string>();
+    for (const group of pinnedShotGroups) {
+      if (group.mode !== 'video' || !group.videoAssetKey) {
+        continue;
+      }
+
+      const currentGenerationId = registry[group.videoAssetKey]?.generationId;
+      const latestFinalVideoId = finalVideoMap.get(group.shotId)?.id;
+      if (!currentGenerationId || !latestFinalVideoId) {
+        continue;
+      }
+
+      if (currentGenerationId !== latestFinalVideoId) {
+        staleIds.add(`${group.shotId}:${group.trackId}`);
+      }
+    }
+
+    return staleIds;
+  }, [data?.config.pinnedShotGroups, finalVideoMap, resolvedConfig?.registry]);
 
   useLayoutEffect(() => {
     const wrapper = timelineWrapperRef.current;
@@ -429,6 +455,7 @@ function TimelineEditorComponent() {
   }, [shots]);
   const {
     switchToFinalVideo: handleSwitchToFinalVideo,
+    updateToLatestVideo,
     switchToImages: handleSwitchToImages,
   } = useSwitchToFinalVideo({
     applyEdit,
@@ -459,6 +486,13 @@ function TimelineEditorComponent() {
     const time = clientXToTime(clientX);
     handleSplitClipAtTime(clipId, time);
   }, [clientXToTime, handleSplitClipAtTime]);
+  const handleUpdateToLatestVideo = useCallback((group: { shotId: string; rowId: string }) => {
+    const finalVideo = finalVideoMap.get(group.shotId);
+    if (finalVideo) {
+      dismissFinalVideo(finalVideo.id);
+    }
+    updateToLatestVideo(group);
+  }, [dismissFinalVideo, finalVideoMap, updateToLatestVideo]);
 
   const getActionRender = useCallback((action: TimelineAction, _row: TimelineRow, clipWidth: number) => {
     const clipMeta = data?.meta[action.id];
@@ -596,6 +630,7 @@ function TimelineEditorComponent() {
           onActionResizeEnd={onActionResizeEnd}
           shotGroups={shotGroups}
           finalVideoMap={finalVideoMap}
+          staleShotGroupIds={staleShotGroupIds}
           activeTaskClipIds={activeTaskClipIds}
           onShotGroupNavigate={handleShotGroupNavigate}
           onShotGroupGenerateVideo={handleShotGroupGenerateVideo}
@@ -612,6 +647,7 @@ function TimelineEditorComponent() {
           onShotGroupSwitchToImages={(group) => {
             handleSwitchToImages(group);
           }}
+          onShotGroupUpdateToLatestVideo={handleUpdateToLatestVideo}
           onSelectClips={selectClips}
           dragSessionRef={dragSessionRef}
           marqueeRect={marqueeRect}

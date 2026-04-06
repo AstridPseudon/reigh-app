@@ -14,7 +14,7 @@ import React, {
 import { DndContext, closestCenter, type DragEndEvent, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Layers, Loader2, Video } from 'lucide-react';
+import { Layers, Loader2, RefreshCw, Video } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { usePortalMousedownGuard } from '@/shared/hooks/usePortalMousedownGuard';
 import {
@@ -67,6 +67,7 @@ interface PositionedShotGroup {
   color: string;
   mode?: 'images' | 'video';
   hasFinalVideo: boolean;
+  hasStaleVideo: boolean;
   hasActiveTask: boolean;
   left: number;
   top: number;
@@ -98,11 +99,13 @@ export interface TimelineCanvasProps {
   onActionResizeEnd?: (params: { action: TimelineAction; row: TimelineRow; start: number; end: number; dir: ResizeDir }) => void;
   shotGroups?: ShotGroup[];
   finalVideoMap?: Map<string, unknown>;
+  staleShotGroupIds?: Set<string>;
   activeTaskClipIds?: Set<string>;
   onShotGroupNavigate?: (shotId: string) => void;
   onShotGroupGenerateVideo?: (shotId: string) => void;
   onShotGroupSwitchToFinalVideo?: (group: { shotId: string; clipIds: string[]; rowId: string }) => void;
   onShotGroupSwitchToImages?: (group: { shotId: string; rowId: string }) => void;
+  onShotGroupUpdateToLatestVideo?: (group: { shotId: string; rowId: string }) => void;
   onShotGroupUnpin?: (group: { shotId: string; trackId: string }) => void;
   onSelectClips?: (clipIds: string[]) => void;
   dragSessionRef?: MutableRefObject<DragSession | null>;
@@ -330,11 +333,13 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
   onActionResizeEnd,
   shotGroups = [],
   finalVideoMap,
+  staleShotGroupIds,
   activeTaskClipIds,
   onShotGroupNavigate,
   onShotGroupGenerateVideo,
   onShotGroupSwitchToFinalVideo,
   onShotGroupSwitchToImages,
+  onShotGroupUpdateToLatestVideo,
   onShotGroupUnpin,
   onSelectClips,
   dragSessionRef,
@@ -462,6 +467,7 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
         color: group.color,
         mode: group.mode,
         hasFinalVideo: finalVideoMap?.has(group.shotId) ?? false,
+        hasStaleVideo: staleShotGroupIds?.has(`${group.shotId}:${group.rowId}`) ?? false,
         hasActiveTask: activeTaskClipIds ? group.clipIds.some((id) => activeTaskClipIds.has(id)) : false,
         left: startLeft + first.start * pixelsPerSecond,
         top: group.rowIndex * rowHeight + ACTION_VERTICAL_MARGIN,
@@ -469,14 +475,14 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
         height: actionHeight,
       }];
     });
-  }, [actionHeight, activeTaskClipIds, finalVideoMap, pixelsPerSecond, resizeOverrides, rowActionMaps, rowHeight, rows, shotGroups, startLeft]);
+  }, [actionHeight, activeTaskClipIds, finalVideoMap, pixelsPerSecond, resizeOverrides, rowActionMaps, rowHeight, rows, shotGroups, staleShotGroupIds, startLeft]);
   const hideShotGroups = dragSessionRef?.current !== null || hasResizeOverrides;
   const openShotGroupMenu = useCallback((
     x: number,
     y: number,
-    group: Pick<PositionedShotGroup, 'shotId' | 'shotName' | 'clipIds' | 'rowId' | 'hasFinalVideo' | 'mode'>,
+    group: Pick<PositionedShotGroup, 'shotId' | 'shotName' | 'clipIds' | 'rowId' | 'hasFinalVideo' | 'hasStaleVideo' | 'mode'>,
   ) => {
-    setShotGroupMenu({ x, y, ...group, trackId: group.rowId } as NonNullable<ShotGroupMenuState>);
+    setShotGroupMenu({ x, y, ...group, trackId: group.rowId });
   }, []);
 
   const syncCursor = useCallback((time = timeRef.current) => {
@@ -825,6 +831,26 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
                   <Video className="h-3 w-3" />
                 </button>
               )}
+              {group.hasStaleVideo && !group.hasActiveTask && (
+                <button
+                  type="button"
+                  className="absolute flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-white shadow-sm transition-transform hover:scale-105 hover:bg-amber-400"
+                  title="New video available"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    openShotGroupMenu(event.clientX, event.clientY, group);
+                  }}
+                  style={{
+                    left: group.left + group.width - (group.hasFinalVideo ? 34 : 10),
+                    top: group.top + group.height / 2 - 10,
+                    zIndex: 9,
+                    pointerEvents: 'auto',
+                  }}
+                >
+                  <RefreshCw className="h-3 w-3" />
+                </button>
+              )}
               {group.hasActiveTask && (
                 <div
                   className="pointer-events-none absolute flex h-5 w-5 items-center justify-center rounded-full shadow-sm"
@@ -849,6 +875,7 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
             onGenerateVideo={onShotGroupGenerateVideo}
             onSwitchToFinalVideo={onShotGroupSwitchToFinalVideo}
             onSwitchToImages={onShotGroupSwitchToImages}
+            onUpdateToLatestVideo={onShotGroupUpdateToLatestVideo}
             onUnpinGroup={onShotGroupUnpin}
           />
           <DndContext
