@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { ArrowRight, Clapperboard, Video, X } from 'lucide-react';
+import { ArrowRight, Clapperboard, Pin, Video, X } from 'lucide-react';
 
 export type ShotGroupMenuState = {
   x: number;
@@ -9,6 +9,7 @@ export type ShotGroupMenuState = {
   clipIds: string[];
   rowId: string;
   trackId: string;
+  isPinned: boolean;
   hasFinalVideo: boolean;
   mode?: 'images' | 'video';
 } | null;
@@ -21,6 +22,7 @@ interface ShotGroupContextMenuProps {
   onGenerateVideo?: (shotId: string) => void;
   onSwitchToFinalVideo?: (group: { shotId: string; clipIds: string[]; rowId: string }) => void;
   onSwitchToImages?: (group: { shotId: string; rowId: string }) => void;
+  onPinGroup?: (group: { shotId: string; trackId: string; clipIds: string[] }) => void;
   onUnpinGroup?: (group: { shotId: string; trackId: string }) => void;
 }
 
@@ -32,6 +34,7 @@ export function ShotGroupContextMenu({
   onGenerateVideo,
   onSwitchToFinalVideo,
   onSwitchToImages,
+  onPinGroup,
   onUnpinGroup,
 }: ShotGroupContextMenuProps) {
   if (!menu) {
@@ -39,7 +42,15 @@ export function ShotGroupContextMenu({
   }
 
   const pinActions = [
-    onUnpinGroup
+    !menu.isPinned && onPinGroup
+      ? {
+          key: 'pin-shot-group',
+          label: 'Pin as Shot Group',
+          icon: Pin,
+          onClick: () => onPinGroup({ shotId: menu.shotId, trackId: menu.trackId, clipIds: menu.clipIds }),
+        }
+      : null,
+    menu.isPinned && onUnpinGroup
       ? {
           key: 'unpin-shot-group',
           label: 'Unpin',
