@@ -22,11 +22,10 @@ interface RemotionPreviewProps {
   playerContainerRef: RefObject<HTMLDivElement>;
   compact?: boolean;
   initialTime?: number;
-  autoPlay?: boolean;
 }
 
 const RemotionPreviewComponent = forwardRef<PreviewHandle, RemotionPreviewProps>(function RemotionPreview(
-  { config, onTimeUpdate, playerContainerRef, compact = false, initialTime = 0, autoPlay = false },
+  { config, onTimeUpdate, playerContainerRef, compact = false, initialTime = 0 },
   ref,
 ) {
   const playerRef = useRef<PlayerRef>(null);
@@ -68,17 +67,11 @@ const RemotionPreviewComponent = forwardRef<PreviewHandle, RemotionPreviewProps>
     player.addEventListener('play', onPlay);
     player.addEventListener('pause', onPause);
 
-    // Resume playback if it was playing before a layout transition
-    if (autoPlay) {
-      player.play();
-    }
-
     return () => {
       player.removeEventListener('frameupdate', onFrameUpdate);
       player.removeEventListener('play', onPlay);
       player.removeEventListener('pause', onPause);
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- autoPlay only matters on mount
   }, [markEventsEffect, metadata.fps, onTimeUpdate]);
 
   useImperativeHandle(ref, () => ({

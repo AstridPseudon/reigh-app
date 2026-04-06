@@ -1,10 +1,12 @@
-import { memo, useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react';
+import { createPortal } from 'react-dom';
 import { formatDistanceToNow } from 'date-fns';
 import { Download, Eye, GripHorizontal, History, Maximize2, Minimize2, Redo2, Settings, SlidersHorizontal, Undo2, ZoomIn, ZoomOut } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/shared/components/ui/alert-dialog';
 import { Badge } from '@/shared/components/ui/badge';
 import { Button } from '@/shared/components/ui/button';
+import { cn } from '@/shared/components/ui/contracts/cn';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/shared/components/ui/dropdown-menu';
 import { Slider } from '@/shared/components/ui/slider';
 import { usePanes } from '@/shared/contexts/PanesContext';
@@ -71,9 +73,6 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
   const [isTimelineMaximized, setIsTimelineMaximized] = useState(false);
   /** In condensed mode: 'preview' (default) or 'properties' for the right panel. */
   const [condensedRightPanel, setCondensedRightPanel] = useState<'preview' | 'properties'>('preview');
-  // Track playback state across layout transitions (condensed ↔ full)
-  const wasPlayingRef = useRef(false);
-  const prevCondensedRef = useRef<boolean | null>(null);
   const conflict = useTimelineRealtime({
     timelineId,
     conflictExhausted: chrome.isConflictExhausted,
@@ -157,6 +156,17 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
   }, [outputResolution]);
   const [tooSmall, setTooSmall] = useState(false);
   const outerRef = useRef<HTMLDivElement>(null);
+  const condensedSlotRef = useRef<HTMLDivElement>(null);
+  const fullSlotRef = useRef<HTMLDivElement>(null);
+  const [previewHostEl] = useState<HTMLDivElement | null>(() => {
+    if (typeof document === 'undefined') {
+      return null;
+    }
+
+    const host = document.createElement('div');
+    host.style.display = 'contents';
+    return host;
+  });
 
   useEffect(() => {
     const el = outerRef.current;
@@ -173,28 +183,29 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
   }, [forceCondensed, aspectRatio, isTimelineMaximized]);
 
   const condensed = forceCondensed || tooSmall;
+  const hasConfig = Boolean(editorData.resolvedConfig);
 
-  // Capture playback state when layout transitions between condensed ↔ full
-  const autoPlay = (() => {
-    if (prevCondensedRef.current !== null && prevCondensedRef.current !== condensed) {
-      // Layout just changed — use the saved wasPlaying state
-      const shouldAutoPlay = wasPlayingRef.current;
-      wasPlayingRef.current = false;
-      prevCondensedRef.current = condensed;
-      return shouldAutoPlay;
+  useLayoutEffect(() => {
+    if (!previewHostEl) {
+      return;
     }
-    prevCondensedRef.current = condensed;
-    return false;
-  })();
 
-  // Keep wasPlaying in sync with the current Player's state
-  useEffect(() => {
-    const checkPlaying = () => {
-      wasPlayingRef.current = playback.previewRef.current?.isPlaying ?? false;
+    const activeSlot = condensed ? condensedSlotRef.current : fullSlotRef.current;
+    if (!hasConfig || !activeSlot) {
+      previewHostEl.remove();
+      return () => {
+        previewHostEl.remove();
+      };
+    }
+
+    if (previewHostEl.parentElement !== activeSlot) {
+      activeSlot.appendChild(previewHostEl);
+    }
+
+    return () => {
+      previewHostEl.remove();
     };
-    const id = setInterval(checkPlaying, 500);
-    return () => clearInterval(id);
-  }, [playback.previewRef]);
+  }, [condensed, hasConfig, previewHostEl]);
 
   const gridTemplateRows = isTimelineMaximized
     ? `${MIN_PREVIEW_HEIGHT}px auto 1fr`
@@ -379,6 +390,20 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
     </div>
   );
 
+  const previewPortal =
+    previewHostEl && editorData.resolvedConfig
+      ? createPortal(
+          <RemotionPreview
+            ref={playback.previewRef}
+            config={editorData.resolvedConfig}
+            compact={condensed}
+            initialTime={playback.currentTime}
+            onTimeUpdate={playback.onPreviewTimeUpdate}
+            playerContainerRef={playback.playerContainerRef}
+          />,
+          previewHostEl,
+        )
+      : null;
 
   return (
     <>
@@ -433,37 +458,30 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
                 </button>
               </div>
 
-              {condensedRightPanel === 'preview' ? (
-                <div className="relative flex min-h-0 flex-1 flex-col">
-                  {previewOverlay}
-                  <div className="min-h-0 flex-1">
-                    {editorData.resolvedConfig && (
-                      <RemotionPreview
-                        ref={playback.previewRef}
-                        config={editorData.resolvedConfig}
-                        compact
-                        initialTime={playback.currentTime}
-                        onTimeUpdate={playback.onPreviewTimeUpdate}
-                        playerContainerRef={playback.playerContainerRef}
-                        autoPlay={autoPlay}
-                      />
-                    )}
-                  </div>
-                  <div className="border-t border-border px-3 py-2">
-                    <Slider
-                      value={[playback.currentTime]}
-                      min={0}
-                      max={Math.max(1, totalSeconds)}
-                      step={0.05}
-                      onValueChange={(value) => playback.previewRef.current?.seek(value)}
-                    />
-                  </div>
+              <div
+                className={cn('relative flex min-h-0 flex-1 flex-col', condensedRightPanel !== 'preview' && 'hidden')}
+                aria-hidden={condensedRightPanel !== 'preview'}
+              >
+                {previewOverlay}
+                <div className="min-h-0 flex-1">
+                  <div ref={condensedSlotRef} className="flex h-full w-full min-h-0 items-center justify-center" />
                 </div>
-              ) : (
-                <div className="min-h-0 flex-1 overflow-auto p-3">
-                  <PropertiesPanel />
+                <div className="border-t border-border px-3 py-2">
+                  <Slider
+                    value={[playback.currentTime]}
+                    min={0}
+                    max={Math.max(1, totalSeconds)}
+                    step={0.05}
+                    onValueChange={(value) => playback.previewRef.current?.seek(value)}
+                  />
                 </div>
-              )}
+              </div>
+              <div
+                className={cn('min-h-0 flex-1 overflow-auto p-3', condensedRightPanel !== 'properties' && 'hidden')}
+                aria-hidden={condensedRightPanel !== 'properties'}
+              >
+                <PropertiesPanel />
+              </div>
             </div>
 
             <div className="relative col-span-1 min-h-0 overflow-hidden">
@@ -482,7 +500,7 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
           >
             <div className="relative min-h-0">
               {previewOverlay}
-              <PreviewPanel autoPlay={autoPlay} />
+              <PreviewPanel previewSlotRef={fullSlotRef} />
             </div>
 
             <div className="row-span-2 min-h-0 overflow-hidden">
@@ -502,6 +520,7 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
           </main>
         )}
       </div>
+      {previewPortal}
 
       <AlertDialog open={conflict.isOpen} onOpenChange={conflict.setOpen}>
         <AlertDialogContent>

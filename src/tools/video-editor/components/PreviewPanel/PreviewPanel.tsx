@@ -1,6 +1,5 @@
-import { memo } from 'react';
+import { memo, type RefObject } from 'react';
 import OverlayEditor from '@/tools/video-editor/components/PreviewPanel/OverlayEditor';
-import { RemotionPreview } from '@/tools/video-editor/components/PreviewPanel/RemotionPreview';
 import {
   useTimelineEditorData,
   useTimelineEditorOps,
@@ -8,7 +7,11 @@ import {
 import { useTimelinePlaybackContext } from '@/tools/video-editor/contexts/TimelinePlaybackContext';
 import { useRenderDiagnostic } from '@/tools/video-editor/hooks/usePerfDiagnostics';
 
-function PreviewPanelComponent({ autoPlay = false }: { autoPlay?: boolean }) {
+interface PreviewPanelProps {
+  previewSlotRef: RefObject<HTMLDivElement | null>;
+}
+
+function PreviewPanelComponent({ previewSlotRef }: PreviewPanelProps) {
   useRenderDiagnostic('PreviewPanel');
   const {
     data,
@@ -23,10 +26,8 @@ function PreviewPanelComponent({ autoPlay = false }: { autoPlay?: boolean }) {
     onDoubleClickAsset,
   } = useTimelineEditorOps();
   const {
-    previewRef,
     playerContainerRef,
     currentTime,
-    onPreviewTimeUpdate,
   } = useTimelinePlaybackContext();
 
   if (!data || !resolvedConfig) {
@@ -51,14 +52,7 @@ function PreviewPanelComponent({ autoPlay = false }: { autoPlay?: boolean }) {
             setSelectedClipId(null);
           }}
         >
-          <RemotionPreview
-            ref={previewRef}
-            config={resolvedConfig}
-            initialTime={currentTime}
-            onTimeUpdate={onPreviewTimeUpdate}
-            playerContainerRef={playerContainerRef}
-            autoPlay={autoPlay}
-          />
+          <div ref={previewSlotRef} className="flex h-full w-full min-h-0 items-center justify-center" />
           <OverlayEditor
             rows={data.rows}
             meta={data.meta}
