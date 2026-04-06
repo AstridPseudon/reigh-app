@@ -4,7 +4,7 @@ import { cn } from '@/shared/components/ui/contracts/cn';
 import { useShots } from '@/shared/contexts/ShotsContext';
 import { useShotFinalVideos, type ShotFinalVideo } from '@/tools/travel-between-images/hooks/video/useShotFinalVideos';
 import { setShotDragData, createDragPreview } from '@/shared/lib/dnd/dragDrop';
-import { getGenerationId, isVideoGeneration } from '@/shared/lib/mediaTypeHelpers';
+import { getGenerationId, isVideoGeneration } from '@/shared/lib/media/mediaTypeHelpers';
 import { getDisplayUrl } from '@/shared/lib/media/mediaUrl';
 import type { Shot } from '@/domains/generation/types';
 
