@@ -146,6 +146,7 @@ export interface UseExternalDropArgs {
   uploadImageGeneration: UseAssetManagementResult['uploadImageGeneration'];
   handleAssetDrop: UseAssetManagementResult['handleAssetDrop'];
   handleAddTextAt?: (trackId: string, time: number) => void;
+  onSeekToTime?: (time: number) => void;
 }
 
 export interface UseExternalDropResult {
@@ -168,6 +169,7 @@ export function useExternalDrop({
   uploadImageGeneration,
   handleAssetDrop: dropAsset,
   handleAddTextAt,
+  onSeekToTime,
 }: UseExternalDropArgs): UseExternalDropResult {
   const externalDragFrameRef = useRef<number | null>(null);
   const autoScrollerRef = useRef<ReturnType<typeof createAutoScroller> | null>(null);
@@ -279,6 +281,7 @@ export function useExternalDrop({
       dropAsset,
       handleAddTextAt,
     });
+    onSeekToTime?.(dropPosition.time);
   }, [
     applyEdit,
     coordinator,

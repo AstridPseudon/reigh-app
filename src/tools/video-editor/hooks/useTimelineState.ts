@@ -186,6 +186,7 @@ export function useTimelineState(): UseTimelineStateResult {
     uploadImageGeneration: assetManagement.uploadImageGeneration,
     handleAssetDrop: assetManagement.handleAssetDrop,
     handleAddTextAt: clipEditing.handleAddTextAt,
+    onSeekToTime: playback.onClickTimeArea,
   });
 
   const trackManagement = useTimelineTrackManagement({
