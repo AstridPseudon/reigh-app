@@ -22,11 +22,12 @@ import {
 import { useTimelinePlaybackContext } from '@/tools/video-editor/contexts/TimelinePlaybackContext';
 import { useKeyboardShortcuts } from '@/tools/video-editor/hooks/useKeyboardShortcuts';
 import { useTimelineRealtime } from '@/tools/video-editor/hooks/useTimelineRealtime';
-import { getTimelineDurationInFrames } from '@/tools/video-editor/lib/config-utils';
+import { getTimelineDurationInFrames, parseResolution } from '@/tools/video-editor/lib/config-utils';
 import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 
 const MIN_TIMELINE_HEIGHT = 140;
 const MIN_PREVIEW_HEIGHT = 180;
+const CHROME_OVERHEAD = MIN_TIMELINE_HEIGHT + 40 + 28 + 24;
 const STATUS_VARIANT = {
   saved: 'default',
   saving: 'secondary',
@@ -129,8 +130,19 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
     window.addEventListener('mouseup', onMouseUp);
   }, []);
 
-  // Switch to condensed when there isn't enough vertical space for preview + timeline
-  const MIN_STANDARD_HEIGHT = MIN_PREVIEW_HEIGHT + MIN_TIMELINE_HEIGHT + 40 + 28 + 24; // preview + timeline + header + divider + padding
+  const outputResolution = editorData.resolvedConfig?.output?.resolution;
+  const aspectRatio = useMemo(() => {
+    if (!outputResolution) {
+      return 16 / 9;
+    }
+
+    const { width, height } = parseResolution(outputResolution);
+    if (!Number.isFinite(width) || !Number.isFinite(height) || width <= 0 || height <= 0) {
+      return 16 / 9;
+    }
+
+    return width / height;
+  }, [outputResolution]);
   const [tooSmall, setTooSmall] = useState(false);
   const outerRef = useRef<HTMLDivElement>(null);
 
@@ -139,11 +151,14 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
     if (!el || forceCondensed) return;
 
     const observer = new ResizeObserver(([entry]) => {
-      setTooSmall(entry.contentRect.height < MIN_STANDARD_HEIGHT);
+      const minPreviewHeight = isTimelineMaximized
+        ? MIN_PREVIEW_HEIGHT
+        : Math.max(MIN_PREVIEW_HEIGHT, Math.min(360, entry.contentRect.width * 0.35) / aspectRatio);
+      setTooSmall(entry.contentRect.height < minPreviewHeight + CHROME_OVERHEAD);
     });
     observer.observe(el);
     return () => observer.disconnect();
-  }, [forceCondensed, MIN_STANDARD_HEIGHT]);
+  }, [forceCondensed, aspectRatio, isTimelineMaximized]);
 
   const condensed = forceCondensed || tooSmall;
 
