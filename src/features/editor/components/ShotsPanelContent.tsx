@@ -7,9 +7,11 @@ import { useShotFinalVideos, type ShotFinalVideo } from '@/tools/travel-between-
 import {
   setShotDragData,
   createDragPreview,
-  getDragType,
   getGenerationDropData,
+  getMultiGenerationDropData,
+  isValidDropTarget,
 } from '@/shared/lib/dnd/dragDrop';
+import { VideoGenerationModal } from '@/tools/travel-between-images/components/VideoGenerationModal';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 import { isVideoGeneration } from '@/shared/lib/typeGuards';
 import { getDisplayUrl } from '@/shared/lib/media/mediaUrl';
@@ -21,7 +23,6 @@ import type { Shot } from '@/domains/generation/types';
 
 interface ShotsPanelContentProps {
   projectId: string;
-  onOpenVideoGeneration?: (shot: Shot) => void;
 }
 
 type SortMode = 'ordered' | 'newest' | 'oldest';
@@ -65,8 +66,7 @@ function ShotCard({
   };
 
   const handleDragOver = (event: React.DragEvent) => {
-    const dragType = getDragType(event);
-    if (dragType === 'generation' || dragType === 'file') {
+    if (isValidDropTarget(event)) {
       event.preventDefault();
       event.stopPropagation();
       setIsDropTarget(true);
@@ -80,12 +80,18 @@ function ShotCard({
     event.stopPropagation();
     setIsDropTarget(false);
 
-    const generationData = getGenerationDropData(event);
-    if (generationData) {
-      onGenerationDrop(shot.id, generationData.generationId, generationData.imageUrl, generationData.thumbUrl);
+    const multiData = getMultiGenerationDropData(event);
+    if (multiData) {
+      for (const gen of multiData) {
+        onGenerationDrop(shot.id, gen.generationId, gen.imageUrl, gen.thumbUrl);
+      }
       return;
     }
 
+    const generationData = getGenerationDropData(event);
+    if (generationData) {
+      onGenerationDrop(shot.id, generationData.generationId, generationData.imageUrl, generationData.thumbUrl);
+    }
   };
 
   const handleSaveName = () => {
@@ -170,7 +176,7 @@ function ShotCard({
   );
 }
 
-export function ShotsPanelContent({ projectId, onOpenVideoGeneration }: ShotsPanelContentProps) {
+export function ShotsPanelContent({ projectId }: ShotsPanelContentProps) {
   const { shots, isLoading } = useShots();
   const { finalVideoMap } = useShotFinalVideos(projectId);
   const { selectedProjectId } = useProjectSelectionContext();
@@ -181,6 +187,7 @@ export function ShotsPanelContent({ projectId, onOpenVideoGeneration }: ShotsPan
 
   const [searchQuery, setSearchQuery] = useState('');
   const [sortMode, setSortMode] = useState<SortMode>('ordered');
+  const [modalShot, setModalShot] = useState<Shot | null>(null);
 
   const filteredShots = useMemo(() => {
     if (!shots) return [];
@@ -294,7 +301,7 @@ export function ShotsPanelContent({ projectId, onOpenVideoGeneration }: ShotsPan
                 shot={shot}
                 finalVideo={finalVideoMap.get(shot.id)}
                 projectId={projectId}
-                onDoubleClick={() => onOpenVideoGeneration?.(shot)}
+                onDoubleClick={() => setModalShot(shot)}
                 onDuplicate={() => void handleDuplicate(shot.id)}
                 onDelete={() => void handleDelete(shot.id)}
                 onRename={(name) => void handleRename(shot.id, name)}
@@ -309,6 +316,14 @@ export function ShotsPanelContent({ projectId, onOpenVideoGeneration }: ShotsPan
         <div className="flex flex-1 items-center justify-center text-xs text-muted-foreground">
           No shots match &ldquo;{searchQuery}&rdquo;
         </div>
+      )}
+
+      {modalShot && (
+        <VideoGenerationModal
+          isOpen={true}
+          onClose={() => setModalShot(null)}
+          shot={modalShot}
+        />
       )}
     </div>
   );
