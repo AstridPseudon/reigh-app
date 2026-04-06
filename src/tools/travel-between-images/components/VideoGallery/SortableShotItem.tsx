@@ -5,7 +5,13 @@ import { Shot } from '@/domains/generation/types';
 import { VideoShotDisplay } from './VideoShotDisplay';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { Loader2, Check } from 'lucide-react';
-import { type GenerationDropData } from '@/shared/lib/dnd/dragDrop';
+import {
+  createDragPreview,
+  setShotDragData,
+  type GenerationDropData,
+} from '@/shared/lib/dnd/dragDrop';
+import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
+import { isVideoGeneration } from '@/shared/lib/typeGuards';
 import {
   useSortableShotDropFeedback,
   type DropOptions,
@@ -103,10 +109,33 @@ export const SortableShotItem: React.FC<SortableShotItemProps> = ({
     finalVideo,
   } as const;
 
+  const handleShotDragStart = React.useCallback((event: React.DragEvent<HTMLDivElement>) => {
+    const imageGenerationIds = (shot.images ?? [])
+      .filter((image) => !isVideoGeneration(image))
+      .map((image) => getGenerationId(image))
+      .filter((generationId): generationId is string => typeof generationId === 'string' && generationId.length > 0);
+
+    setShotDragData(event, {
+      shotId: shot.id,
+      shotName: shot.name,
+      imageGenerationIds,
+    });
+
+    const cleanup = createDragPreview(
+      event,
+      imageGenerationIds.length > 1 ? { badgeText: String(imageGenerationIds.length) } : undefined,
+    );
+    if (cleanup) {
+      setTimeout(cleanup, 0);
+    }
+  }, [shot]);
+
   return (
     <div
       ref={setNodeRef}
       style={style}
+      draggable
+      onDragStart={handleShotDragStart}
       onDragEnter={handleDragEnter}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
@@ -156,4 +185,3 @@ export const SortableShotItem: React.FC<SortableShotItemProps> = ({
     </div>
   );
 };
-

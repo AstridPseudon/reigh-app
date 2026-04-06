@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { act, renderHook } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import { buildTimelineData } from '@/tools/video-editor/lib/timeline-data';
 import { serializeForDisk } from '@/tools/video-editor/lib/serialize';
 import {
+  useTimelineTrackManagement,
   moveTrackWithinKind,
   reorderTracksByDirection,
 } from '@/tools/video-editor/hooks/useTimelineTrackManagement';
@@ -118,5 +120,67 @@ describe('moveTrackWithinKind', () => {
     const rebuilt = await buildTimelineData(serialized, { assets: {} });
 
     expect(getTrackOrder(rebuilt.tracks)).toEqual(['V2', 'V1', 'A1', 'A2']);
+  });
+});
+
+describe('useTimelineTrackManagement', () => {
+  it('updates pinnedShotGroupsOverride when moveClipToRow moves a pinned clip to another track', () => {
+    const tracks = [
+      makeTrack('V1', 'visual'),
+      makeTrack('V2', 'visual'),
+    ];
+    const dataRef = {
+      current: {
+        rows: [
+          { id: 'V1', actions: [{ id: 'clip-1', start: 0, end: 2, effectId: 'effect-clip-1' }] },
+          { id: 'V2', actions: [] },
+        ],
+        tracks,
+        meta: {
+          'clip-1': { track: 'V1', clipType: 'hold', hold: 2 },
+        },
+        clipOrder: { V1: ['clip-1'], V2: [] },
+        config: {
+          output: {
+            resolution: '1280x720',
+            fps: 30,
+            file: 'out.mp4',
+          },
+          tracks,
+          clips: [{ id: 'clip-1', at: 0, track: 'V1', clipType: 'hold', hold: 2 }],
+          pinnedShotGroups: [{
+            shotId: 'shot-1',
+            trackId: 'V1',
+            clipIds: ['clip-1'],
+            mode: 'images',
+          }],
+        },
+        resolvedConfig: makeResolvedConfig(tracks),
+      },
+    } as any;
+    const applyEdit = vi.fn();
+
+    const { result } = renderHook(() => useTimelineTrackManagement({
+      dataRef,
+      resolvedConfig: dataRef.current.resolvedConfig,
+      selectedClipId: null,
+      setSelectedTrackId: vi.fn(),
+      applyEdit,
+    }));
+
+    act(() => {
+      result.current.moveClipToRow('clip-1', 'V2', 3, 'txn-1');
+    });
+
+    expect(applyEdit).toHaveBeenCalledTimes(1);
+    const [mutation, options] = applyEdit.mock.calls[0];
+    expect(mutation.type).toBe('rows');
+    expect(mutation.pinnedShotGroupsOverride).toEqual([{
+      shotId: 'shot-1',
+      trackId: 'V2',
+      clipIds: ['clip-1'],
+      mode: 'images',
+    }]);
+    expect(options).toEqual({ transactionId: 'txn-1' });
   });
 });

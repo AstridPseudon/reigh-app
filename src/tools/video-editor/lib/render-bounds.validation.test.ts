@@ -119,10 +119,26 @@ describe('render bounds validation', () => {
           opacity: 1,
         },
       ],
+      pinnedShotGroups: [
+        {
+          shotId: 'shot-1',
+          trackId: 'V1',
+          clipIds: ['clip-1'],
+          mode: 'images',
+        },
+      ],
     };
 
     const { rows, meta, clipOrder } = configToRows(config);
-    const nextConfig = rowsToConfig(rows, meta, config.output, clipOrder, config.tracks ?? []);
+    const nextConfig = rowsToConfig(
+      rows,
+      meta,
+      config.output,
+      clipOrder,
+      config.tracks ?? [],
+      config.customEffects,
+      config.pinnedShotGroups,
+    );
     const [nextClip] = nextConfig.clips;
 
     expect(nextClip).toMatchObject({
@@ -135,5 +151,6 @@ describe('render bounds validation', () => {
       cropBottom: 0.53,
       opacity: 1,
     });
+    expect(nextConfig.pinnedShotGroups).toEqual(config.pinnedShotGroups);
   });
 });

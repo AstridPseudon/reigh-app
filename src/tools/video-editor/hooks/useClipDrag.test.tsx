@@ -141,6 +141,61 @@ function makeMultiClipData(): TimelineData {
   };
 }
 
+function makePinnedGroupData(): TimelineData {
+  const tracks = [makeTrack('V1'), makeTrack('V2')];
+  return {
+    config: {
+      output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
+      tracks,
+      clips: [
+        { id: 'clip-1', at: 0, track: 'V1', clipType: 'hold', hold: 2 },
+        { id: 'clip-2', at: 2, track: 'V1', clipType: 'hold', hold: 2 },
+      ],
+      pinnedShotGroups: [{
+        shotId: 'shot-1',
+        trackId: 'V1',
+        clipIds: ['clip-1', 'clip-2'],
+        mode: 'images',
+      }],
+    },
+    configVersion: 1,
+    registry: { assets: {} },
+    resolvedConfig: {
+      output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
+      tracks,
+      clips: [
+        { id: 'clip-1', at: 0, track: 'V1', clipType: 'hold', hold: 2 },
+        { id: 'clip-2', at: 2, track: 'V1', clipType: 'hold', hold: 2 },
+      ],
+      registry: {},
+    },
+    rows: [
+      {
+        id: 'V1',
+        actions: [
+          { id: 'clip-1', start: 0, end: 2, effectId: 'effect-clip-1' },
+          { id: 'clip-2', start: 2, end: 4, effectId: 'effect-clip-2' },
+        ],
+      },
+      { id: 'V2', actions: [] },
+    ],
+    meta: {
+      'clip-1': { track: 'V1', clipType: 'hold', hold: 2 },
+      'clip-2': { track: 'V1', clipType: 'hold', hold: 2 },
+    },
+    effects: {
+      'effect-clip-1': { id: 'effect-clip-1' },
+      'effect-clip-2': { id: 'effect-clip-2' },
+    },
+    assetMap: {},
+    output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
+    tracks,
+    clipOrder: { V1: ['clip-1', 'clip-2'], V2: [] },
+    signature: 'sig-1',
+    stableSignature: 'stable-1',
+  };
+}
+
 function setupDom(clipId = 'clip-1', rowId = 'V1') {
   const wrapper = document.createElement('div');
   wrapper.className = 'timeline-wrapper';
@@ -295,7 +350,14 @@ describe('useClipDrag', () => {
     });
     const { clip, wrapper, cleanup } = setupDom('clip-2', 'V2');
     const timelineWrapperRef = { current: wrapper };
-    const dataRef = { current: makeMultiClipData() };
+    const baseData = makeMultiClipData();
+    baseData.config.pinnedShotGroups = [{
+      shotId: 'shot-1',
+      trackId: 'V2',
+      clipIds: ['clip-2'],
+      mode: 'video',
+    }];
+    const dataRef = { current: baseData };
 
     try {
       renderHook(() => useClipDrag({
@@ -349,9 +411,228 @@ describe('useClipDrag', () => {
         expect.objectContaining({ id: 'clip-1', track: 'V2', at: 1, hold: 2 }),
         expect.objectContaining({ id: 'clip-2', track: 'V3', at: 3, hold: 2 }),
       ]));
+      expect(edit.pinnedShotGroupsOverride).toEqual([{
+        shotId: 'shot-1',
+        trackId: 'V3',
+        clipIds: ['clip-2'],
+        mode: 'video',
+      }]);
       expect(selectClips).toHaveBeenCalledWith(['clip-2', 'clip-1']);
       expect(coordinator.showSecondaryGhosts).toHaveBeenCalled();
       expect(pendingOpsRef.current).toBe(0);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('defers pinned-group expansion until the drag threshold is crossed', () => {
+    const pendingOpsRef = { current: 0 };
+    const { clip, wrapper, cleanup } = setupDom('clip-1', 'V1');
+    const timelineWrapperRef = { current: wrapper };
+    const dataRef = { current: makePinnedGroupData() };
+
+    try {
+      const { result } = renderHook(() => useClipDrag({
+        timelineWrapperRef,
+        dataRef,
+        pendingOpsRef,
+        moveClipToRow: vi.fn(),
+        createTrackAndMoveClip: vi.fn(),
+        selectClip: vi.fn(),
+        selectClips: vi.fn(),
+        selectedClipIdsRef: { current: new Set<string>() },
+        applyEdit: vi.fn(),
+        coordinator: makeCoordinator(),
+        rowHeight: 48,
+        scale: 1,
+        scaleWidth: 100,
+        startLeft: 0,
+      }));
+
+      act(() => {
+        fireEvent.pointerDown(clip, {
+          button: 0,
+          pointerId: 4,
+          clientX: 24,
+          clientY: 12,
+        });
+      });
+
+      expect(result.current.dragSessionRef.current?.draggedClipIds).toEqual(['clip-1']);
+
+      act(() => {
+        fireEvent.pointerMove(window, {
+          pointerId: 4,
+          clientX: 32,
+          clientY: 12,
+        });
+      });
+
+      expect(result.current.dragSessionRef.current?.draggedClipIds).toEqual(['clip-1', 'clip-2']);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('updates pinnedShotGroupsOverride when a pinned group is dragged across tracks', () => {
+    const pendingOpsRef = { current: 0 };
+    const applyEdit = vi.fn();
+    const selectClips = vi.fn();
+    const coordinator = makeCoordinator({
+      time: 1,
+      rowIndex: 1,
+      trackId: 'V2',
+      trackName: 'V2',
+      screenCoords: {
+        rowTop: 48,
+        rowLeft: 0,
+        rowWidth: 400,
+        rowHeight: 48,
+        clipLeft: 100,
+        clipWidth: 120,
+        ghostCenter: 160,
+      },
+    });
+    const { clip, wrapper, cleanup } = setupDom('clip-1', 'V1');
+    const timelineWrapperRef = { current: wrapper };
+    const dataRef = { current: makePinnedGroupData() };
+
+    try {
+      renderHook(() => useClipDrag({
+        timelineWrapperRef,
+        dataRef,
+        pendingOpsRef,
+        moveClipToRow: vi.fn(),
+        createTrackAndMoveClip: vi.fn(),
+        selectClip: vi.fn(),
+        selectClips,
+        selectedClipIdsRef: { current: new Set<string>() },
+        applyEdit,
+        coordinator,
+        rowHeight: 48,
+        scale: 1,
+        scaleWidth: 100,
+        startLeft: 0,
+      }));
+
+      act(() => {
+        fireEvent.pointerDown(clip, {
+          button: 0,
+          pointerId: 5,
+          clientX: 24,
+          clientY: 12,
+        });
+      });
+
+      act(() => {
+        fireEvent.pointerMove(window, {
+          pointerId: 5,
+          clientX: 124,
+          clientY: 32,
+        });
+      });
+
+      act(() => {
+        fireEvent.pointerUp(window, {
+          pointerId: 5,
+          clientX: 124,
+          clientY: 32,
+        });
+      });
+
+      expect(applyEdit).toHaveBeenCalledTimes(1);
+      const [edit, options] = applyEdit.mock.calls[0];
+      expect(edit.type).toBe('rows');
+      expect(edit.pinnedShotGroupsOverride).toEqual([{
+        shotId: 'shot-1',
+        trackId: 'V2',
+        clipIds: ['clip-1', 'clip-2'],
+        mode: 'images',
+      }]);
+      expect(options).toMatchObject({ transactionId: expect.any(String) });
+      expect(selectClips).toHaveBeenCalledWith(['clip-1', 'clip-2']);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('updates pinnedShotGroupsOverride when a pinned group is dragged onto a new track', () => {
+    const pendingOpsRef = { current: 0 };
+    const applyEdit = vi.fn();
+    const coordinator = makeCoordinator({
+      time: 3,
+      rowIndex: 2,
+      trackId: undefined,
+      trackName: '',
+      isNewTrack: true,
+      isNewTrackTop: false,
+      newTrackKind: 'visual',
+      screenCoords: {
+        rowTop: 96,
+        rowLeft: 0,
+        rowWidth: 400,
+        rowHeight: 48,
+        clipLeft: 300,
+        clipWidth: 120,
+        ghostCenter: 360,
+      },
+    });
+    const { clip, wrapper, cleanup } = setupDom('clip-1', 'V1');
+    const timelineWrapperRef = { current: wrapper };
+    const dataRef = { current: makePinnedGroupData() };
+
+    try {
+      renderHook(() => useClipDrag({
+        timelineWrapperRef,
+        dataRef,
+        pendingOpsRef,
+        moveClipToRow: vi.fn(),
+        createTrackAndMoveClip: vi.fn(),
+        selectClip: vi.fn(),
+        selectClips: vi.fn(),
+        selectedClipIdsRef: { current: new Set<string>() },
+        applyEdit,
+        coordinator,
+        rowHeight: 48,
+        scale: 1,
+        scaleWidth: 100,
+        startLeft: 0,
+      }));
+
+      act(() => {
+        fireEvent.pointerDown(clip, {
+          button: 0,
+          pointerId: 6,
+          clientX: 24,
+          clientY: 12,
+        });
+      });
+
+      act(() => {
+        fireEvent.pointerMove(window, {
+          pointerId: 6,
+          clientX: 124,
+          clientY: 32,
+        });
+      });
+
+      act(() => {
+        fireEvent.pointerUp(window, {
+          pointerId: 6,
+          clientX: 124,
+          clientY: 32,
+        });
+      });
+
+      expect(applyEdit).toHaveBeenCalledTimes(1);
+      const [edit] = applyEdit.mock.calls[0];
+      expect(edit.type).toBe('config');
+      expect(edit.pinnedShotGroupsOverride).toEqual([{
+        shotId: 'shot-1',
+        trackId: 'V3',
+        clipIds: ['clip-1', 'clip-2'],
+        mode: 'images',
+      }]);
     } finally {
       cleanup();
     }

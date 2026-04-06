@@ -1,5 +1,5 @@
 /**
- * Shared utilities for drag-and-drop operations involving generations (images/videos)
+ * Shared utilities for drag-and-drop operations involving generations and shots
  *
  * Used by:
  * - MediaGalleryItem (drag source)
@@ -15,6 +15,8 @@ const GENERATION_MIME_TYPE = 'application/x-generation';
 const GENERATION_TEXT_PREFIX = '__reigh_generation__:';
 export const GENERATION_MULTI_DRAG_TYPE = 'application/x-generation-multi';
 const GENERATION_MULTI_TEXT_PREFIX = '__reigh_generation_multi__:';
+const SHOT_MIME_TYPE = 'application/x-shot';
+const SHOT_TEXT_PREFIX = '__reigh_shot__:';
 
 // Droppable ID for creating a new shot from a dropped generation
 export const NEW_GROUP_DROPPABLE_ID = 'new-shot-group-dropzone';
@@ -54,10 +56,16 @@ export interface GenerationDropData {
   metadata?: Record<string, unknown>;
 }
 
+export interface ShotDropData {
+  shotId: string;
+  shotName: string;
+  imageGenerationIds: string[];
+}
+
 /**
  * Type of drag operation
  */
-export type DragType = 'generation' | 'generation-multi' | 'file' | 'none';
+export type DragType = 'generation' | 'generation-multi' | 'shot' | 'file' | 'none';
 
 function isMultiGenerationDrag(e: React.DragEvent): boolean {
   if (hasDataTransferType(e.dataTransfer, GENERATION_MULTI_DRAG_TYPE)) {
@@ -89,6 +97,19 @@ function isGenerationDrag(e: React.DragEvent): boolean {
   return parseGenerationDropData(textPayload) !== null;
 }
 
+function isShotDrag(e: React.DragEvent): boolean {
+  if (hasDataTransferType(e.dataTransfer, SHOT_MIME_TYPE)) {
+    return true;
+  }
+
+  if (!hasDataTransferType(e.dataTransfer, 'text/plain')) {
+    return false;
+  }
+
+  const textPayload = e.dataTransfer.getData('text/plain');
+  return parseShotDropData(textPayload) !== null;
+}
+
 /**
  * Check if the drag event contains files
  */
@@ -102,6 +123,7 @@ export function isFileDrag(e: React.DragEvent): boolean {
 export function getDragType(e: React.DragEvent): DragType {
   if (isMultiGenerationDrag(e)) return 'generation-multi';
   if (isGenerationDrag(e)) return 'generation';
+  if (isShotDrag(e)) return 'shot';
   if (isFileDrag(e)) return 'file';
   return 'none';
 }
@@ -131,6 +153,17 @@ export function setMultiGenerationDragData(
   e.dataTransfer.setData(GENERATION_MULTI_DRAG_TYPE, serialized);
   try {
     e.dataTransfer.setData('text/plain', `${GENERATION_MULTI_TEXT_PREFIX}${serialized}`);
+  } catch {
+    // ignore
+  }
+}
+
+export function setShotDragData(e: React.DragEvent, data: ShotDropData): void {
+  const serialized = JSON.stringify(data);
+  e.dataTransfer.effectAllowed = 'copy';
+  e.dataTransfer.setData(SHOT_MIME_TYPE, serialized);
+  try {
+    e.dataTransfer.setData('text/plain', `${SHOT_TEXT_PREFIX}${serialized}`);
   } catch {
     // ignore
   }
@@ -184,6 +217,32 @@ function parseMultiGenerationDropData(dataString: string): GenerationDropData[] 
   return items.length === data.length ? items : null;
 }
 
+function parseShotDropData(dataString: string): ShotDropData | null {
+  if (!dataString) {
+    return null;
+  }
+
+  let data: ShotDropData;
+  try {
+    const normalized = dataString.startsWith(SHOT_TEXT_PREFIX)
+      ? dataString.slice(SHOT_TEXT_PREFIX.length)
+      : dataString;
+    data = JSON.parse(normalized) as ShotDropData;
+  } catch {
+    return null;
+  }
+
+  if (!data.shotId || typeof data.shotName !== 'string' || !Array.isArray(data.imageGenerationIds)) {
+    return null;
+  }
+
+  if (!data.imageGenerationIds.every((generationId) => typeof generationId === 'string')) {
+    return null;
+  }
+
+  return data;
+}
+
 /**
  * Get and parse generation drag data from the dataTransfer object
  * Call this in onDrop
@@ -207,6 +266,18 @@ export function getMultiGenerationDropData(e: React.DragEvent): GenerationDropDa
       e.dataTransfer.getData(GENERATION_MULTI_DRAG_TYPE) ||
       e.dataTransfer.getData('text/plain');
     return parseMultiGenerationDropData(dataString);
+  } catch (error) {
+    normalizeAndPresentError(error, { context: 'DragDrop', showToast: false });
+    return null;
+  }
+}
+
+export function getShotDropData(e: React.DragEvent): ShotDropData | null {
+  try {
+    const dataString =
+      e.dataTransfer.getData(SHOT_MIME_TYPE) ||
+      e.dataTransfer.getData('text/plain');
+    return parseShotDropData(dataString);
   } catch (error) {
     normalizeAndPresentError(error, { context: 'DragDrop', showToast: false });
     return null;

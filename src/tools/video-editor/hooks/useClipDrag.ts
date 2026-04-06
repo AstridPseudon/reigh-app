@@ -12,6 +12,7 @@ import {
   buildConfigFromDragResult,
   computeSecondaryGhosts,
   planMultiDragMoves,
+  updatePinnedShotGroupTrackIdsFromClipTrackMap,
 } from '@/tools/video-editor/lib/multi-drag-utils';
 import { createAutoScroller } from '@/tools/video-editor/lib/auto-scroll';
 import { snapDrag } from '@/tools/video-editor/lib/snap-edges';
@@ -71,6 +72,7 @@ export interface DragSession {
   countBadgeEl: HTMLSpanElement | null;
   hasMoved: boolean;
   transactionId: string;
+  deferredPinnedGroupClipIds: string[] | null;
 }
 
 export interface UseClipDragResult {
@@ -191,6 +193,49 @@ export const useClipDrag = ({
       session.countBadgeEl = badge;
     };
 
+    const buildClipOffsets = (current: TimelineData, draggedClipIds: readonly string[], anchorInitialStart: number): ClipOffset[] => {
+      return draggedClipIds.flatMap((draggedClipId) => {
+        for (const row of current.rows) {
+          const action = row.actions.find((candidate) => candidate.id === draggedClipId);
+          if (action) {
+            return [{
+              clipId: draggedClipId,
+              rowId: row.id,
+              deltaTime: action.start - anchorInitialStart,
+              initialStart: action.start,
+              initialEnd: action.end,
+            }];
+          }
+        }
+
+        return [];
+      });
+    };
+
+    const expandPinnedGroupDrag = (session: DragSession) => {
+      if (!session.deferredPinnedGroupClipIds?.length) {
+        return;
+      }
+
+      const current = dataRef.current;
+      const anchorInitialStart = actionDragStateRef.current?.initialStart;
+      if (!current || anchorInitialStart === undefined) {
+        session.deferredPinnedGroupClipIds = null;
+        return;
+      }
+
+      const expandedClipIds = [
+        ...session.draggedClipIds,
+        ...session.deferredPinnedGroupClipIds.filter((clipId) => !session.draggedClipIds.includes(clipId)),
+      ];
+      const expandedClipOffsets = buildClipOffsets(current, expandedClipIds, anchorInitialStart);
+      const validExpandedClipIds = expandedClipOffsets.map(({ clipId }) => clipId);
+
+      session.draggedClipIds = validExpandedClipIds;
+      session.clipOffsets = expandedClipOffsets;
+      session.deferredPinnedGroupClipIds = null;
+    };
+
     const getAnchorTimeDelta = (session: DragSession, snappedStart: number): number => {
       const anchorClip = session.clipOffsets.find((c) => c.clipId === session.clipId);
       return anchorClip ? snappedStart - anchorClip.initialStart : 0;
@@ -228,23 +273,12 @@ export const useClipDrag = ({
       const draggedClipIds = selectedClipIds.has(clipId)
         ? [clipId, ...[...selectedClipIds].filter((selectedClipId) => selectedClipId !== clipId)]
         : [clipId];
-      const clipOffsets: ClipOffset[] = draggedClipIds.flatMap((draggedClipId) => {
-        for (const row of current.rows) {
-          const action = row.actions.find((candidate) => candidate.id === draggedClipId);
-          if (action) {
-            return [{
-              clipId: draggedClipId,
-              rowId: row.id,
-              deltaTime: action.start - initialStart,
-              initialStart: action.start,
-              initialEnd: action.end,
-            }];
-          }
-        }
-
-        return [];
-      });
+      const clipOffsets = buildClipOffsets(current, draggedClipIds, initialStart);
       const validDraggedClipIds = clipOffsets.map(({ clipId: draggedClipId }) => draggedClipId);
+      const deferredPinnedGroupClipIds = current.config.pinnedShotGroups
+        ?.find((group) => group.clipIds.includes(clipId))
+        ?.clipIds.filter((groupClipId) => !validDraggedClipIds.includes(groupClipId))
+        ?? null;
       actionDragStateRef.current = {
         rowId,
         initialStart,
@@ -343,6 +377,7 @@ export const useClipDrag = ({
         // and the timeline library can't start its own competing drag.
         if (!session.hasMoved) {
           session.hasMoved = true;
+          expandPinnedGroupDrag(session);
           try { session.clipEl.setPointerCapture(session.pointerId); } catch { /* ok */ }
           ensureCountBadge(session);
         }
@@ -405,9 +440,17 @@ export const useClipDrag = ({
                     nextRows,
                     metaUpdates,
                   );
+                  const clipTrackMap = Object.fromEntries(
+                    finalConfig.clips.map((clip) => [clip.id, clip.track]),
+                  );
+                  const nextPinnedShotGroups = updatePinnedShotGroupTrackIdsFromClipTrackMap(
+                    current.config.pinnedShotGroups,
+                    clipTrackMap,
+                  );
                   applyEditRef.current({
                     type: 'config',
                     resolvedConfig: finalConfig,
+                    pinnedShotGroupsOverride: nextPinnedShotGroups,
                   }, {
                     transactionId: session.transactionId,
                   });
@@ -433,11 +476,20 @@ export const useClipDrag = ({
 
               if (canMove && moves.length > 0) {
                 const { nextRows, metaUpdates, nextClipOrder } = applyMultiDragMoves(current, moves);
+                const clipTrackMap = {
+                  ...Object.fromEntries(Object.entries(current.meta).map(([clipId, clipMeta]) => [clipId, clipMeta.track])),
+                  ...Object.fromEntries(Object.entries(metaUpdates).map(([clipId, patch]) => [clipId, patch.track])),
+                };
+                const nextPinnedShotGroups = updatePinnedShotGroupTrackIdsFromClipTrackMap(
+                  current.config.pinnedShotGroups,
+                  clipTrackMap,
+                );
                 applyEditRef.current({
                   type: 'rows',
                   rows: nextRows,
                   metaUpdates,
                   clipOrderOverride: nextClipOrder,
+                  pinnedShotGroupsOverride: nextPinnedShotGroups,
                 }, {
                   transactionId: session.transactionId,
                 });
@@ -491,6 +543,7 @@ export const useClipDrag = ({
         countBadgeEl: null,
         hasMoved: false,
         transactionId: crypto.randomUUID(),
+        deferredPinnedGroupClipIds,
       };
 
       window.addEventListener('pointermove', handlePointerMove);

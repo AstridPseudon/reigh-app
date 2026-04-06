@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TimelineCanvas } from '@/tools/video-editor/components/TimelineEditor/TimelineCanvas';
 import type { TrackDefinition } from '@/tools/video-editor/types';
@@ -42,6 +42,12 @@ function renderCanvas(params?: {
   getActionRender?: ReturnType<typeof vi.fn>;
   track?: TrackDefinition;
   row?: TimelineRow;
+  shotGroups?: React.ComponentProps<typeof TimelineCanvas>['shotGroups'];
+  finalVideoShotIds?: React.ComponentProps<typeof TimelineCanvas>['finalVideoShotIds'];
+  onShotGroupPin?: React.ComponentProps<typeof TimelineCanvas>['onShotGroupPin'];
+  onShotGroupUnpin?: React.ComponentProps<typeof TimelineCanvas>['onShotGroupUnpin'];
+  onShotGroupSwitchToFinalVideo?: React.ComponentProps<typeof TimelineCanvas>['onShotGroupSwitchToFinalVideo'];
+  onShotGroupSwitchToImages?: React.ComponentProps<typeof TimelineCanvas>['onShotGroupSwitchToImages'];
 }) {
   const pendingOpsRef = params?.pendingOpsRef ?? { current: 0 };
   const dataRef = params?.dataRef ?? { current: null };
@@ -75,6 +81,13 @@ function renderCanvas(params?: {
       onClickTimeArea={vi.fn()}
       onActionResizeStart={onActionResizeStart}
       onActionResizeEnd={onActionResizeEnd}
+      shotGroups={params?.shotGroups}
+      finalVideoShotIds={params?.finalVideoShotIds}
+      onShotGroupPin={params?.onShotGroupPin}
+      onShotGroupUnpin={params?.onShotGroupUnpin}
+      onShotGroupSwitchToFinalVideo={params?.onShotGroupSwitchToFinalVideo}
+      onShotGroupSwitchToImages={params?.onShotGroupSwitchToImages}
+      dragSessionRef={{ current: null }}
     />,
   );
 
@@ -285,5 +298,102 @@ describe('TimelineCanvas resize pending ops', () => {
       row: audioRow,
     }));
     expect(actionElement.className).not.toContain('ring-amber-400/80');
+  });
+
+  it('renders suggested groups dashed and keeps pinned group labels visible', () => {
+    const { container, getByText } = renderCanvas({
+      shotGroups: [
+        {
+          shotId: 'shot-suggested',
+          shotName: 'Suggested Shot',
+          rowId: 'V1',
+          rowIndex: 0,
+          clipIds: ['clip-1'],
+          color: '#3b82f6',
+          isPinned: false,
+        },
+        {
+          shotId: 'shot-pinned',
+          shotName: 'Pinned Shot',
+          rowId: 'V1',
+          rowIndex: 0,
+          clipIds: ['clip-1'],
+          color: '#22c55e',
+          isPinned: true,
+          mode: 'images',
+        },
+      ],
+    });
+
+    expect(container.innerHTML).toContain('border-dashed');
+    expect(container.innerHTML).toContain('border-solid');
+    expect(getByText('Pinned Shot')).toBeTruthy();
+  });
+
+  it('shows pin and switch-to-video actions for suggested groups with a final video', () => {
+    const onShotGroupPin = vi.fn();
+    const onShotGroupSwitchToFinalVideo = vi.fn();
+    const { getByTitle } = renderCanvas({
+      shotGroups: [{
+        shotId: 'shot-1',
+        shotName: 'Suggested Shot',
+        rowId: 'V1',
+        rowIndex: 0,
+        clipIds: ['clip-1'],
+        color: '#22c55e',
+      }],
+      finalVideoShotIds: new Set(['shot-1']),
+      onShotGroupPin,
+      onShotGroupSwitchToFinalVideo,
+    });
+
+    fireEvent.contextMenu(getByTitle('Suggested Shot'));
+
+    expect(screen.getByText('Pin as Shot Group')).toBeTruthy();
+    expect(screen.getByText('Switch to Final Video')).toBeTruthy();
+    expect(screen.queryByText('Unpin')).toBeNull();
+    expect(screen.queryByText('Switch to Images')).toBeNull();
+
+    fireEvent.click(screen.getByText('Switch to Final Video'));
+
+    expect(onShotGroupSwitchToFinalVideo).toHaveBeenCalledWith({
+      shotId: 'shot-1',
+      clipIds: ['clip-1'],
+      rowId: 'V1',
+    });
+  });
+
+  it('shows unpin and switch-to-images actions for pinned video groups', () => {
+    const onShotGroupUnpin = vi.fn();
+    const onShotGroupSwitchToImages = vi.fn();
+    const { getByTitle } = renderCanvas({
+      shotGroups: [{
+        shotId: 'shot-1',
+        shotName: 'Pinned Shot',
+        rowId: 'V1',
+        rowIndex: 0,
+        clipIds: ['clip-1'],
+        color: '#3b82f6',
+        isPinned: true,
+        mode: 'video',
+      }],
+      finalVideoShotIds: new Set(['shot-1']),
+      onShotGroupUnpin,
+      onShotGroupSwitchToImages,
+    });
+
+    fireEvent.contextMenu(getByTitle('Pinned Shot'));
+
+    expect(screen.getByText('Unpin')).toBeTruthy();
+    expect(screen.getByText('Switch to Images')).toBeTruthy();
+    expect(screen.queryByText('Pin as Shot Group')).toBeNull();
+    expect(screen.queryByText('Switch to Final Video')).toBeNull();
+
+    fireEvent.click(screen.getByText('Switch to Images'));
+    expect(onShotGroupSwitchToImages).toHaveBeenCalledWith({ shotId: 'shot-1', rowId: 'V1' });
+
+    fireEvent.contextMenu(getByTitle('Pinned Shot'));
+    fireEvent.click(screen.getByText('Unpin'));
+    expect(onShotGroupUnpin).toHaveBeenCalledWith({ shotId: 'shot-1', trackId: 'V1' });
   });
 });

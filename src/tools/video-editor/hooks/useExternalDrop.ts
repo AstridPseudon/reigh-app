@@ -2,11 +2,17 @@ import { useCallback, useEffect, useRef } from 'react';
 import {
   getGenerationDropData,
   getMultiGenerationDropData,
+  getShotDropData,
   getDragType,
 } from '@/shared/lib/dnd/dragDrop';
+import { useShots } from '@/shared/contexts/ShotsContext';
 import { inferDragKind } from '@/tools/video-editor/lib/drop-position';
 import type { DragCoordinator } from '@/tools/video-editor/hooks/useDragCoordinator';
-import type { UseAssetManagementResult } from '@/tools/video-editor/hooks/useAssetManagement';
+import {
+  buildAssetDropEdit,
+  resolveAssetDropTarget,
+  type UseAssetManagementResult,
+} from '@/tools/video-editor/hooks/useAssetManagement';
 import type {
   TimelineApplyEdit,
   TimelineInvalidateAssetRegistry,
@@ -29,6 +35,7 @@ import {
 import { RafLoopDetector } from '@/tools/video-editor/lib/perf-diagnostics';
 import type { TrackKind } from '@/tools/video-editor/types';
 import { createAutoScroller } from '@/tools/video-editor/lib/auto-scroll';
+import type { Shot } from '@/domains/generation/types';
 
 async function dispatchTimelineDrop({
   event,
@@ -45,6 +52,7 @@ async function dispatchTimelineDrop({
   uploadImageGeneration,
   dropAsset,
   handleAddTextAt,
+  shots,
 }: {
   event: React.DragEvent<HTMLDivElement>;
   dataRef: React.MutableRefObject<TimelineData | null>;
@@ -60,6 +68,7 @@ async function dispatchTimelineDrop({
   uploadImageGeneration: UseAssetManagementResult['uploadImageGeneration'];
   dropAsset: UseAssetManagementResult['handleAssetDrop'];
   handleAddTextAt?: (trackId: string, time: number) => void;
+  shots: Shot[] | undefined;
 }) {
   const insertAtTop = Boolean(dropPosition.isNewTrackTop);
 
@@ -89,6 +98,95 @@ async function dispatchTimelineDrop({
     uploadImageGeneration,
     dropAsset,
   })) {
+    return;
+  }
+
+  const shotData = getShotDropData(event);
+  if (shotData) {
+    const shot = shots?.find((candidate) => candidate.id === shotData.shotId);
+    const shotImages = shotData.imageGenerationIds
+      .map((generationId) => shot?.images?.find((image) => image.generation_id === generationId))
+      .filter((image): image is NonNullable<typeof shot>['images'][number] => {
+        return Boolean(image?.generation_id && (image.imageUrl || image.location));
+      });
+    const resolvedTarget = resolveAssetDropTarget({
+      dataRef,
+      assetKind: 'visual',
+      trackId: dropPosition.isNewTrack ? undefined : dropPosition.trackId,
+      selectedTrackId,
+      forceNewTrack: dropPosition.isNewTrack,
+      insertAtTop,
+    });
+
+    if (!shot || !resolvedTarget || shotImages.length === 0) {
+      return;
+    }
+
+    let workingData = resolvedTarget.current;
+    const nextPinnedShotGroups = [...(workingData.config.pinnedShotGroups ?? [])];
+    const metaUpdates: Record<string, TimelineData['meta'][string]> = {};
+    const createdClipIds: string[] = [];
+    let timeOffset = 0;
+
+    for (const shotImage of shotImages) {
+      const assetKey = registerGenerationAsset({
+        generationId: shotImage.generation_id,
+        variantType: 'image',
+        imageUrl: shotImage.imageUrl ?? shotImage.location ?? '',
+        thumbUrl: shotImage.thumbUrl ?? shotImage.thumbnail_url ?? shotImage.imageUrl ?? shotImage.location ?? '',
+        metadata: {
+          content_type: shotImage.contentType ?? shotImage.type ?? 'image/png',
+        },
+      });
+      if (!assetKey) {
+        continue;
+      }
+
+      const nextEdit = buildAssetDropEdit({
+        current: workingData,
+        assetKey,
+        trackId: resolvedTarget.trackId,
+        time: dropPosition.time + timeOffset,
+      });
+      if (!nextEdit) {
+        continue;
+      }
+
+      Object.assign(metaUpdates, nextEdit.metaUpdates);
+      createdClipIds.push(nextEdit.clipId);
+      timeOffset += nextEdit.duration;
+      workingData = {
+        ...workingData,
+        rows: nextEdit.rows,
+        meta: {
+          ...workingData.meta,
+          ...nextEdit.metaUpdates,
+        },
+        clipOrder: nextEdit.clipOrderOverride,
+      };
+    }
+
+    if (createdClipIds.length === 0) {
+      return;
+    }
+
+    nextPinnedShotGroups.push({
+      shotId: shot.id,
+      trackId: resolvedTarget.trackId,
+      clipIds: createdClipIds,
+      mode: 'images',
+    });
+
+    applyEdit({
+      type: 'rows',
+      rows: workingData.rows,
+      metaUpdates,
+      clipOrderOverride: workingData.clipOrder,
+      pinnedShotGroupsOverride: nextPinnedShotGroups,
+    }, {
+      selectedClipId: createdClipIds[0] ?? null,
+      selectedTrackId: resolvedTarget.trackId,
+    });
     return;
   }
 
@@ -172,6 +270,7 @@ export function useExternalDrop({
   handleAddTextAt,
   onSeekToTime,
 }: UseExternalDropArgs): UseExternalDropResult {
+  const { shots } = useShots();
   const externalDragFrameRef = useRef<number | null>(null);
   const autoScrollerRef = useRef<ReturnType<typeof createAutoScroller> | null>(null);
   const latestExternalDragRef = useRef<{
@@ -206,6 +305,7 @@ export function useExternalDrop({
       && !types.includes('text-tool')
       && !types.includes('effect-layer')
       && dragType !== 'file'
+      && dragType !== 'shot'
       && !isGenerationDragType(dragType)) {
       return;
     }
@@ -282,6 +382,7 @@ export function useExternalDrop({
       uploadImageGeneration,
       dropAsset,
       handleAddTextAt,
+      shots,
     });
     onSeekToTime?.(dropPosition.time);
   }, [
@@ -295,6 +396,7 @@ export function useExternalDrop({
     registerGenerationAsset,
     resolveAssetUrl,
     selectedTrackId,
+    shots,
     handleAddTextAt,
     uploadAsset,
     uploadImageGeneration,

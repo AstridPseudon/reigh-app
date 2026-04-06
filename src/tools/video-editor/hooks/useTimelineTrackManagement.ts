@@ -5,6 +5,7 @@ import { DEFAULT_VIDEO_TRACKS } from '@/tools/video-editor/lib/defaults';
 import type { TrackDefinition, TrackKind } from '@/tools/video-editor/types';
 import { moveClipBetweenTracks } from '@/tools/video-editor/lib/coordinate-utils';
 import type { TimelineData } from '@/tools/video-editor/lib/timeline-data';
+import { updatePinnedShotGroupTrackIdsFromClipTrackMap } from '@/tools/video-editor/lib/multi-drag-utils';
 import { resolveOverlaps } from '@/tools/video-editor/lib/resolve-overlaps';
 import type { TimelineApplyEdit } from '@/tools/video-editor/hooks/timeline-state-types';
 
@@ -136,13 +137,23 @@ export function useTimelineTrackManagement({
         ...metaPatches[clipId],
       },
     };
-
+    const clipTrackMap = {
+      ...Object.fromEntries(Object.entries(current.meta).map(([currentClipId, clipMeta]) => [currentClipId, clipMeta.track])),
+      ...Object.fromEntries(Object.entries(nextMetaUpdates).map(([currentClipId, patch]) => [currentClipId, patch.track])),
+    };
+    const nextPinnedShotGroups = updatePinnedShotGroupTrackIdsFromClipTrackMap(
+      current.config.pinnedShotGroups,
+      clipTrackMap,
+    );
     const nextClipOrder = moveClipBetweenTracks(current.clipOrder, clipId, sourceRow.id, targetRow.id);
     applyEdit({
       type: 'rows',
       rows: resolvedRows,
       metaUpdates: nextMetaUpdates,
       clipOrderOverride: nextClipOrder,
+      pinnedShotGroupsOverride: nextPinnedShotGroups === current.config.pinnedShotGroups
+        ? undefined
+        : nextPinnedShotGroups,
     }, { transactionId });
   }, [applyEdit, dataRef]);
 
@@ -180,10 +191,18 @@ export function useTimelineTrackManagement({
         };
       }),
     };
+    const clipTrackMap = Object.fromEntries(nextResolvedConfig.clips.map((clip) => [clip.id, clip.track]));
+    const nextPinnedShotGroups = updatePinnedShotGroupTrackIdsFromClipTrackMap(
+      current.config.pinnedShotGroups,
+      clipTrackMap,
+    );
 
     applyEdit({
       type: 'config',
       resolvedConfig: nextResolvedConfig,
+      pinnedShotGroupsOverride: nextPinnedShotGroups === current.config.pinnedShotGroups
+        ? undefined
+        : nextPinnedShotGroups,
     }, {
       selectedClipId: clipId,
       selectedTrackId: newTrack.id,

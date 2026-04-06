@@ -1463,6 +1463,499 @@
       "resolved": false,
       "resolved_by": null,
       "resolved_at": null
+    },
+    {
+      "id": "DEBT-087",
+      "subsystem": "did-the-work-fully-address-the-issue-hints-user-notes-and-approved-plan-requirements",
+      "concern": "did the work fully address the issue hints, user notes, and approved plan requirements?: the new plan makes phase 6 (shot drop) and phase 7 (auto-sync) explicitly deferrable follow-ups, but those behaviors were part of the original task summary and idea document as first-class functionality. that is a real scope reduction unless the user explicitly approves shipping the two-tier system without those creation/sync paths in the first pass.",
+      "flag_ids": [
+        "issue_hints-1"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T09:18:19Z",
+      "updated_at": "2026-04-06T09:18:19Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-088",
+      "subsystem": "did-the-work-fully-address-the-issue-hints-user-notes-and-approved-plan-requirements",
+      "concern": "did the work fully address the issue hints, user notes, and approved plan requirements?: step 16 resolves the previously-open deletion behavior, but its stated implementation is a post-commit follow-up `applyedit`. in this repository `commitdata()` immediately emits `beforecommit` and schedules a save for each edit, so handling a single delete via a second cleanup edit would create extra history/save churn unless the plan also specifies how that reconcile pass is coalesced or skipped.",
+      "flag_ids": [
+        "issue_hints-2"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T09:18:19Z",
+      "updated_at": "2026-04-06T09:18:19Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-089",
+      "subsystem": "are-the-proposed-changes-technically-correct",
+      "concern": "are the proposed changes technically correct?: the new `pinnedshotgroupsoverride` design is still underspecified against `materializedata()`. `assembletimelinedata()` computes `stablesignature` from the config it receives, so if the executor literally follows step 2.4 and overwrites `pinnedshotgroups` on an already-materialized `timelinedata` before `commitdata()`, the saved config and the cached `stablesignature` will diverge unless the data is rebuilt from the updated config.",
+      "flag_ids": [
+        "correctness-1"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T09:18:19Z",
+      "updated_at": "2026-04-06T09:18:19Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-090",
+      "subsystem": "are-the-proposed-changes-technically-correct",
+      "concern": "are the proposed changes technically correct?: the revised grouped-drag plan fixes the pointer-down selection regression, but it still leaves `pinnedshotgroup.trackid` stale on cross-track moves. the data model stores `trackid`, and current drag/move helpers only update rows/meta/clip order, so a pinned group dragged to another track would keep pointing at the old track unless the drag commit also patches group metadata.",
+      "flag_ids": [
+        "correctness-2"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T09:18:19Z",
+      "updated_at": "2026-04-06T09:18:19Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-091",
+      "subsystem": "search-for-related-code-that-handles-the-same-concept-is-the-reported-issue-a-symptom-of-something-broader",
+      "concern": "search for related code that handles the same concept. is the reported issue a symptom of something broader?: cross-track group motion is broader than step 18 currently states. because the pinned-group model now includes `trackid`, every move path that can relocate a grouped clip set across rows has to update pinned-group metadata too; otherwise the overlay and menu logic will still reference the previous track even though the clip actions moved successfully.",
+      "flag_ids": [
+        "scope-1"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T09:18:19Z",
+      "updated_at": "2026-04-06T09:18:19Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-092",
+      "subsystem": "search-for-related-code-that-handles-the-same-concept-is-the-reported-issue-a-symptom-of-something-broader",
+      "concern": "search for related code that handles the same concept. is the reported issue a symptom of something broader?: if phases 6 and 7 are deferred, the shipped work becomes a narrower \"pin existing inferred groups and toggle them\" feature rather than the full brief, which also called out shot-drop creation and shot-image auto-sync. that broader scope tension is still present in the revised plan.",
+      "flag_ids": [
+        "scope-2"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 2,
+      "created_at": "2026-04-06T09:18:19Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-093",
+      "subsystem": "does-the-change-touch-all-locations-and-supporting-infrastructure",
+      "concern": "does the change touch all locations and supporting infrastructure?: the move infrastructure is still not fully enumerated for the new `trackid` field on `pinnedshotgroup`. `useclipdrag` can perform cross-track multi-drag and `usetimelinetrackmanagement.movecliptorow()` performs cross-track single-clip moves via rows/meta patches, but the revised plan does not call out updating pinned-group metadata in those move commits.",
+      "flag_ids": [
+        "all_locations-1"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T09:18:19Z",
+      "updated_at": "2026-04-06T09:18:19Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-094",
+      "subsystem": "does-the-change-touch-all-locations-and-supporting-infrastructure",
+      "concern": "does the change touch all locations and supporting infrastructure?: the supporting test infrastructure remains under-specified for the new mutation branch. `usetimelinecommit`, `timeline-save-utils.test.ts`, and `usetimelinehistory` all exercise config rebuild behavior today, but the validation section still does not add focused tests for the new `type: 'pinnedshotgroups'` path or for `pinnedshotgroupsoverride` on rows edits.",
+      "flag_ids": [
+        "all_locations-2"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 2,
+      "created_at": "2026-04-06T09:18:19Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-095",
+      "subsystem": "find-the-callers-of-the-changed-function-what-arguments-do-they-actually-pass-does-the-fix-handle-all-of-them",
+      "concern": "find the callers of the changed function. what arguments do they actually pass? does the fix handle all of them?: the current `commitdata()` and history pipeline treat each `applyedit()` as its own commit boundary. because step 16 proposes a post-commit reconcile edit after deletions, the actual callers here matter: without `skiphistory` or transaction coalescing, one user action will produce two history events and likely two saves.",
+      "flag_ids": [
+        "callers-1"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T09:18:19Z",
+      "updated_at": "2026-04-06T09:18:19Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-096",
+      "subsystem": "find-the-callers-of-the-changed-function-what-arguments-do-they-actually-pass-does-the-fix-handle-all-of-them",
+      "concern": "find the callers of the changed function. what arguments do they actually pass? does the fix handle all of them?: `handleassetdrop()` and the external-drop wrapper are not pure builders; they immediately mutate editor state and call `applyedit()` per asset. that means the plan cannot literally reuse those callers for atomic shot-drop creation without first extracting a lower-level helper, or it will violate its own \"single applyedit\" requirement.",
+      "flag_ids": [
+        "callers-2"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 2,
+      "created_at": "2026-04-06T09:18:19Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-097",
+      "subsystem": "media-insertion-conventions",
+      "concern": "media insertion conventions: the plan still says to reuse asset-management helpers for shot drop, but the current helpers are side-effectful and commit immediately, so atomic shot-drop creation still needs a lower-level extracted helper rather than direct reuse.",
+      "flag_ids": [
+        "conventions-1"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 2,
+      "created_at": "2026-04-06T09:18:19Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-098",
+      "subsystem": "timeline-signatures",
+      "concern": "timeline signatures: applying `pinnedshotgroupsoverride` after `materializedata()` would leave `stablesignature` and other config-derived state stale unless the code rebuilds `timelinedata` from the updated config.",
+      "flag_ids": [
+        "correctness-4"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 2,
+      "created_at": "2026-04-06T09:18:19Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-099",
+      "subsystem": "undo-reconciliation",
+      "concern": "undo reconciliation: step 16's post-commit `reconcilepinnedgroups` would create extra save/history events for a single delete unless it is explicitly coalesced with the triggering edit or marked to skip history.",
+      "flag_ids": [
+        "correctness-5"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 2,
+      "created_at": "2026-04-06T09:18:19Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-100",
+      "subsystem": "pinned-group-track-sync",
+      "concern": "pinned-group track sync: cross-track drag/move paths must also update `pinnedshotgroup.trackid`, but the revised plan only discusses expanding `draggedclipids` and does not call out metadata updates for the move commits.",
+      "flag_ids": [
+        "all_locations-4"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 2,
+      "created_at": "2026-04-06T09:18:19Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-101",
+      "subsystem": "scope-management",
+      "concern": "scope management: marking shot drop and auto-sync as deferrable follow-ups narrows the deliverable below the original task brief unless the split is explicitly approved.",
+      "flag_ids": [
+        "scope-3"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 2,
+      "created_at": "2026-04-06T09:18:19Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-102",
+      "subsystem": "are-the-success-criteria-well-prioritized-and-verifiable",
+      "concern": "are the success criteria well-prioritized and verifiable?: one `must` criterion is still an implementation-detail proxy rather than an outcome: \"new timelineeditmutation variant { type: 'pinnedshotgroups' } compiles and routes correctly in applyedit.\" it is verifiable, but it measures an internal mechanism rather than the user-facing persistence/undo behavior the feature actually needs.",
+      "flag_ids": [
+        "criteria_quality"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 2,
+      "created_at": "2026-04-06T09:18:19Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-103",
+      "subsystem": "did-the-work-fully-address-the-issue-hints-user-notes-and-approved-plan-requirements",
+      "concern": "did the work fully address the issue hints, user notes, and approved plan requirements?: checked the revised execution order and assumptions against the approved brief and idea doc. the plan still says phase 6 shot drop and phase 7 auto-sync can be deferred, but those behaviors are part of the requested feature rather than optional polish, so this is still a real scope reduction unless the split is explicitly approved.",
+      "flag_ids": [
+        "issue_hints-1"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T09:36:42Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-104",
+      "subsystem": "did-the-work-fully-address-the-issue-hints-user-notes-and-approved-plan-requirements",
+      "concern": "did the work fully address the issue hints, user notes, and approved plan requirements?: checked step 18 against the actual commit pipeline in `usetimelinecommit` and `usetimelinehistory`. the plan still handles deleted pinned-group clips with a post-commit follow-up `applyedit`, which would create a second commit, second save scheduling pass, and likely a second undo boundary for one user action unless it also specifies coalescing or `skiphistory` behavior.",
+      "flag_ids": [
+        "issue_hints-2"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T09:36:42Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-105",
+      "subsystem": "are-the-proposed-changes-technically-correct",
+      "concern": "are the proposed changes technically correct?: checked step 2.4 against `materializedata()` in `usetimelinecommit` and `assembletimelinedata()` in `timeline-data.ts`. the plan still says to overwrite `pinnedshotgroups` after `materializedata()` returns, but `assembletimelinedata()` computes `stablesignature` from the config it receives, so mutating the config afterward would leave signature-derived state stale unless the data is rebuilt from the updated config.",
+      "flag_ids": [
+        "correctness-1"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T09:36:42Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-106",
+      "subsystem": "are-the-proposed-changes-technically-correct",
+      "concern": "are the proposed changes technically correct?: checked the grouped-drag plan against `useclipdrag` and `usetimelinetrackmanagement.movecliptorow()`. the plan fixes the pointer-down selection regression, but it still does not say how `pinnedshotgroup.trackid` is updated when a grouped drag or move lands on a different row, so the overlay and menu state can still point at the old track after a successful cross-track move.",
+      "flag_ids": [
+        "correctness-2"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T09:36:42Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-107",
+      "subsystem": "are-the-proposed-changes-technically-correct",
+      "concern": "are the proposed changes technically correct?: checked the cross-track multi-drag new-track branch in `useclipdrag`. that path still commits through `applyedit({ type: 'config', resolvedconfig })` using `buildconfigfromdragresult()`, and the revised plan does not explain how pinned-group metadata is updated atomically on that path, so grouped drags that create a new track are still under-specified even beyond the stale-`trackid` problem.",
+      "flag_ids": [
+        "correctness-3"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T09:36:42Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-108",
+      "subsystem": "search-for-related-code-that-handles-the-same-concept-is-the-reported-issue-a-symptom-of-something-broader",
+      "concern": "search for related code that handles the same concept. is the reported issue a symptom of something broader?: checked the movement surface beyond `useclipdrag`. the broader problem is not just drag-threshold expansion; both grouped multi-drag and single-clip cross-track move helpers can relocate clips across rows, so every move path that changes a pinned group's row membership has to update pinned-group metadata too, and the revised plan still scopes that too narrowly.",
+      "flag_ids": [
+        "scope-1"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T09:36:42Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-109",
+      "subsystem": "does-the-change-touch-all-locations-and-supporting-infrastructure",
+      "concern": "does the change touch all locations and supporting infrastructure?: checked the move infrastructure that exists today. `useclipdrag` handles grouped moves, `usetimelinetrackmanagement.movecliptorow()` handles single-clip cross-track moves, and the plan still does not call out patching `pinnedshotgroup.trackid` in either commit path, so the new data model is not wired through every location that can change clip rows.",
+      "flag_ids": [
+        "all_locations-1"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T09:36:42Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-110",
+      "subsystem": "does-the-change-touch-all-locations-and-supporting-infrastructure",
+      "concern": "does the change touch all locations and supporting infrastructure?: the revised plan now has duplicate shot-drop and auto-sync sections: steps 13-14 contain todo placeholders, while steps 21-24 contain the concrete later-phase versions. that duplication is not just cosmetic; it leaves the supporting infrastructure and file ownership for those phases ambiguous enough that the plan is still not fully actionable.",
+      "flag_ids": [
+        "all_locations-3"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T09:36:42Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-111",
+      "subsystem": "find-the-callers-of-the-changed-function-what-arguments-do-they-actually-pass-does-the-fix-handle-all-of-them",
+      "concern": "find the callers of the changed function. what arguments do they actually pass? does the fix handle all of them?: checked the actual commit/history callers around step 18. `commitdata()` emits `beforecommit` and schedules save on every edit, and `usetimelinehistory.onbeforecommit()` pushes undo entries per commit boundary, so a reconcile-after-delete `applyedit` still fragments one user action into multiple history/save operations unless the plan also changes those caller contracts.",
+      "flag_ids": [
+        "callers-1"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T09:36:42Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-112",
+      "subsystem": "grouped-drag-new-track-path",
+      "concern": "grouped drag new-track path: cross-track grouped drags that create a new track still commit through the resolved-config path, and the revised plan does not explain how pinned-group metadata is updated atomically on that branch.",
+      "flag_ids": [
+        "correctness-6"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T09:36:42Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-113",
+      "subsystem": "plan-execution",
+      "concern": "plan execution: the revised plan now contains duplicate shot-drop and auto-sync phases, and the earlier copies still contain todo placeholders, so those parts of the plan are not fully actionable yet.",
+      "flag_ids": [
+        "plan-execution-1"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T09:36:42Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-114",
+      "subsystem": "did-the-work-fully-address-the-issue-hints-user-notes-and-approved-plan-requirements",
+      "concern": "did the work fully address the issue hints, user notes, and approved plan requirements?: the revised plan introduced new todo placeholders for step 13 shot drop and step 14 auto-sync while also keeping later concrete shot-drop and auto-sync phases. that means two first-class behaviors from the brief are still not fully planned in an execution-ready way, even before considering whether they are deferred.",
+      "flag_ids": [
+        "issue_hints-3"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T09:36:42Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-115",
+      "subsystem": "find-the-callers-of-the-changed-function-what-arguments-do-they-actually-pass-does-the-fix-handle-all-of-them",
+      "concern": "find the callers of the changed function. what arguments do they actually pass? does the fix handle all of them?: checked the multi-drag callers in `useclipdrag`. the 'new track' grouped-drag branch still routes through `buildconfigfromdragresult()` and `applyedit({ type: 'config' })`, so the revised plan still does not fully handle every caller shape for grouped moves once pinned-group metadata becomes part of the timeline state.",
+      "flag_ids": [
+        "callers-3"
+      ],
+      "plan_ids": [
+        "implement-two-tier-shot-20260406-1054"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T09:36:42Z",
+      "updated_at": "2026-04-06T09:36:42Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
     }
   ]
 }

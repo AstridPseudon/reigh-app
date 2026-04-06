@@ -145,4 +145,106 @@ describe('useShotGroups', () => {
 
     expect(result.current).toEqual([]);
   });
+
+  it('suppresses an inferred group when its clip ids are a subset of a pinned group', () => {
+    const rows: TimelineRow[] = [{ id: 'V1', actions: [buildAction('clip-1', 0, 1), buildAction('clip-2', 1, 2)] }];
+    const { result } = renderHook(() => useShotGroups(
+      rows,
+      buildMeta('V1', { 'clip-1': 'asset-1', 'clip-2': 'asset-2' }),
+      buildRegistry({ 'asset-1': 'gen-1', 'asset-2': 'gen-2' }),
+      [buildShot('shot-1', 'Shot 1', ['gen-1', 'gen-2'])],
+      undefined,
+      [{ shotId: 'shot-1', trackId: 'V1', clipIds: ['clip-1', 'clip-2'], mode: 'images' }],
+    ));
+
+    expect(result.current.map((group) => ({ shotId: group.shotId, clipIds: group.clipIds, isPinned: group.isPinned }))).toEqual([
+      { shotId: 'shot-1', clipIds: ['clip-1', 'clip-2'], isPinned: true },
+    ]);
+  });
+
+  it('does not suppress a different cluster of the same shot on the same track', () => {
+    const rows: TimelineRow[] = [{
+      id: 'V1',
+      actions: [buildAction('clip-1', 0, 1), buildAction('clip-2', 1, 2), buildAction('clip-3', 3, 4), buildAction('clip-4', 4, 5)],
+    }];
+    const { result } = renderHook(() => useShotGroups(
+      rows,
+      buildMeta('V1', {
+        'clip-1': 'asset-1',
+        'clip-2': 'asset-2',
+        'clip-3': 'asset-3',
+        'clip-4': 'asset-4',
+      }),
+      buildRegistry({
+        'asset-1': 'gen-1',
+        'asset-2': 'gen-2',
+        'asset-3': 'gen-3',
+        'asset-4': 'gen-4',
+      }),
+      [buildShot('shot-1', 'Shot 1', ['gen-1', 'gen-2', 'gen-3', 'gen-4'])],
+      undefined,
+      [{ shotId: 'shot-1', trackId: 'V1', clipIds: ['clip-1', 'clip-2'], mode: 'images' }],
+    ));
+
+    expect(result.current.map((group) => ({ clipIds: group.clipIds, isPinned: group.isPinned }))).toEqual([
+      { clipIds: ['clip-1', 'clip-2'], isPinned: true },
+      { clipIds: ['clip-3', 'clip-4'], isPinned: undefined },
+    ]);
+  });
+
+  it('returns pinned groups with isPinned true', () => {
+    const rows: TimelineRow[] = [{ id: 'V1', actions: [buildAction('clip-1', 0, 2)] }];
+    const { result } = renderHook(() => useShotGroups(
+      rows,
+      buildMeta('V1', { 'clip-1': 'asset-1' }),
+      buildRegistry({ 'asset-1': 'gen-1' }),
+      [buildShot('shot-1', 'Shot 1', ['gen-1'])],
+      undefined,
+      [{ shotId: 'shot-1', trackId: 'V1', clipIds: ['clip-1'], mode: 'video' }],
+    ));
+
+    expect(result.current).toEqual([{
+      shotId: 'shot-1',
+      shotName: 'Shot 1',
+      rowId: 'V1',
+      rowIndex: 0,
+      clipIds: ['clip-1'],
+      color: getShotColor('shot-1'),
+      isPinned: true,
+      mode: 'video',
+    }]);
+  });
+
+  it('merges pinned and inferred groups together', () => {
+    const rows: TimelineRow[] = [{
+      id: 'V1',
+      actions: [buildAction('clip-1', 0, 1), buildAction('clip-2', 1, 2), buildAction('clip-3', 3, 4), buildAction('clip-4', 4, 5)],
+    }];
+    const { result } = renderHook(() => useShotGroups(
+      rows,
+      buildMeta('V1', {
+        'clip-1': 'asset-1',
+        'clip-2': 'asset-2',
+        'clip-3': 'asset-3',
+        'clip-4': 'asset-4',
+      }),
+      buildRegistry({
+        'asset-1': 'gen-1',
+        'asset-2': 'gen-2',
+        'asset-3': 'gen-3',
+        'asset-4': 'gen-4',
+      }),
+      [
+        buildShot('shot-1', 'Shot 1', ['gen-1', 'gen-2']),
+        buildShot('shot-2', 'Shot 2', ['gen-3', 'gen-4']),
+      ],
+      undefined,
+      [{ shotId: 'shot-1', trackId: 'V1', clipIds: ['clip-1', 'clip-2'], mode: 'images' }],
+    ));
+
+    expect(result.current.map((group) => ({ shotId: group.shotId, clipIds: group.clipIds, isPinned: group.isPinned }))).toEqual([
+      { shotId: 'shot-1', clipIds: ['clip-1', 'clip-2'], isPinned: true },
+      { shotId: 'shot-2', clipIds: ['clip-3', 'clip-4'], isPinned: undefined },
+    ]);
+  });
 });

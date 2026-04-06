@@ -160,6 +160,17 @@ const ensureBackgroundClip = (config: TimelineConfig): TimelineClip[] => {
   ];
 };
 
+const clonePinnedShotGroups = (
+  pinnedShotGroups: TimelineConfig['pinnedShotGroups'],
+): TimelineConfig['pinnedShotGroups'] => pinnedShotGroups?.map((group) => ({
+  ...group,
+  clipIds: [...group.clipIds],
+  imageClipSnapshot: group.imageClipSnapshot?.map((snapshot) => ({
+    ...snapshot,
+    meta: { ...snapshot.meta },
+  })),
+}));
+
 /**
  * Cheap structural migration — runs on every edit.
  * Ensures tracks exist, clips have clipType. No dedup, no repair.
@@ -175,6 +186,7 @@ export const migrateToFlatTracks = (config: TimelineConfig): TimelineConfig => {
           ?? (clip.text ? 'text' : typeof clip.hold === 'number' ? 'hold' : 'media'),
       })),
       customEffects: config.customEffects ? { ...config.customEffects } : undefined,
+      pinnedShotGroups: clonePinnedShotGroups(config.pinnedShotGroups),
     };
   }
 
@@ -183,6 +195,7 @@ export const migrateToFlatTracks = (config: TimelineConfig): TimelineConfig => {
     tracks: getDefaultTracks(config),
     clips: ensureBackgroundClip(config),
     customEffects: config.customEffects ? { ...config.customEffects } : undefined,
+    pinnedShotGroups: clonePinnedShotGroups(config.pinnedShotGroups),
   };
 };
 

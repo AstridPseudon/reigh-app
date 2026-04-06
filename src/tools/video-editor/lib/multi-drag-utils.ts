@@ -2,7 +2,7 @@ import { getConfigSignature, getStableConfigSignature } from '@/tools/video-edit
 import { addTrack } from '@/tools/video-editor/lib/editor-utils';
 import { getSourceTime, type ClipMeta, type ClipOrderMap, type TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
-import type { ResolvedTimelineConfig, TrackKind } from '@/tools/video-editor/types';
+import type { PinnedShotGroup, ResolvedTimelineConfig, TrackKind } from '@/tools/video-editor/types';
 import { moveClipBetweenTracks } from '@/tools/video-editor/lib/coordinate-utils';
 import { resolveGroupOverlaps, type GroupMovedClip } from '@/tools/video-editor/lib/resolve-overlaps';
 
@@ -37,7 +37,47 @@ export interface GhostRect {
   height: number;
 }
 
+type PinnedTrackMove = {
+  clipId: string;
+  targetRowId: string;
+};
+
 const roundConfigValue = (value: number): number => Math.round(value * 100) / 100;
+
+export function updatePinnedShotGroupTrackIdsFromClipTrackMap(
+  pinnedShotGroups: TimelineData['config']['pinnedShotGroups'],
+  clipTrackMap: Readonly<Record<string, string | undefined>>,
+): TimelineData['config']['pinnedShotGroups'] {
+  if (!pinnedShotGroups?.length) {
+    return pinnedShotGroups;
+  }
+
+  let hasChanges = false;
+  const nextGroups = pinnedShotGroups.map((group) => {
+    const finalTrackIds = new Set(
+      group.clipIds
+        .map((clipId) => clipTrackMap[clipId])
+        .filter((trackId): trackId is string => typeof trackId === 'string' && trackId.length > 0),
+    );
+
+    if (finalTrackIds.size !== 1) {
+      return group;
+    }
+
+    const [nextTrackId] = [...finalTrackIds];
+    if (nextTrackId === group.trackId) {
+      return group;
+    }
+
+    hasChanges = true;
+    return {
+      ...group,
+      trackId: nextTrackId,
+    } satisfies PinnedShotGroup;
+  });
+
+  return hasChanges ? nextGroups : pinnedShotGroups;
+}
 
 export function buildAugmentedData(
   data: TimelineData,
@@ -84,7 +124,8 @@ export function buildConfigFromDragResult(
   baseMeta: Record<string, ClipMeta>,
   nextRows: TimelineRow[],
   metaUpdates: Record<string, Partial<ClipMeta>>,
-): ResolvedTimelineConfig {
+  pinnedShotGroups?: PinnedShotGroup[],
+): ResolvedTimelineConfig & { pinnedShotGroups?: PinnedShotGroup[] } {
   const mergedMeta: Record<string, ClipMeta> = Object.fromEntries(
     Object.entries(baseMeta).map(([clipId, clipMeta]) => [
       clipId,
@@ -147,7 +188,51 @@ export function buildConfigFromDragResult(
         to: roundConfigValue(getSourceTime({ from, start: position.at, speed }, position.at + position.duration)),
       }];
     }),
+    ...(pinnedShotGroups && pinnedShotGroups.length > 0 ? { pinnedShotGroups } : {}),
   };
+}
+
+export function updatePinnedShotGroupTrackIds(
+  pinnedShotGroups: PinnedShotGroup[] | undefined,
+  moves: readonly PinnedTrackMove[],
+  options?: { requireCompleteGroup?: boolean },
+): PinnedShotGroup[] | undefined {
+  if (!pinnedShotGroups?.length || moves.length === 0) {
+    return pinnedShotGroups;
+  }
+
+  const requireCompleteGroup = options?.requireCompleteGroup ?? true;
+  const moveByClipId = new Map(moves.map((move) => [move.clipId, move.targetRowId]));
+  let hasChanges = false;
+
+  const nextPinnedShotGroups = pinnedShotGroups.map((group) => {
+    const movedClipIds = group.clipIds.filter((clipId) => moveByClipId.has(clipId));
+    if (movedClipIds.length === 0) {
+      return group;
+    }
+
+    if (requireCompleteGroup && movedClipIds.length !== group.clipIds.length) {
+      return group;
+    }
+
+    const targetRowIds = new Set(movedClipIds.map((clipId) => moveByClipId.get(clipId)));
+    if (targetRowIds.size !== 1) {
+      return group;
+    }
+
+    const nextTrackId = targetRowIds.values().next().value;
+    if (!nextTrackId || nextTrackId === group.trackId) {
+      return group;
+    }
+
+    hasChanges = true;
+    return {
+      ...group,
+      trackId: nextTrackId,
+    };
+  });
+
+  return hasChanges ? nextPinnedShotGroups : pinnedShotGroups;
 }
 
 // ── Planning ─────────────────────────────────────────────────────────

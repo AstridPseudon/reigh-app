@@ -53,6 +53,168 @@ export interface UseAssetManagementResult {
   handleAssetDrop: (assetKey: string, trackId: string | undefined, time: number, forceNewTrack?: boolean, insertAtTop?: boolean) => void;
 }
 
+export interface AssetDropTargetResolution {
+  current: TimelineData;
+  trackId: string;
+}
+
+export interface BuildAssetDropEditResult {
+  clipId: string;
+  duration: number;
+  rows: TimelineData['rows'];
+  metaUpdates: Record<string, ClipMeta>;
+  clipOrderOverride: TimelineData['clipOrder'];
+}
+
+export function resolveAssetDropTarget({
+  dataRef,
+  assetKind,
+  trackId,
+  selectedTrackId,
+  forceNewTrack = false,
+  insertAtTop = false,
+}: {
+  dataRef: MutableRefObject<TimelineData | null>;
+  assetKind: 'audio' | 'visual';
+  trackId: string | undefined;
+  selectedTrackId: string | null;
+  forceNewTrack?: boolean;
+  insertAtTop?: boolean;
+}): AssetDropTargetResolution | null {
+  let current = dataRef.current;
+  if (!current) {
+    return null;
+  }
+
+  let resolvedTrackId = forceNewTrack
+    ? null
+    : getCompatibleTrackId(current.tracks, trackId, assetKind, selectedTrackId);
+
+  if (!resolvedTrackId) {
+    const latest = dataRef.current;
+    if (!latest) {
+      return null;
+    }
+
+    const existingTrackId = forceNewTrack
+      ? null
+      : getCompatibleTrackId(latest.tracks, trackId, assetKind, selectedTrackId);
+    if (existingTrackId) {
+      current = latest;
+      resolvedTrackId = existingTrackId;
+    } else {
+      const prefix = assetKind === 'audio' ? 'A' : 'V';
+      const nextNumber = getTrackIndex(latest.tracks, prefix) + 1;
+      resolvedTrackId = `${prefix}${nextNumber}`;
+      const newTrack = {
+        id: resolvedTrackId,
+        kind: assetKind,
+        label: `${prefix}${nextNumber}`,
+      };
+      current = {
+        ...latest,
+        tracks: insertAtTop ? [newTrack, ...latest.tracks] : [...latest.tracks, newTrack],
+        rows: insertAtTop ? [{ id: resolvedTrackId, actions: [] }, ...latest.rows] : [...latest.rows, { id: resolvedTrackId, actions: [] }],
+      };
+      dataRef.current = current;
+    }
+  }
+
+  return resolvedTrackId
+    ? { current, trackId: resolvedTrackId }
+    : null;
+}
+
+export function buildAssetDropEdit({
+  current,
+  assetKey,
+  trackId,
+  time,
+}: {
+  current: TimelineData;
+  assetKey: string;
+  trackId: string;
+  time: number;
+}): BuildAssetDropEditResult | null {
+  const assetEntry = current.registry.assets[assetKey];
+  const assetKind = inferTrackType(assetEntry?.file ?? assetKey);
+  const track = current.tracks.find((candidate) => candidate.id === trackId);
+  if (!track) {
+    return null;
+  }
+
+  const clipId = getNextClipId(current.meta);
+  const isImage = assetEntry?.type?.startsWith('image');
+  const isVideo = assetEntry?.type?.startsWith('video') || (!isImage && assetKind === 'visual' && assetEntry?.duration);
+  const isManual = track.fit === 'manual';
+  const clipType: ClipType = isImage ? 'hold' : 'media';
+  const baseDuration = isVideo
+    ? (assetEntry?.duration ?? 5)
+    : isImage
+      ? 5
+      : Math.max(1, assetEntry?.duration ?? 5);
+
+  let clipMeta: ClipMeta;
+  let duration: number;
+
+  if (track.kind === 'audio') {
+    duration = assetEntry?.duration ?? 10;
+    clipMeta = {
+      asset: assetKey,
+      track: trackId,
+      clipType: 'media',
+      from: 0,
+      to: duration,
+      speed: 1,
+      volume: 1,
+    };
+  } else if (isImage) {
+    duration = 5;
+    clipMeta = {
+      asset: assetKey,
+      track: trackId,
+      clipType,
+      hold: duration,
+      opacity: 1,
+      x: isManual ? 100 : undefined,
+      y: isManual ? 100 : undefined,
+      width: isManual ? 320 : undefined,
+      height: isManual ? 240 : undefined,
+    };
+  } else {
+    duration = baseDuration;
+    clipMeta = {
+      asset: assetKey,
+      track: trackId,
+      clipType,
+      from: 0,
+      to: duration,
+      speed: 1,
+      volume: 1,
+      opacity: 1,
+      x: isManual ? 100 : undefined,
+      y: isManual ? 100 : undefined,
+      width: isManual ? 320 : undefined,
+      height: isManual ? 240 : undefined,
+    };
+  }
+
+  const action: TimelineAction = {
+    id: clipId,
+    start: time,
+    end: time + duration,
+    effectId: `effect-${clipId}`,
+  };
+
+  return {
+    clipId,
+    duration,
+    rows: current.rows.map((row) => (row.id === trackId ? { ...row, actions: [...row.actions, action] } : row)),
+    metaUpdates: { [clipId]: clipMeta },
+    clipOrderOverride: updateClipOrder(current.clipOrder, trackId, (ids) => [...ids, clipId]),
+  };
+}
+
 export function useAssetManagement({
   dataRef,
   selectedTrackId,
@@ -148,127 +310,34 @@ export function useAssetManagement({
   }, [selectedProjectId]);
 
   const handleAssetDrop = useCallback((assetKey: string, trackId: string | undefined, time: number, forceNewTrack = false, insertAtTop = false) => {
-    let current = dataRef.current;
-    if (!current) {
+    const resolvedTarget = resolveAssetDropTarget({
+      dataRef,
+      assetKind: inferTrackType(dataRef.current?.registry.assets[assetKey]?.file ?? assetKey),
+      trackId,
+      selectedTrackId,
+      forceNewTrack,
+      insertAtTop,
+    });
+    if (!resolvedTarget) {
       return;
     }
-
-    const assetEntry = current.registry.assets[assetKey];
-    const assetKind = inferTrackType(assetEntry?.file ?? assetKey);
-    let resolvedTrackId = forceNewTrack
-      ? null
-      : getCompatibleTrackId(current.tracks, trackId, assetKind, selectedTrackId);
-
-    // If no compatible track exists (or forced new track), create one immutably
-    if (!resolvedTrackId) {
-      const latest = dataRef.current;
-      if (!latest) {
-        return;
-      }
-
-      const existingTrackId = forceNewTrack
-        ? null
-        : getCompatibleTrackId(latest.tracks, trackId, assetKind, selectedTrackId);
-      if (existingTrackId) {
-        current = latest;
-        resolvedTrackId = existingTrackId;
-      } else {
-        const prefix = assetKind === 'audio' ? 'A' : 'V';
-        const nextNumber = getTrackIndex(latest.tracks, prefix) + 1;
-        resolvedTrackId = `${prefix}${nextNumber}`;
-        const newTrack = {
-          id: resolvedTrackId,
-          kind: assetKind,
-          label: `${prefix}${nextNumber}`,
-        };
-        current = {
-          ...latest,
-          tracks: insertAtTop ? [newTrack, ...latest.tracks] : [...latest.tracks, newTrack],
-          rows: insertAtTop ? [{ id: resolvedTrackId, actions: [] }, ...latest.rows] : [...latest.rows, { id: resolvedTrackId, actions: [] }],
-        };
-        dataRef.current = current;
-      }
-    }
-
-    const track = current.tracks.find((candidate) => candidate.id === resolvedTrackId);
-    if (!track) {
+    const nextEdit = buildAssetDropEdit({
+      current: resolvedTarget.current,
+      assetKey,
+      trackId: resolvedTarget.trackId,
+      time,
+    });
+    if (!nextEdit) {
       return;
     }
-
-    const clipId = getNextClipId(current.meta);
-    const isImage = assetEntry?.type?.startsWith('image');
-    const isVideo = assetEntry?.type?.startsWith('video') || (!isImage && assetKind === 'visual' && assetEntry?.duration);
-    const isManual = track.fit === 'manual';
-    const clipType: ClipType = isImage ? 'hold' : 'media';
-    // Use actual asset duration for videos/audio instead of capping at 5s
-    const baseDuration = isVideo
-      ? (assetEntry?.duration ?? 5)
-      : isImage
-        ? 5
-        : Math.max(1, assetEntry?.duration ?? 5);
-
-    let clipMeta: ClipMeta;
-    let duration: number;
-
-    if (track.kind === 'audio') {
-      duration = assetEntry?.duration ?? 10;
-      clipMeta = {
-        asset: assetKey,
-        track: resolvedTrackId,
-        clipType: 'media',
-        from: 0,
-        to: duration,
-        speed: 1,
-        volume: 1,
-      };
-    } else if (isImage) {
-      duration = 5;
-      clipMeta = {
-        asset: assetKey,
-        track: resolvedTrackId,
-        clipType,
-        hold: duration,
-        opacity: 1,
-        x: isManual ? 100 : undefined,
-        y: isManual ? 100 : undefined,
-        width: isManual ? 320 : undefined,
-        height: isManual ? 240 : undefined,
-      };
-    } else {
-      duration = baseDuration;
-      clipMeta = {
-        asset: assetKey,
-        track: resolvedTrackId,
-        clipType,
-        from: 0,
-        to: duration,
-        speed: 1,
-        volume: 1,
-        opacity: 1,
-        x: isManual ? 100 : undefined,
-        y: isManual ? 100 : undefined,
-        width: isManual ? 320 : undefined,
-        height: isManual ? 240 : undefined,
-      };
-    }
-
-    const action: TimelineAction = {
-      id: clipId,
-      start: time,
-      end: time + duration,
-      effectId: `effect-${clipId}`,
-    };
-
-    const nextRows = current.rows.map((row) => (row.id === resolvedTrackId ? { ...row, actions: [...row.actions, action] } : row));
-    const nextClipOrder = updateClipOrder(current.clipOrder, resolvedTrackId, (ids) => [...ids, clipId]);
     applyEdit({
       type: 'rows',
-      rows: nextRows,
-      metaUpdates: { [clipId]: clipMeta },
-      clipOrderOverride: nextClipOrder,
+      rows: nextEdit.rows,
+      metaUpdates: nextEdit.metaUpdates,
+      clipOrderOverride: nextEdit.clipOrderOverride,
     });
-    setSelectedClipId(clipId);
-    setSelectedTrackId(resolvedTrackId);
+    setSelectedClipId(nextEdit.clipId);
+    setSelectedTrackId(resolvedTarget.trackId);
   }, [applyEdit, dataRef, selectedTrackId, setSelectedClipId, setSelectedTrackId]);
 
   return {

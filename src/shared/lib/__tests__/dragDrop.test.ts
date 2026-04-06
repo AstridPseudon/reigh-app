@@ -5,14 +5,16 @@ import {
   getDragType,
   setGenerationDragData,
   setMultiGenerationDragData,
+  setShotDragData,
   getGenerationDropData,
   getMultiGenerationDropData,
+  getShotDropData,
   isValidDropTarget,
   isFileDrag,
   NEW_GROUP_DROPPABLE_ID,
   GENERATION_MULTI_DRAG_TYPE,
 } from '../dnd/dragDrop';
-import type { GenerationDropData } from '../dnd/dragDrop';
+import type { GenerationDropData, ShotDropData } from '../dnd/dragDrop';
 
 /**
  * Create a minimal mock of React.DragEvent for testing
@@ -50,6 +52,11 @@ describe('getDragType', () => {
   it('returns "generation-multi" for multi-generation MIME type', () => {
     const event = createMockDragEvent({ types: [GENERATION_MULTI_DRAG_TYPE] });
     expect(getDragType(event)).toBe('generation-multi');
+  });
+
+  it('returns "shot" for shot MIME type', () => {
+    const event = createMockDragEvent({ types: ['application/x-shot'] });
+    expect(getDragType(event)).toBe('shot');
   });
 
   it('returns "none" for plain text without generation payload', () => {
@@ -196,6 +203,45 @@ describe('setMultiGenerationDragData / getMultiGenerationDropData round-trip', (
       },
     });
     expect(getMultiGenerationDropData(invalidShapeEvent)).toBeNull();
+  });
+});
+
+describe('setShotDragData / getShotDropData round-trip', () => {
+  it('round-trips shot data through set and get', () => {
+    const data: ShotDropData = {
+      shotId: 'shot-123',
+      shotName: 'Shot 123',
+      imageGenerationIds: ['gen-1', 'gen-2'],
+    };
+
+    const storedData: Record<string, string> = {};
+    const setEvent = createMockDragEvent({ data: storedData });
+    setShotDragData(setEvent, data);
+
+    expect(storedData['application/x-shot']).toBeTruthy();
+    expect(storedData['text/plain']).toContain('__reigh_shot__:');
+
+    const getEvent = createMockDragEvent({
+      types: ['application/x-shot'],
+      data: storedData,
+    });
+
+    expect(getShotDropData(getEvent)).toEqual(data);
+    expect(getDragType(getEvent)).toBe('shot');
+  });
+
+  it('returns null for invalid shot payloads', () => {
+    const malformedEvent = createMockDragEvent({
+      data: { 'application/x-shot': 'not-json' },
+    });
+    expect(getShotDropData(malformedEvent)).toBeNull();
+
+    const invalidShapeEvent = createMockDragEvent({
+      data: {
+        'application/x-shot': JSON.stringify({ shotId: 'shot-1', shotName: 'Shot 1', imageGenerationIds: ['gen-1', 2] }),
+      },
+    });
+    expect(getShotDropData(invalidShapeEvent)).toBeNull();
   });
 });
 

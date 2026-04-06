@@ -138,11 +138,49 @@ export type CustomEffectEntry = {
   category?: 'entrance' | 'exit' | 'continuous';
 };
 
+export type PinnedShotImageClipSnapshot = {
+  clipId: string;
+  assetKey?: string;
+  meta: {
+    clipType?: ClipType;
+    from?: number;
+    to?: number;
+    speed?: number;
+    hold?: number;
+    volume?: number;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+    cropTop?: number;
+    cropBottom?: number;
+    cropLeft?: number;
+    cropRight?: number;
+    opacity?: number;
+    text?: TextClipData;
+    entrance?: ClipEntrance;
+    exit?: ClipExit;
+    continuous?: ClipContinuous;
+    transition?: ClipTransition;
+    effects?: TimelineEffect[] | Record<string, number>;
+  };
+};
+
+export type PinnedShotGroup = {
+  shotId: string;
+  trackId: string;
+  clipIds: string[];
+  mode: 'images' | 'video';
+  videoAssetKey?: string;
+  imageClipSnapshot?: PinnedShotImageClipSnapshot[];
+};
+
 export type TimelineConfig = {
   output: TimelineOutput;
   clips: TimelineClip[];
   tracks?: TrackDefinition[];
   customEffects?: Record<string, CustomEffectEntry>;
+  pinnedShotGroups?: PinnedShotGroup[];
 };
 
 export type AssetRegistryEntry = {

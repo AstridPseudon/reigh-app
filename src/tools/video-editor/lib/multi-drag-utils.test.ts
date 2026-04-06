@@ -4,6 +4,8 @@ import {
   buildAugmentedData,
   buildConfigFromDragResult,
   planMultiDragMoves,
+  updatePinnedShotGroupTrackIdsFromClipTrackMap,
+  updatePinnedShotGroupTrackIds,
 } from '@/tools/video-editor/lib/multi-drag-utils';
 import type { ClipMeta, TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { TrackDefinition } from '@/tools/video-editor/types';
@@ -262,5 +264,66 @@ describe('planMultiDragMoves on augmented data', () => {
     );
 
     expect(result).toEqual({ canMove: false, moves: [] });
+  });
+});
+
+describe('updatePinnedShotGroupTrackIdsFromClipTrackMap', () => {
+  it('updates a pinned group when all of its clips resolve to one new track', () => {
+    expect(updatePinnedShotGroupTrackIdsFromClipTrackMap(
+      [{
+        shotId: 'shot-1',
+        trackId: 'V1',
+        clipIds: ['clip-1', 'clip-2'],
+        mode: 'images',
+      }],
+      {
+        'clip-1': 'V2',
+        'clip-2': 'V2',
+      },
+    )).toEqual([{
+      shotId: 'shot-1',
+      trackId: 'V2',
+      clipIds: ['clip-1', 'clip-2'],
+      mode: 'images',
+    }]);
+  });
+
+  it('keeps the existing track when a group would span multiple tracks', () => {
+    const pinnedShotGroups = [{
+      shotId: 'shot-1',
+      trackId: 'V1',
+      clipIds: ['clip-1', 'clip-2'],
+      mode: 'images' as const,
+    }];
+
+    expect(updatePinnedShotGroupTrackIdsFromClipTrackMap(
+      pinnedShotGroups,
+      {
+        'clip-1': 'V2',
+        'clip-2': 'V1',
+      },
+    )).toBe(pinnedShotGroups);
+  });
+});
+
+describe('updatePinnedShotGroupTrackIds', () => {
+  it('updates a pinned group when every clip in the group moves together', () => {
+    expect(updatePinnedShotGroupTrackIds(
+      [{
+        shotId: 'shot-1',
+        trackId: 'V1',
+        clipIds: ['clip-1', 'clip-2'],
+        mode: 'images',
+      }],
+      [
+        { clipId: 'clip-1', targetRowId: 'V2' },
+        { clipId: 'clip-2', targetRowId: 'V2' },
+      ],
+    )).toEqual([{
+      shotId: 'shot-1',
+      trackId: 'V2',
+      clipIds: ['clip-1', 'clip-2'],
+      mode: 'images',
+    }]);
   });
 });

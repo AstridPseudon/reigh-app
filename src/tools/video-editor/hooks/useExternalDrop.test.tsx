@@ -4,9 +4,22 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   GENERATION_MULTI_DRAG_TYPE,
   setMultiGenerationDragData,
+  setShotDragData,
   type GenerationDropData,
+  type ShotDropData,
 } from '@/shared/lib/dnd/dragDrop';
 import { useExternalDrop } from './useExternalDrop';
+
+const mockUseShots = vi.fn(() => ({
+  shots: undefined,
+  isLoading: false,
+  error: null,
+  refetchShots: vi.fn(),
+}));
+
+vi.mock('@/shared/contexts/ShotsContext', () => ({
+  useShots: () => mockUseShots(),
+}));
 
 function createStoredDragPayload(items: GenerationDropData[]) {
   const storedData: Record<string, string> = {};
@@ -20,6 +33,21 @@ function createStoredDragPayload(items: GenerationDropData[]) {
   } as unknown as React.DragEvent;
 
   setMultiGenerationDragData(dragStartEvent, items);
+  return storedData;
+}
+
+function createStoredShotPayload(item: ShotDropData) {
+  const storedData: Record<string, string> = {};
+  const dragStartEvent = {
+    dataTransfer: {
+      effectAllowed: 'none',
+      setData: (type: string, value: string) => {
+        storedData[type] = value;
+      },
+    },
+  } as unknown as React.DragEvent;
+
+  setShotDragData(dragStartEvent, item);
   return storedData;
 }
 
@@ -69,13 +97,42 @@ function deferred<T>() {
 }
 
 type DropTestData = {
+  config: {
+    output: { resolution: string; fps: number; file: string };
+    clips: [];
+    pinnedShotGroups?: Array<{ shotId: string; trackId: string; clipIds: string[]; mode: 'images' | 'video' }>;
+  };
   tracks: Array<{ id: string; kind: 'visual'; label: string }>;
   rows: Array<{ id: string; actions: Array<{ id: string; start: number; end: number; effectId: string }> }>;
+  meta: Record<string, { track: string; asset?: string; clipType?: string; hold?: number }>;
+  clipOrder: Record<string, string[]>;
   registry: { assets: Record<string, { file: string; type?: string; duration?: number }> };
 };
 
+function makeDropTestData(overrides: Partial<DropTestData> = {}): DropTestData {
+  return {
+    config: {
+      output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
+      clips: [],
+      ...overrides.config,
+    },
+    tracks: overrides.tracks ?? [{ id: 'V1', kind: 'visual', label: 'V1' }],
+    rows: overrides.rows ?? [{ id: 'V1', actions: [] }],
+    meta: overrides.meta ?? {},
+    clipOrder: overrides.clipOrder ?? { V1: [] },
+    registry: overrides.registry ?? { assets: {} },
+  };
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
+  mockUseShots.mockReset();
+  mockUseShots.mockReturnValue({
+    shots: undefined,
+    isLoading: false,
+    error: null,
+    refetchShots: vi.fn(),
+  });
 });
 
 describe('useExternalDrop', () => {
@@ -143,11 +200,12 @@ describe('useExternalDrop', () => {
 
   it('drops multi-generation payloads sequentially and checks the multi payload before the single payload', async () => {
     const dataRef = {
-      current: {
+      current: makeDropTestData({
         tracks: [{ id: 'V1', kind: 'visual', label: 'V1' }],
         rows: [],
+        clipOrder: { V1: [] },
         registry: { assets: {} as Record<string, { file: string; type?: string; duration?: number }> },
-      },
+      }),
     } as React.MutableRefObject<DropTestData>;
     const pendingOpsRef = { current: 0 } as React.MutableRefObject<number>;
 
@@ -180,6 +238,13 @@ describe('useExternalDrop', () => {
         tracks: insertAtTop
           ? [newTrack, ...dataRef.current.tracks]
           : [...dataRef.current.tracks, newTrack],
+        rows: insertAtTop
+          ? [{ id: 'V2', actions: [] }, ...dataRef.current.rows]
+          : [...dataRef.current.rows, { id: 'V2', actions: [] }],
+        clipOrder: {
+          ...dataRef.current.clipOrder,
+          V2: [],
+        },
       };
 
       if (trackId) {
@@ -268,11 +333,12 @@ describe('useExternalDrop', () => {
 
   it('tracks pending uploads per file until each async upload settles', async () => {
     const dataRef = {
-      current: {
+      current: makeDropTestData({
         tracks: [{ id: 'V1', kind: 'visual', label: 'V1' }],
         rows: [{ id: 'V1', actions: [] }],
+        clipOrder: { V1: [] },
         registry: { assets: {} as Record<string, { file: string; type?: string; duration?: number }> },
-      },
+      }),
     } as React.MutableRefObject<DropTestData>;
     const pendingOpsRef = { current: 0 } as React.MutableRefObject<number>;
     const firstUpload = deferred<{ assetId: string; entry: { file: string; type: string } }>();
@@ -364,5 +430,116 @@ describe('useExternalDrop', () => {
 
     expect(consoleError).toHaveBeenCalledWith('[drop] Upload failed:', expect.any(Error));
     expect(applyEdit).toHaveBeenCalled();
+  });
+
+  it('drops a shot as one rows edit with pinnedShotGroupsOverride and never calls handleAssetDrop', async () => {
+    mockUseShots.mockReturnValue({
+      shots: [{
+        id: 'shot-1',
+        name: 'Shot 1',
+        images: [
+          { generation_id: 'gen-1', imageUrl: 'https://example.com/1.png', thumbUrl: 'https://example.com/1-thumb.png', contentType: 'image/png', type: 'image' },
+          { generation_id: 'gen-2', imageUrl: 'https://example.com/2.png', thumbUrl: 'https://example.com/2-thumb.png', contentType: 'image/png', type: 'image' },
+        ],
+      }],
+      isLoading: false,
+      error: null,
+      refetchShots: vi.fn(),
+    });
+
+    const dataRef = {
+      current: makeDropTestData(),
+    } as React.MutableRefObject<DropTestData>;
+    const pendingOpsRef = { current: 0 } as React.MutableRefObject<number>;
+    const applyEdit = vi.fn();
+    const handleAssetDrop = vi.fn();
+    const registerGenerationAsset = vi.fn((generation: GenerationDropData) => {
+      const assetId = `asset-${generation.generationId}`;
+      dataRef.current.registry.assets[assetId] = {
+        file: generation.imageUrl,
+        type: 'image/png',
+      };
+      return assetId;
+    });
+
+    const coordinator = {
+      update: vi.fn(),
+      showSecondaryGhosts: vi.fn(),
+      end: vi.fn(),
+      lastPosition: {
+        time: 12,
+        rowIndex: 0,
+        trackId: 'V1',
+        trackKind: 'visual',
+        trackName: 'V1',
+        isNewTrack: false,
+        isNewTrackTop: false,
+        isReject: false,
+        newTrackKind: null,
+        screenCoords: {
+          rowTop: 0,
+          rowLeft: 0,
+          rowWidth: 0,
+          rowHeight: 0,
+          clipLeft: 0,
+          clipWidth: 0,
+          ghostCenter: 0,
+        },
+      },
+      editAreaRef: { current: null },
+    };
+
+    const { result } = renderHook(() => useExternalDrop({
+      dataRef,
+      pendingOpsRef,
+      scale: 1,
+      scaleWidth: 1,
+      selectedTrackId: null,
+      applyEdit,
+      patchRegistry: vi.fn(),
+      registerAsset: vi.fn(),
+      uploadAsset: vi.fn(),
+      invalidateAssetRegistry: vi.fn(),
+      resolveAssetUrl: vi.fn(),
+      coordinator,
+      registerGenerationAsset,
+      uploadImageGeneration: vi.fn(),
+      handleAssetDrop,
+    }));
+
+    const event = createDropEvent(
+      createStoredShotPayload({
+        shotId: 'shot-1',
+        shotName: 'Shot 1',
+        imageGenerationIds: ['gen-1', 'gen-2'],
+      }),
+      ['application/x-shot', 'text/plain'],
+    );
+
+    await result.current.onTimelineDrop(event);
+
+    expect(registerGenerationAsset).toHaveBeenCalledTimes(2);
+    expect(handleAssetDrop).not.toHaveBeenCalled();
+    expect(applyEdit).toHaveBeenCalledTimes(1);
+
+    const [mutation, options] = applyEdit.mock.calls[0];
+    const createdClipIds = mutation.rows[0].actions.map((action: { id: string }) => action.id);
+    expect(mutation.type).toBe('rows');
+    expect(mutation.pinnedShotGroupsOverride).toEqual([{
+      shotId: 'shot-1',
+      trackId: 'V1',
+      clipIds: createdClipIds,
+      mode: 'images',
+    }]);
+    expect(mutation.rows).toEqual([{
+      id: 'V1',
+      actions: [
+        { id: createdClipIds[0], start: 12, end: 17, effectId: `effect-${createdClipIds[0]}` },
+        { id: createdClipIds[1], start: 17, end: 22, effectId: `effect-${createdClipIds[1]}` },
+      ],
+    }]);
+    expect(mutation.clipOrderOverride).toEqual({ V1: createdClipIds });
+    expect(Object.keys(mutation.metaUpdates)).toEqual(createdClipIds);
+    expect(options).toEqual({ selectedClipId: createdClipIds[0], selectedTrackId: 'V1' });
   });
 });

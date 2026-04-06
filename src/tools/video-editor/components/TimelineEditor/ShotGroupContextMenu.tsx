@@ -8,7 +8,10 @@ export type ShotGroupMenuState = {
   shotName: string;
   clipIds: string[];
   rowId: string;
+  trackId: string;
   hasFinalVideo: boolean;
+  isPinned: boolean;
+  mode?: 'images' | 'video';
 } | null;
 
 interface ShotGroupContextMenuProps {
@@ -18,6 +21,9 @@ interface ShotGroupContextMenuProps {
   onNavigate?: (shotId: string) => void;
   onGenerateVideo?: (shotId: string) => void;
   onSwitchToFinalVideo?: (group: { shotId: string; clipIds: string[]; rowId: string }) => void;
+  onSwitchToImages?: (group: { shotId: string; rowId: string }) => void;
+  onPinGroup?: (group: { shotId: string; trackId: string; clipIds: string[] }) => void;
+  onUnpinGroup?: (group: { shotId: string; trackId: string }) => void;
   onDismissFinalVideo?: (shotId: string) => void;
 }
 
@@ -28,13 +34,34 @@ export function ShotGroupContextMenu({
   onNavigate,
   onGenerateVideo,
   onSwitchToFinalVideo,
+  onSwitchToImages,
+  onPinGroup,
+  onUnpinGroup,
   onDismissFinalVideo,
 }: ShotGroupContextMenuProps) {
   if (!menu) {
     return null;
   }
 
-  const finalVideoActions = menu.hasFinalVideo
+  const pinActions = [
+    !menu.isPinned && onPinGroup
+      ? {
+          key: 'pin-shot-group',
+          label: 'Pin as Shot Group',
+          icon: Video,
+          onClick: () => onPinGroup({ shotId: menu.shotId, trackId: menu.trackId, clipIds: menu.clipIds }),
+        }
+      : null,
+    menu.isPinned && onUnpinGroup
+      ? {
+          key: 'unpin-shot-group',
+          label: 'Unpin',
+          icon: X,
+          onClick: () => onUnpinGroup({ shotId: menu.shotId, trackId: menu.trackId }),
+        }
+      : null,
+  ].filter((action): action is { key: string; label: string; icon: typeof Video; onClick: () => void } => Boolean(action));
+  const finalVideoActions = menu.hasFinalVideo && (!menu.isPinned || menu.mode === 'images')
     ? [
       onSwitchToFinalVideo
         ? {
@@ -46,6 +73,18 @@ export function ShotGroupContextMenu({
         : null,
       onDismissFinalVideo
         ? { key: 'dismiss-final-video', label: 'Dismiss reminder', icon: X, onClick: () => onDismissFinalVideo(menu.shotId) }
+        : null,
+    ].filter((action): action is { key: string; label: string; icon: typeof Video; onClick: () => void } => Boolean(action))
+    : [];
+  const imageActions = menu.isPinned && menu.mode === 'video'
+    ? [
+      onSwitchToImages
+        ? {
+            key: 'switch-images',
+            label: 'Switch to Images',
+            icon: Video,
+            onClick: () => onSwitchToImages({ shotId: menu.shotId, rowId: menu.rowId }),
+          }
         : null,
     ].filter((action): action is { key: string; label: string; icon: typeof Video; onClick: () => void } => Boolean(action))
     : [];
@@ -65,6 +104,21 @@ export function ShotGroupContextMenu({
       style={{ left: menu.x, top: menu.y }}
     >
       <div className="px-2 py-1 text-xs font-medium text-muted-foreground">{menu.shotName}</div>
+      {pinActions.map((action) => {
+        const Icon = action.icon;
+        return (
+          <button
+            key={action.key}
+            type="button"
+            className="relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+            onClick={() => { action.onClick(); closeMenu(); }}
+          >
+            <Icon className="h-4 w-4" />
+            {action.label}
+          </button>
+        );
+      })}
+      {pinActions.length > 0 && (finalVideoActions.length > 0 || imageActions.length > 0 || defaultActions.length > 0) && <div className="my-1 h-px bg-border" />}
       {finalVideoActions.map((action) => {
         const Icon = action.icon;
         return (
@@ -79,7 +133,21 @@ export function ShotGroupContextMenu({
           </button>
         );
       })}
-      {finalVideoActions.length > 0 && defaultActions.length > 0 && <div className="my-1 h-px bg-border" />}
+      {imageActions.map((action) => {
+        const Icon = action.icon;
+        return (
+          <button
+            key={action.key}
+            type="button"
+            className="relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+            onClick={() => { action.onClick(); closeMenu(); }}
+          >
+            <Icon className="h-4 w-4" />
+            {action.label}
+          </button>
+        );
+      })}
+      {(finalVideoActions.length > 0 || imageActions.length > 0) && defaultActions.length > 0 && <div className="my-1 h-px bg-border" />}
       {defaultActions.map((action) => {
         const Icon = action.icon;
         return (

@@ -280,6 +280,14 @@ export function useSendMessage(sessionId: string | null | undefined, timelineId?
         });
 
         if (error) {
+          // Supabase functions.invoke returns a generic "Edge Function returned a non-2xx status code"
+          // message in `error`, but the actual error details are in `data`.
+          const detail = typeof data === 'object' && data !== null
+            ? (data as Record<string, unknown>).error ?? (data as Record<string, unknown>).details ?? (data as Record<string, unknown>).message
+            : undefined;
+          if (detail && typeof detail === 'string') {
+            throw new Error(detail);
+          }
           throw error;
         }
 

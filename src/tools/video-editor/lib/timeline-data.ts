@@ -88,7 +88,16 @@ const ASSET_COLORS: Record<string, string> = {
 const round = (value: number): number => Math.round(value * 100) / 100;
 
 const effectIdForClip = (clipId: string): string => `effect-${clipId}`;
-
+const clonePinnedShotGroups = (
+  pinnedShotGroups: TimelineConfig['pinnedShotGroups'],
+): TimelineConfig['pinnedShotGroups'] => pinnedShotGroups?.map((group) => ({
+  ...group,
+  clipIds: [...group.clipIds],
+  imageClipSnapshot: group.imageClipSnapshot?.map((snapshot) => ({
+    ...snapshot,
+    meta: { ...snapshot.meta },
+  })),
+}));
 
 const getClipDurationSeconds = (clip: TimelineClip): number => {
   return getClipSourceDuration(clip) / (clip.speed ?? 1);
@@ -196,6 +205,7 @@ export const rowsToConfig = (
   clipOrder: ClipOrderMap,
   tracks: TrackDefinition[],
   customEffects?: TimelineConfig['customEffects'],
+  pinnedShotGroups?: TimelineConfig['pinnedShotGroups'],
 ): TimelineConfig => {
   const actionMap = new Map<string, TimelineAction>();
   const trackActionIds: Record<string, string[]> = Object.fromEntries(tracks.map((track) => [track.id, []]));
@@ -298,6 +308,9 @@ export const rowsToConfig = (
   };
   if (customEffects && Object.keys(customEffects).length > 0) {
     config.customEffects = customEffects;
+  }
+  if (pinnedShotGroups && pinnedShotGroups.length > 0) {
+    config.pinnedShotGroups = clonePinnedShotGroups(pinnedShotGroups);
   }
   validateSerializedConfig(config);
   return config;

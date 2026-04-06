@@ -28,6 +28,7 @@ import { useClipDrag } from '@/tools/video-editor/hooks/useClipDrag';
 import { useActiveTaskClips } from '@/tools/video-editor/hooks/useActiveTaskClips';
 import { useFinalVideoAvailable } from '@/tools/video-editor/hooks/useFinalVideoAvailable';
 import { useMarqueeSelect } from '@/tools/video-editor/hooks/useMarqueeSelect';
+import { usePinnedGroupSync, usePinnedShotGroups } from '@/tools/video-editor/hooks/usePinnedShotGroups';
 import { useShotGroups } from '@/tools/video-editor/hooks/useShotGroups';
 import { useStaleVariants } from '@/tools/video-editor/hooks/useStaleVariants';
 import { useSwitchToFinalVideo } from '@/tools/video-editor/hooks/useSwitchToFinalVideo';
@@ -210,6 +211,7 @@ function TimelineEditorComponent() {
     onDoubleClickAsset,
     patchRegistry,
     registerAsset,
+    registerGenerationAsset,
   } = useTimelineEditorOps();
   const trackSensors = useSensors(
     useSensor(PointerSensor, {
@@ -332,6 +334,7 @@ function TimelineEditorComponent() {
     data?.registry ?? EMPTY_ASSET_REGISTRY,
     shots,
     finalVideoShotIds,
+    data?.config.pinnedShotGroups,
   );
   const shotGroupClipIds = useMemo(() => {
     const ids = new Set<string>();
@@ -451,12 +454,29 @@ function TimelineEditorComponent() {
     const shot = shots?.find((s) => s.id === shotId);
     if (shot) setVideoModalShot(shot);
   }, [shots]);
-  const handleSwitchToFinalVideo = useSwitchToFinalVideo({
+  const {
+    pinGroup,
+    unpinGroup,
+  } = usePinnedShotGroups({
+    dataRef,
+    applyEdit,
+  });
+  const {
+    switchToFinalVideo: handleSwitchToFinalVideo,
+    switchToImages: handleSwitchToImages,
+  } = useSwitchToFinalVideo({
     applyEdit,
     dataRef,
     finalVideoMap,
     patchRegistry,
     registerAsset,
+  });
+  usePinnedGroupSync({
+    data,
+    dataRef,
+    applyEdit,
+    shots,
+    registerGenerationAsset,
   });
 
   const clientXToTime = useCallback((clientX: number): number => {
@@ -613,12 +633,21 @@ function TimelineEditorComponent() {
           activeTaskClipIds={activeTaskClipIds}
           onShotGroupNavigate={handleShotGroupNavigate}
           onShotGroupGenerateVideo={handleShotGroupGenerateVideo}
+          onShotGroupPin={(group) => {
+            pinGroup(group.shotId, group.trackId, group.clipIds);
+          }}
+          onShotGroupUnpin={(group) => {
+            unpinGroup(group.shotId, group.trackId);
+          }}
           onShotGroupSwitchToFinalVideo={(group) => {
             const finalVideo = finalVideoMap.get(group.shotId);
             if (finalVideo) {
               dismissFinalVideo(finalVideo.id);
             }
             handleSwitchToFinalVideo(group);
+          }}
+          onShotGroupSwitchToImages={(group) => {
+            handleSwitchToImages(group);
           }}
           onShotGroupDismissFinalVideo={(shotId) => {
             const finalVideo = finalVideoMap.get(shotId);
