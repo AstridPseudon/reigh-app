@@ -125,6 +125,7 @@ function TimelineEditorComponent() {
   const chrome = useTimelineChromeContext();
   const [newTrackDropLabel, setNewTrackDropLabel] = useState<string | null>(null);
   const [videoModalShot, setVideoModalShot] = useState<Shot | null>(null);
+  const [videoModalShowImages, setVideoModalShowImages] = useState(false);
   const { createShot, isCreating } = useShotCreation();
   const { navigateToShot } = useShotNavigation();
   const { shots } = useShots();
@@ -292,11 +293,16 @@ function TimelineEditorComponent() {
     }
 
     return resolvedConfig.clips.reduce<Record<string, string>>((acc, clip) => {
-      if (clip.clipType === 'text' || !clip.assetEntry?.type?.startsWith('image')) {
+      if (clip.clipType === 'text' || !clip.assetEntry) {
         return acc;
       }
 
-      acc[clip.id] = clip.assetEntry.src;
+      if (clip.assetEntry.type?.startsWith('image')) {
+        acc[clip.id] = clip.assetEntry.src;
+      } else if (clip.assetEntry.type?.startsWith('video') && clip.assetEntry.thumbnailUrl) {
+        acc[clip.id] = clip.assetEntry.thumbnailUrl;
+      }
+
       return acc;
     }, {});
   }, [resolvedConfig]);
@@ -446,8 +452,11 @@ function TimelineEditorComponent() {
 
   const handleShotGroupNavigate = useCallback((shotId: string) => {
     const shot = shots?.find((s) => s.id === shotId);
-    if (shot) navigateToShot(shot, { isNewlyCreated: false });
-  }, [navigateToShot, shots]);
+    if (shot) {
+      setVideoModalShowImages(true);
+      setVideoModalShot(shot);
+    }
+  }, [shots]);
 
   const handleShotGroupGenerateVideo = useCallback((shotId: string) => {
     const shot = shots?.find((s) => s.id === shotId);
@@ -707,8 +716,9 @@ function TimelineEditorComponent() {
           {/* VideoGenerationModal only uses app-wide providers, so it can open from timeline selection flow. */}
           <VideoGenerationModal
             isOpen={true}
-            onClose={() => setVideoModalShot(null)}
+            onClose={() => { setVideoModalShot(null); setVideoModalShowImages(false); }}
             shot={videoModalShot}
+            defaultTopOpen={videoModalShowImages}
           />
         </>
       )}

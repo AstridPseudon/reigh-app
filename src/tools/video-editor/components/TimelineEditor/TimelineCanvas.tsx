@@ -783,8 +783,13 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
                 }}
               />
               <div
-                className="absolute rounded-t-sm opacity-0 transition-opacity hover:opacity-100"
+                className="absolute rounded-t-sm opacity-0 transition-opacity hover:opacity-100 cursor-pointer"
                 title={group.shotName}
+                onPointerDown={(e) => e.stopPropagation()}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openShotGroupMenu(e.clientX, e.clientY, group);
+                }}
                 onDoubleClick={(e) => {
                   e.stopPropagation();
                   onSelectClips?.(group.clipIds);

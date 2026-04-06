@@ -272,6 +272,9 @@ export function useAssetManagement({
         : {}),
       generationId: generationData.generationId,
       variantId: generationData.variantId,
+      ...(generationData.thumbUrl && generationData.thumbUrl !== generationData.imageUrl
+        ? { thumbnailUrl: generationData.thumbUrl }
+        : {}),
     };
 
     patchRegistry(assetId, entry, generationData.imageUrl);

@@ -191,6 +191,7 @@ export type AssetRegistryEntry = {
   fps?: number;
   generationId?: string;
   variantId?: string;
+  thumbnailUrl?: string;
 };
 
 export type AssetRegistry = {
