@@ -63,7 +63,7 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
   const editorOps = useTimelineEditorOps();
   const chrome = useTimelineChromeContext();
   const playback = useTimelinePlaybackContext();
-  const { isGenerationsPaneLocked, setIsGenerationsPaneLocked } = usePanes();
+  const { isEditorPaneLocked, isGenerationsPaneLocked, setIsGenerationsPaneLocked } = usePanes();
   const location = useLocation();
   const navigate = useNavigate();
   const isOnEditorPage = location.pathname.startsWith('/tools/video-editor');
@@ -182,7 +182,7 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
     return () => observer.disconnect();
   }, [forceCondensed, aspectRatio, isTimelineMaximized]);
 
-  const condensed = forceCondensed || tooSmall;
+  const condensed = forceCondensed || tooSmall || (isOnEditorPage && isEditorPaneLocked);
   const hasConfig = Boolean(editorData.resolvedConfig);
 
   useLayoutEffect(() => {

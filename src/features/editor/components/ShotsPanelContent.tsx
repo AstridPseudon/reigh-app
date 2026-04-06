@@ -120,12 +120,11 @@ export function ShotsPanelContent({ projectId }: ShotsPanelContentProps) {
 
       {/* Shot grid — horizontal scroll, 2 rows packed tight */}
       <div className="min-h-0 flex-1 overflow-x-auto overflow-y-hidden px-2 py-2">
-        <div
-          className="grid h-full auto-cols-[100px] grid-flow-col gap-1.5"
-          style={{ gridTemplateRows: 'repeat(auto-fill, minmax(0, 1fr))' }}
-        >
+        <div className="flex h-full flex-wrap content-start gap-1.5" style={{ flexDirection: 'column' }}>
           {filteredShots.map((shot) => (
-            <ShotCard key={shot.id} shot={shot} finalVideo={finalVideoMap.get(shot.id)} />
+            <div key={shot.id} className="w-[110px] shrink-0">
+              <ShotCard shot={shot} finalVideo={finalVideoMap.get(shot.id)} />
+            </div>
           ))}
         </div>
       </div>
