@@ -10,6 +10,44 @@ export function bootDiagnostics() {
   if (_booted) return;
   _booted = true;
   console.error('[PERF] diagnostics active');
+
+  // Report long tasks via PerformanceObserver (catches any JS blocking >50ms)
+  if (typeof PerformanceObserver !== 'undefined') {
+    try {
+      const observer = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          if (entry.duration > 50) {
+            console.error(`[PERF] long-task: ${Math.round(entry.duration)}ms`, entry.toJSON());
+          }
+        }
+      });
+      observer.observe({ type: 'longtask', buffered: false });
+    } catch {
+      // longtask not supported in this browser
+    }
+  }
+
+  // Monitor frame rate — report when fps drops below 30
+  let lastFrameTime = now();
+  let slowFrameCount = 0;
+  let lastSlowReport = 0;
+  const checkFrame = () => {
+    const current = now();
+    const delta = current - lastFrameTime;
+    lastFrameTime = current;
+    if (delta > 33) { // <30fps
+      slowFrameCount++;
+      if (slowFrameCount >= 10 && current - lastSlowReport > 5000) {
+        console.error(`[PERF] low-fps: ${slowFrameCount} slow frames (>${Math.round(delta)}ms/frame)`);
+        slowFrameCount = 0;
+        lastSlowReport = current;
+      }
+    } else {
+      slowFrameCount = 0;
+    }
+    requestAnimationFrame(checkFrame);
+  };
+  requestAnimationFrame(checkFrame);
 }
 
 const createWindowDetector = (
