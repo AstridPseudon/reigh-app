@@ -8,7 +8,13 @@ import {
 import { inferDragKind } from '@/tools/video-editor/lib/drop-position';
 import type { DragCoordinator } from '@/tools/video-editor/hooks/useDragCoordinator';
 import type { UseAssetManagementResult } from '@/tools/video-editor/hooks/useAssetManagement';
-import type { UseTimelineDataResult } from '@/tools/video-editor/hooks/useTimelineData';
+import type {
+  TimelineApplyEdit,
+  TimelineInvalidateAssetRegistry,
+  TimelinePatchRegistry,
+  TimelineRegisterAsset,
+  TimelineUploadAsset,
+} from '@/tools/video-editor/hooks/useTimelineData.types';
 import {
   createEffectLayerClipMeta,
   getNextClipId,
@@ -150,13 +156,13 @@ function handleEffectLayerDrop({
   dropPosition,
   insertAtTop,
   selectedTrackId,
-  applyTimelineEdit,
+  applyEdit,
 }: {
   dataRef: React.MutableRefObject<TimelineData | null>;
   dropPosition: TimelineDropPosition;
   insertAtTop: boolean;
   selectedTrackId: string | null;
-  applyTimelineEdit: UseTimelineDataResult['applyTimelineEdit'];
+  applyEdit: TimelineApplyEdit;
 }): boolean {
   let current = dataRef.current;
   if (!current) {
@@ -190,7 +196,7 @@ function handleEffectLayerDrop({
       ? { ...row, actions: [...row.actions, action] }
       : row
   ));
-  const { rows: nextRows, metaPatches } = resolveOverlaps(
+  const { rows: nextRows, metaPatches, adjustments: _adjustments } = resolveOverlaps(
     rowsWithClip,
     targetTrackId,
     clipId,
@@ -201,23 +207,29 @@ function handleEffectLayerDrop({
     ?.actions.find((candidate) => candidate.id === clipId);
   const nextClipOrder = updateClipOrder(current.clipOrder, targetTrackId, (ids) => [...ids, clipId]);
 
-  applyTimelineEdit(nextRows, {
-    ...metaPatches,
-    [clipId]: {
-      ...clipMeta,
-      hold: resolvedAction ? Math.max(0.05, resolvedAction.end - resolvedAction.start) : clipMeta.hold,
+  applyEdit({
+    type: 'rows',
+    rows: nextRows,
+    metaUpdates: {
+      ...metaPatches,
+      [clipId]: {
+        ...clipMeta,
+        hold: resolvedAction ? Math.max(0.05, resolvedAction.end - resolvedAction.start) : clipMeta.hold,
+      },
     },
-  }, undefined, nextClipOrder);
+    clipOrderOverride: nextClipOrder,
+  });
   return true;
 }
 
 async function handleFileDrop({
   files,
   dataRef,
+  pendingOpsRef,
   dropPosition,
   insertAtTop,
   selectedTrackId,
-  applyTimelineEdit,
+  applyEdit,
   patchRegistry,
   uploadAsset,
   invalidateAssetRegistry,
@@ -228,13 +240,14 @@ async function handleFileDrop({
 }: {
   files: File[];
   dataRef: React.MutableRefObject<TimelineData | null>;
+  pendingOpsRef: React.MutableRefObject<number>;
   dropPosition: TimelineDropPosition;
   insertAtTop: boolean;
   selectedTrackId: string | null;
-  applyTimelineEdit: UseTimelineDataResult['applyTimelineEdit'];
-  patchRegistry: UseTimelineDataResult['patchRegistry'];
-  uploadAsset: UseTimelineDataResult['uploadAsset'];
-  invalidateAssetRegistry: UseTimelineDataResult['invalidateAssetRegistry'];
+  applyEdit: TimelineApplyEdit;
+  patchRegistry: TimelinePatchRegistry;
+  uploadAsset: TimelineUploadAsset;
+  invalidateAssetRegistry: TimelineInvalidateAssetRegistry;
   resolveAssetUrl: (file: string) => Promise<string>;
   registerGenerationAsset: UseAssetManagementResult['registerGenerationAsset'];
   uploadImageGeneration: UseAssetManagementResult['uploadImageGeneration'];
@@ -285,8 +298,13 @@ async function handleFileDrop({
         ? { ...row, actions: [...row.actions, skeletonAction] }
         : row,
     );
-    applyTimelineEdit(nextRows, { [skeletonId]: skeletonMeta }, undefined, undefined, { save: false });
+    applyEdit({
+      type: 'rows',
+      rows: nextRows,
+      metaUpdates: { [skeletonId]: skeletonMeta },
+    }, { save: false });
 
+    pendingOpsRef.current += 1;
     void (async () => {
       try {
         if (isImageFile(file)) {
@@ -296,7 +314,11 @@ async function handleFileDrop({
             return;
           }
 
-          applyTimelineEdit(removeAction(current.rows, skeletonId), undefined, [skeletonId]);
+          applyEdit({
+            type: 'rows',
+            rows: removeAction(current.rows, skeletonId),
+            metaDeletes: [skeletonId],
+          });
           const assetId = registerGenerationAsset(generationData);
           if (assetId) {
             dropAsset(assetId, compatibleTrackId ?? undefined, clipTime);
@@ -313,7 +335,11 @@ async function handleFileDrop({
           return;
         }
 
-        applyTimelineEdit(removeAction(current.rows, skeletonId), undefined, [skeletonId]);
+        applyEdit({
+          type: 'rows',
+          rows: removeAction(current.rows, skeletonId),
+          metaDeletes: [skeletonId],
+        });
         dropAsset(result.assetId, compatibleTrackId ?? undefined, clipTime);
         void invalidateAssetRegistry();
       } catch (error) {
@@ -323,7 +349,13 @@ async function handleFileDrop({
           return;
         }
 
-        applyTimelineEdit(removeAction(current.rows, skeletonId), undefined, [skeletonId], undefined, { save: false });
+        applyEdit({
+          type: 'rows',
+          rows: removeAction(current.rows, skeletonId),
+          metaDeletes: [skeletonId],
+        }, { save: false });
+      } finally {
+        pendingOpsRef.current -= 1;
       }
     })();
   }
@@ -345,7 +377,7 @@ function handleMultiGenerationDrop({
   dropPosition: TimelineDropPosition;
   insertAtTop: boolean;
   registerGenerationAsset: UseAssetManagementResult['registerGenerationAsset'];
-  patchRegistry: UseTimelineDataResult['patchRegistry'];
+  patchRegistry: TimelinePatchRegistry;
   dropAsset: UseAssetManagementResult['handleAssetDrop'];
 }): boolean {
   if (!generationItems.length || !dataRef.current) {
@@ -526,9 +558,10 @@ function finalizeExternalDrop({
 async function dispatchTimelineDrop({
   event,
   dataRef,
+  pendingOpsRef,
   dropPosition,
   selectedTrackId,
-  applyTimelineEdit,
+  applyEdit,
   patchRegistry,
   uploadAsset,
   invalidateAssetRegistry,
@@ -540,12 +573,13 @@ async function dispatchTimelineDrop({
 }: {
   event: React.DragEvent<HTMLDivElement>;
   dataRef: React.MutableRefObject<TimelineData | null>;
+  pendingOpsRef: React.MutableRefObject<number>;
   dropPosition: TimelineDropPosition;
   selectedTrackId: string | null;
-  applyTimelineEdit: UseTimelineDataResult['applyTimelineEdit'];
-  patchRegistry: UseTimelineDataResult['patchRegistry'];
-  uploadAsset: UseTimelineDataResult['uploadAsset'];
-  invalidateAssetRegistry: UseTimelineDataResult['invalidateAssetRegistry'];
+  applyEdit: TimelineApplyEdit;
+  patchRegistry: TimelinePatchRegistry;
+  uploadAsset: TimelineUploadAsset;
+  invalidateAssetRegistry: TimelineInvalidateAssetRegistry;
   resolveAssetUrl: (file: string) => Promise<string>;
   registerGenerationAsset: UseAssetManagementResult['registerGenerationAsset'];
   uploadImageGeneration: UseAssetManagementResult['uploadImageGeneration'];
@@ -560,17 +594,18 @@ async function dispatchTimelineDrop({
   }
 
   if (event.dataTransfer.types.includes('effect-layer')) {
-    handleEffectLayerDrop({ dataRef, dropPosition, insertAtTop, selectedTrackId, applyTimelineEdit });
+    handleEffectLayerDrop({ dataRef, dropPosition, insertAtTop, selectedTrackId, applyEdit });
     return;
   }
 
   if (await handleFileDrop({
     files: Array.from(event.dataTransfer.files),
     dataRef,
+    pendingOpsRef,
     dropPosition,
     insertAtTop,
     selectedTrackId,
-    applyTimelineEdit,
+    applyEdit,
     patchRegistry,
     uploadAsset,
     invalidateAssetRegistry,
@@ -622,14 +657,15 @@ async function dispatchTimelineDrop({
 
 export interface UseExternalDropArgs {
   dataRef: React.MutableRefObject<TimelineData | null>;
+  pendingOpsRef: React.MutableRefObject<number>;
   scale: number;
   scaleWidth: number;
   selectedTrackId: string | null;
-  applyTimelineEdit: UseTimelineDataResult['applyTimelineEdit'];
-  patchRegistry: UseTimelineDataResult['patchRegistry'];
-  registerAsset: UseTimelineDataResult['registerAsset'];
-  uploadAsset: UseTimelineDataResult['uploadAsset'];
-  invalidateAssetRegistry: UseTimelineDataResult['invalidateAssetRegistry'];
+  applyEdit: TimelineApplyEdit;
+  patchRegistry: TimelinePatchRegistry;
+  registerAsset: TimelineRegisterAsset;
+  uploadAsset: TimelineUploadAsset;
+  invalidateAssetRegistry: TimelineInvalidateAssetRegistry;
   resolveAssetUrl: (file: string) => Promise<string>;
   coordinator: DragCoordinator;
   registerGenerationAsset: UseAssetManagementResult['registerGenerationAsset'];
@@ -646,8 +682,9 @@ export interface UseExternalDropResult {
 
 export function useExternalDrop({
   dataRef,
+  pendingOpsRef,
   selectedTrackId,
-  applyTimelineEdit,
+  applyEdit,
   patchRegistry,
   uploadAsset,
   invalidateAssetRegistry,
@@ -755,9 +792,10 @@ export function useExternalDrop({
     await dispatchTimelineDrop({
       event,
       dataRef,
+      pendingOpsRef,
       dropPosition,
       selectedTrackId,
-      applyTimelineEdit,
+      applyEdit,
       patchRegistry,
       uploadAsset,
       invalidateAssetRegistry,
@@ -768,11 +806,12 @@ export function useExternalDrop({
       handleAddTextAt,
     });
   }, [
-    applyTimelineEdit,
+    applyEdit,
     coordinator,
     dataRef,
     dropAsset,
     invalidateAssetRegistry,
+    pendingOpsRef,
     patchRegistry,
     registerGenerationAsset,
     resolveAssetUrl,

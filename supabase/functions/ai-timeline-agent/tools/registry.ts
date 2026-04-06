@@ -1,5 +1,6 @@
 import { parseCommand, validateCommand, type ParsedCommand } from "../command-parser.ts";
 import { loadTimelineState, saveTimelineConfigVersioned } from "../db.ts";
+import type { AssetRegistryEntry } from "../../../../src/tools/video-editor/types/index.ts";
 import type {
   SupabaseAdmin,
   TimelineState,
@@ -18,6 +19,7 @@ const COMMAND_TO_TOOL: Record<string, string> = {
   set: "set_clip_property",
   "set-text": "set_text_content",
   duplicate: "duplicate_clip",
+  "add-media": "add_media_clip",
   "add-text": "add_text_clip",
   "find-issues": "find_issues",
   // "repeat" is handled specially in executeCommand, not mapped to a tool
@@ -33,6 +35,7 @@ function commandToToolArgs(parsed: ParsedCommand): Record<string, unknown> {
     case "duplicate": return { clipId: parsed.clipId, count: parsed.count };
     case "set": return { clipId: parsed.clipId, property: parsed.property, value: parsed.value };
     case "add-text": return { track: parsed.track, at: parsed.at, duration: parsed.duration, text: parsed.text };
+    case "add-media": return { track: parsed.track, at: parsed.at, mediaType: parsed.mediaType };
     case "find-issues": return {};
     case "generate": return { prompt: parsed.prompt, count: parsed.count };
     default: return {};
@@ -96,6 +99,13 @@ export async function executeCommand(
         continue;
       }
 
+      if (subParsed.type === "add-media") {
+        errorMessages.push(`${i + 1}. add-media is not supported inside repeat.`);
+        errors++;
+        if (errors >= 3) { errorMessages.push("Stopped after 3 errors."); break; }
+        continue;
+      }
+
       const toolName = COMMAND_TO_TOOL[subParsed.type];
       const handler = toolName ? timelineHandlers[toolName] : undefined;
       if (!handler) {
@@ -142,6 +152,39 @@ export async function executeCommand(
     });
   }
 
+  let handlerArgs: Record<string, unknown> | null = null;
+  if (parsed.type === "add-media") {
+    const assetKey = `asset-${crypto.randomUUID().slice(0, 6)}`;
+    const assetEntry: AssetRegistryEntry = {
+      file: parsed.url,
+      type: parsed.mediaType === "video" ? "video/mp4" : "image/png",
+      generationId: parsed.generationId,
+    };
+
+    const { error } = await supabaseAdmin.rpc("upsert_asset_registry_entry", {
+      p_timeline_id: timelineId,
+      p_asset_id: assetKey,
+      p_entry: assetEntry,
+    }).maybeSingle();
+    if (error) {
+      return { result: `Failed to register asset ${assetKey}: ${error.message}` };
+    }
+
+    state.registry = {
+      ...state.registry,
+      assets: {
+        ...state.registry.assets,
+        [assetKey]: assetEntry,
+      },
+    };
+    handlerArgs = {
+      track: parsed.track,
+      at: parsed.at,
+      assetKey,
+      mediaType: parsed.mediaType,
+    };
+  }
+
   // Route to timeline tool
   const toolName = COMMAND_TO_TOOL[parsed.type];
   const handler = toolName ? timelineHandlers[toolName] : undefined;
@@ -149,7 +192,7 @@ export async function executeCommand(
     return { result: `Internal error: no handler for command type "${parsed.type}".` };
   }
 
-  const args = commandToToolArgs(parsed);
+  const args = handlerArgs ?? commandToToolArgs(parsed);
   const ctx = buildContext(state);
 
   const runTool = () => handler(args, ctx);

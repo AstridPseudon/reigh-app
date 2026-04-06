@@ -1,4 +1,4 @@
-import { useMemo, useRef } from 'react';
+import { useMemo } from 'react';
 import { getTrackById } from '@/tools/video-editor/lib/editor-utils';
 import { getClipDurationInFrames, parseResolution, secondsToFrames } from '@/tools/video-editor/lib/config-utils';
 import type { TimelineData } from '@/tools/video-editor/lib/timeline-data';
@@ -16,23 +16,7 @@ export function useDerivedTimeline(
   selectedClipId: string | null,
   selectedTrackId: string | null,
 ) {
-  const configSignatureRef = useRef<string | null>(null);
-  const stableResolvedConfigRef = useRef<TimelineData['resolvedConfig'] | null>(null);
-
-  const resolvedConfig = useMemo(() => {
-    if (!data) {
-      configSignatureRef.current = null;
-      stableResolvedConfigRef.current = null;
-      return null;
-    }
-
-    if (configSignatureRef.current !== data.signature) {
-      configSignatureRef.current = data.signature;
-      stableResolvedConfigRef.current = data.resolvedConfig;
-    }
-
-    return stableResolvedConfigRef.current;
-  }, [data]);
+  const resolvedConfig = useMemo(() => data?.resolvedConfig ?? null, [data]);
 
   const selectedClip = useMemo(() => {
     if (!resolvedConfig || !selectedClipId) {

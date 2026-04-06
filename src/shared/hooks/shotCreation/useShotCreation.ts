@@ -8,7 +8,7 @@ import { useProject } from '@/shared/contexts/ProjectContext';
 import { useLastAffectedShot } from '@/shared/hooks/shots/useLastAffectedShot';
 import {
   useCreateShot,
-  useCreateShotWithImage,
+  useCreateShotWithGenerations,
   useHandleExternalImageDrop,
 } from '@/shared/hooks/shots';
 import { useShots } from '@/shared/contexts/ShotsContext';
@@ -27,7 +27,7 @@ export function useShotCreation(): UseShotCreationReturn {
   const queryClient = useQueryClient();
 
   const createShotMutation = useCreateShot();
-  const createShotWithImageMutation = useCreateShotWithImage();
+  const createShotWithGenerationsMutation = useCreateShotWithGenerations();
   const handleExternalImageDropMutation = useHandleExternalImageDrop();
 
   const [isCreating, setIsCreating] = useState(false);
@@ -61,7 +61,7 @@ export function useShotCreation(): UseShotCreationReturn {
     generateShotName,
     applyPostCreationEffects,
     createShotMutation: createShotMutation.mutateAsync,
-    createShotWithImageMutation: createShotWithImageMutation.mutateAsync,
+    createShotWithGenerationsMutation: createShotWithGenerationsMutation.mutateAsync,
     handleExternalImageDropMutation: handleExternalImageDropMutation.mutateAsync,
   });
 

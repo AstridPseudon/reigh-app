@@ -6,6 +6,7 @@ import { useShots } from '@/shared/contexts/ShotsContext';
 import { SelectionContextMenu } from '@/shared/components/SelectionContextMenu';
 import { SkeletonGallery } from '@/shared/components/ui/composed/skeleton-gallery';
 import { useShotCreation } from '@/shared/hooks/shotCreation/useShotCreation';
+import { useShotNavigation } from '@/shared/hooks/shots/useShotNavigation';
 import { VideoGenerationModal } from '@/tools/travel-between-images/components/VideoGenerationModal';
 import { useLassoSelection } from '../hooks/useLassoSelection';
 import { useModifierKeys } from '../hooks/useModifierKeys';
@@ -77,6 +78,7 @@ export function GenerationsPaneGallery({
   } = useGallerySelection();
   const { shots } = useShots();
   const { createShot, isCreating } = useShotCreation();
+  const { navigateToShot } = useShotNavigation();
   const modifierKeys = useModifierKeys();
   const { selectionRect, handleMouseDown } = useLassoSelection({
     containerRef: gallerySurfaceRef,
@@ -98,21 +100,37 @@ export function GenerationsPaneGallery({
     Array.from(gallerySelectionMap.values()).map((entry) => entry.generationId)
   ), [gallerySelectionMap]);
 
+  const selectedGenerationIds = React.useMemo(() => resolveSelectedGenerationIds(), [resolveSelectedGenerationIds]);
+
+  const existingShotsForSelection = React.useMemo(() => {
+    if (selectedGenerationIds.length === 0 || !shots?.length) {
+      return [] as Shot[];
+    }
+
+    return shots.filter((shot) => {
+      const shotGenerationIds = new Set(
+        (shot.images ?? [])
+          .map((image) => image.generation_id)
+          .filter((generationId): generationId is string => typeof generationId === 'string' && generationId.length > 0),
+      );
+
+      return selectedGenerationIds.every((generationId) => shotGenerationIds.has(generationId));
+    });
+  }, [selectedGenerationIds, shots]);
+
   const createShotFromSelection = React.useCallback(async (): Promise<Shot | null> => {
-    const generationIds = resolveSelectedGenerationIds();
-    if (generationIds.length === 0) {
+    if (selectedGenerationIds.length === 0) {
       return null;
     }
 
-    const result = await createShot({ generationIds });
-    const createdShot = result?.shot ?? shots?.find((shot) => shot.id === result?.shotId) ?? null;
-    if (!createdShot) {
+    const result = await createShot({ generationIds: selectedGenerationIds });
+    if (!result?.shotId) {
       return null;
     }
 
-    clearGallerySelection();
+    const createdShot = result.shot ?? shots?.find((shot) => shot.id === result.shotId) ?? null;
     return createdShot;
-  }, [clearGallerySelection, createShot, resolveSelectedGenerationIds, shots]);
+  }, [createShot, selectedGenerationIds, shots]);
 
   const handleContextMenu = React.useCallback((
     event: React.MouseEvent,
@@ -125,8 +143,8 @@ export function GenerationsPaneGallery({
     setContextMenuPosition({ x: event.clientX, y: event.clientY });
   }, [buildSelectionMeta, selectGalleryItem, selectedGalleryIds]);
 
-  const handleCreateShotFromMenu = React.useCallback(async () => {
-    await createShotFromSelection();
+  const handleCreateShotFromMenu = React.useCallback(async (): Promise<Shot | null> => {
+    return createShotFromSelection();
   }, [createShotFromSelection]);
 
   const handleGenerateVideoFromMenu = React.useCallback(async () => {
@@ -135,6 +153,14 @@ export function GenerationsPaneGallery({
       setVideoModalShot(createdShot);
     }
   }, [createShotFromSelection]);
+
+  const handleNavigateToShot = React.useCallback((shot: Shot) => {
+    navigateToShot(shot, { isNewlyCreated: true });
+  }, [navigateToShot]);
+
+  const handleOpenGenerateVideo = React.useCallback((shot: Shot) => {
+    setVideoModalShot(shot);
+  }, []);
 
   return (
     <>
@@ -227,6 +253,9 @@ export function GenerationsPaneGallery({
         onClose={() => setContextMenuPosition(null)}
         onCreateShot={handleCreateShotFromMenu}
         onGenerateVideo={handleGenerateVideoFromMenu}
+        onNavigateToShot={handleNavigateToShot}
+        onOpenGenerateVideo={handleOpenGenerateVideo}
+        existingShots={existingShotsForSelection}
         isCreating={isCreating}
       />
 

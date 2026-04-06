@@ -40,9 +40,16 @@ function createDropEvent(data: Record<string, string>, types: string[] = [GENERA
   } as unknown as React.DragEvent<HTMLDivElement>;
 }
 
+type DropTestData = {
+  tracks: Array<{ id: string; kind: 'visual'; label: string }>;
+  rows: never[];
+  registry: { assets: Record<string, { file: string; type?: string; duration?: number }> };
+};
+
 describe('useExternalDrop', () => {
   it('accepts generation-multi drags during drag over', () => {
-    const dataRef = { current: null } as React.MutableRefObject<any>;
+    const dataRef = { current: null } as React.MutableRefObject<DropTestData | null>;
+    const pendingOpsRef = { current: 0 } as React.MutableRefObject<number>;
     const event = createDropEvent({
       [GENERATION_MULTI_DRAG_TYPE]: JSON.stringify([{
         generationId: 'gen-1',
@@ -80,10 +87,11 @@ describe('useExternalDrop', () => {
 
     const { result } = renderHook(() => useExternalDrop({
       dataRef,
+      pendingOpsRef,
       scale: 1,
       scaleWidth: 1,
       selectedTrackId: null,
-      applyTimelineEdit: vi.fn(),
+      applyEdit: vi.fn(),
       patchRegistry: vi.fn(),
       registerAsset: vi.fn(),
       uploadAsset: vi.fn(),
@@ -108,7 +116,8 @@ describe('useExternalDrop', () => {
         rows: [],
         registry: { assets: {} as Record<string, { file: string; type?: string; duration?: number }> },
       },
-    } as React.MutableRefObject<any>;
+    } as React.MutableRefObject<DropTestData>;
+    const pendingOpsRef = { current: 0 } as React.MutableRefObject<number>;
 
     const patchRegistry = vi.fn((assetId: string, entry: { file: string; type?: string; duration?: number }) => {
       dataRef.current.registry.assets[assetId] = entry;
@@ -175,10 +184,11 @@ describe('useExternalDrop', () => {
 
     const { result } = renderHook(() => useExternalDrop({
       dataRef,
+      pendingOpsRef,
       scale: 1,
       scaleWidth: 1,
       selectedTrackId: null,
-      applyTimelineEdit: vi.fn(),
+      applyEdit: vi.fn(),
       patchRegistry,
       registerAsset: vi.fn(),
       uploadAsset: vi.fn(),

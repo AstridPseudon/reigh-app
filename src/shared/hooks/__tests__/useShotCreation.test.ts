@@ -24,6 +24,7 @@ vi.mock('@/shared/hooks/shots/useLastAffectedShot', () => ({
 }));
 
 const mockMutateAsync = vi.fn();
+const mockCreateShotWithGenerationsMutateAsync = vi.fn();
 
 vi.mock('@/shared/hooks/shots', () => ({
   useCreateShot: vi.fn(() => ({
@@ -31,11 +32,13 @@ vi.mock('@/shared/hooks/shots', () => ({
       shot: { id: 'new-shot', name: 'Shot 3' },
     }),
   })),
-  useCreateShotWithImage: vi.fn(() => ({
-    mutateAsync: vi.fn().mockResolvedValue({
-      shotId: 'new-shot-with-image',
-      shotName: 'Shot 3',
-      shotGenerationId: 'sg-1',
+  useCreateShotWithGenerations: vi.fn(() => ({
+    mutateAsync: mockCreateShotWithGenerationsMutateAsync.mockResolvedValue({
+      shot_id: 'new-shot-with-generations',
+      shot_name: 'Shot 3',
+      shot_position: 2,
+      shot_generations: [],
+      success: true,
     }),
   })),
   useHandleExternalImageDrop: vi.fn(() => ({

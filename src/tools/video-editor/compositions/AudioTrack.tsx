@@ -1,10 +1,10 @@
-import type { FC } from 'react';
+import { memo, type FC } from 'react';
 import { Sequence } from 'remotion';
 import { Audio } from '@remotion/media';
 import { getClipDurationInFrames, secondsToFrames } from '@/tools/video-editor/lib/config-utils';
 import type { ResolvedTimelineClip } from '@/tools/video-editor/types';
 
-export const AudioTrack: FC<{
+const AudioTrackComponent: FC<{
   trackId: string;
   clips: ResolvedTimelineClip[];
   fps: number;
@@ -13,7 +13,9 @@ export const AudioTrack: FC<{
     <>
       {clips.map((clip) => (
         <Sequence
-          key={clip.id}
+          // Remotion's Sequence + Audio timing is not fully updated by prop changes during playback,
+          // so audio clips need a remount whenever timing or playback-rate inputs change.
+          key={`${clip.id}-${clip.at}-${clip.from ?? 0}-${clip.to ?? ''}-${clip.speed ?? 1}`}
           from={secondsToFrames(clip.at, fps)}
           durationInFrames={getClipDurationInFrames(clip, fps)}
         >
@@ -31,3 +33,6 @@ export const AudioTrack: FC<{
     </>
   );
 };
+
+export const AudioTrack = memo(AudioTrackComponent);
+AudioTrack.displayName = 'AudioTrack';

@@ -43,7 +43,7 @@ describe('useClipEditing duration recalculation', () => {
   });
 
   it('recalculates action.end for single-clip duration edits', () => {
-    const applyTimelineEdit = vi.fn();
+    const applyEdit = vi.fn();
     const dataRef = {
       current: makeTimelineData({
         rows: [{ id: 'V1', actions: [{ id: 'clip-1', start: 0, end: 4, effectId: 'effect-clip-1' }] }],
@@ -59,22 +59,22 @@ describe('useClipEditing duration recalculation', () => {
       currentTime: 0,
       setSelectedClipId: vi.fn(),
       setSelectedTrackId: vi.fn(),
-      applyTimelineEdit,
-      applyResolvedConfigEdit: vi.fn(),
+      applyEdit,
     }));
 
     act(() => {
       result.current.handleSelectedClipChange({ speed: 2 });
     });
 
-    expect(applyTimelineEdit).toHaveBeenCalledWith(
-      [{ id: 'V1', actions: [{ id: 'clip-1', start: 0, end: 2, effectId: 'effect-clip-1' }] }],
-      { 'clip-1': { speed: 2 } },
-    );
+    expect(applyEdit).toHaveBeenCalledWith({
+      type: 'rows',
+      rows: [{ id: 'V1', actions: [{ id: 'clip-1', start: 0, end: 2, effectId: 'effect-clip-1' }] }],
+      metaUpdates: { 'clip-1': { speed: 2 } },
+    });
   });
 
   it('recalculates action.end for bulk duration edits', () => {
-    const applyTimelineEdit = vi.fn();
+    const applyEdit = vi.fn();
     const dataRef = {
       current: makeTimelineData({
         rows: [
@@ -101,16 +101,16 @@ describe('useClipEditing duration recalculation', () => {
       currentTime: 0,
       setSelectedClipId: vi.fn(),
       setSelectedTrackId: vi.fn(),
-      applyTimelineEdit,
-      applyResolvedConfigEdit: vi.fn(),
+      applyEdit,
     }));
 
     act(() => {
       result.current.handleUpdateClips(['clip-1', 'clip-2'], { speed: 2 });
     });
 
-    expect(applyTimelineEdit).toHaveBeenCalledWith(
-      [
+    expect(applyEdit).toHaveBeenCalledWith({
+      type: 'rows',
+      rows: [
         {
           id: 'V1',
           actions: [
@@ -119,10 +119,10 @@ describe('useClipEditing duration recalculation', () => {
           ],
         },
       ],
-      {
+      metaUpdates: {
         'clip-1': { speed: 2 },
         'clip-2': { speed: 2 },
       },
-    );
+    });
   });
 });

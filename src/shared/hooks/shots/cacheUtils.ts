@@ -1,4 +1,4 @@
-import type { QueryClient, QueryKey } from '@tanstack/react-query';
+import type { InvalidateQueryFilters, QueryClient, QueryKey } from '@tanstack/react-query';
 import { Shot, GenerationRow } from '@/domains/generation/types';
 import { queryKeys } from '@/shared/lib/queryKeys';
 
@@ -68,8 +68,12 @@ export async function cancelShotsQueries(
 export function invalidateShotsQueries(
   queryClient: QueryClient,
   projectId: string,
+  filters: Omit<InvalidateQueryFilters, 'queryKey'> = {},
 ): void {
-  queryClient.invalidateQueries({ queryKey: [...queryKeys.shots.all, projectId] });
+  queryClient.invalidateQueries({
+    queryKey: [...queryKeys.shots.all, projectId],
+    ...filters,
+  });
 }
 
 export function findShotsCache(
@@ -88,6 +92,31 @@ export function findShotsCache(
     }
   }
   return undefined;
+}
+
+export function upsertShotInCache(
+  queryClient: QueryClient,
+  projectId: string,
+  shot: Shot
+): void {
+  const shotPosition = shot.position ?? Number.MAX_SAFE_INTEGER;
+
+  updateAllShotsCaches(queryClient, projectId, (oldShots = []) => {
+    const remainingShots = oldShots.filter((existingShot) => existingShot.id !== shot.id);
+    const insertionIndex = remainingShots.findIndex(
+      (existingShot) => (existingShot.position ?? Number.MAX_SAFE_INTEGER) > shotPosition
+    );
+
+    if (insertionIndex === -1) {
+      return [...remainingShots, shot];
+    }
+
+    const updatedShots = [...remainingShots];
+    updatedShots.splice(insertionIndex, 0, shot);
+    return updatedShots;
+  });
+
+  queryClient.setQueryData(queryKeys.shots.detail(shot.id), shot);
 }
 
 export function rollbackShotGenerationsCache(

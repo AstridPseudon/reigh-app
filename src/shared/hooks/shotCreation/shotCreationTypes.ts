@@ -43,12 +43,6 @@ export interface GenerationPreviewInput {
   location?: string | null;
 }
 
-interface AtomicCreateResult {
-  shotId: string;
-  shotName: string;
-  shotGenerationId: string;
-}
-
 interface CreateShotMutationResult {
   shot?: Shot;
 }
@@ -58,32 +52,51 @@ interface ExternalDropResult {
   generationIds?: string[];
 }
 
+export interface CreateShotWithGenerationsRpcShotGeneration {
+  id: string;
+  generation_id: string;
+  timeline_frame: number;
+  location: string | null;
+  thumbnail_url: string | null;
+  type: string | null;
+  created_at: string;
+  starred: boolean | null;
+  name: string | null;
+  based_on: string | null;
+  params: unknown;
+  primary_variant_id: string | null;
+}
+
+export interface CreateShotWithGenerationsRpcResult {
+  shot_id: string;
+  shot_name: string;
+  shot_position: number;
+  shot_generations: CreateShotWithGenerationsRpcShotGeneration[];
+  success: boolean;
+}
+
 export interface CreateShotWithGenerationPathInput {
   selectedProjectId: string;
   shotName: string;
   generationId: string;
-  generationPreview?: GenerationPreviewInput;
-  shots: Shot[] | undefined;
   queryClient: QueryClient;
-  createShotWithImage: (input: {
+  createShotWithGenerations: (input: {
     projectId: string;
     shotName: string;
-    generationId: string;
-  }) => Promise<AtomicCreateResult>;
+    generationIds: string[];
+  }) => Promise<CreateShotWithGenerationsRpcResult>;
 }
 
 export interface CreateShotWithGenerationsPathInput {
   selectedProjectId: string;
   shotName: string;
   generationIds: string[];
-  shots: Shot[] | undefined;
   queryClient: QueryClient;
-  createShot: (input: {
-    name: string;
+  createShotWithGenerations: (input: {
     projectId: string;
-    aspectRatio?: string;
-    shouldSelectAfterCreation: boolean;
-  }) => Promise<CreateShotMutationResult>;
+    shotName: string;
+    generationIds: string[];
+  }) => Promise<CreateShotWithGenerationsRpcResult>;
 }
 
 export interface CreateShotWithFilesPathInput {
@@ -92,6 +105,7 @@ export interface CreateShotWithFilesPathInput {
   files: File[];
   aspectRatio?: string;
   shots: Shot[] | undefined;
+  queryClient: QueryClient;
   onProgress?: (fileIndex: number, fileProgress: number, overallProgress: number) => void;
   createShot: (input: {
     name: string;
@@ -137,6 +151,6 @@ export interface CreateShotActionInput {
   generateShotName: () => string;
   applyPostCreationEffects: (result: ShotCreationResult, options: CreateShotOptions) => void;
   createShotMutation: CreateShotWithFilesPathInput['createShot'];
-  createShotWithImageMutation: CreateShotWithGenerationPathInput['createShotWithImage'];
+  createShotWithGenerationsMutation: CreateShotWithGenerationsPathInput['createShotWithGenerations'];
   handleExternalImageDropMutation: CreateShotWithFilesPathInput['uploadToShot'];
 }

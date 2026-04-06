@@ -32,8 +32,8 @@ export function LayoutMainContent(props: LayoutMainContentProps) {
   const containerSpacing = 'py-1';
 
   const contentStyle = {
-    marginRight: isVideoEditorShellActive ? '0px' : (isTasksPaneLocked ? `${tasksPaneWidth}px` : '0px'),
-    marginLeft: isVideoEditorShellActive ? '0px' : (isShotsPaneLocked ? `${shotsPaneWidth}px` : '0px'),
+    marginRight: isTasksPaneLocked ? `${tasksPaneWidth}px` : '0px',
+    marginLeft: isShotsPaneLocked ? `${shotsPaneWidth}px` : '0px',
     paddingTop: '0px',
     paddingBottom: isMobileSplitView ? '0px' : ((isGenerationsPaneLocked || isGenerationsPaneOpen) ? `${effectiveGenerationsPaneHeight}px` : '0px'),
     '--content-width': `${contentWidth}px`,
@@ -60,7 +60,7 @@ export function LayoutMainContent(props: LayoutMainContentProps) {
         className={cn(
           'relative z-10 content-container',
           isVideoEditorShellActive
-            ? 'h-screen w-screen overflow-hidden transition-[padding] duration-300 ease-smooth'
+            ? 'h-screen overflow-hidden transition-[margin,padding] duration-300 ease-smooth'
             : 'transition-[margin,padding] duration-300 ease-smooth',
         )}
         style={contentStyle}

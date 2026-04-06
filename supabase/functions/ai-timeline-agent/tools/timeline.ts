@@ -308,6 +308,57 @@ export function addTextClip(
   };
 }
 
+export function addMediaClip(
+  config: TimelineConfig,
+  registry: AssetRegistry,
+  args: { track?: string; at?: number; assetKey?: string; mediaType?: "image" | "video" },
+): TimelineToolResult {
+  if (
+    typeof args.track !== "string"
+    || typeof args.at !== "number"
+    || typeof args.assetKey !== "string"
+    || (args.mediaType !== "image" && args.mediaType !== "video")
+  ) {
+    return { result: "add_media_clip requires track, at, assetKey, and mediaType." };
+  }
+
+  const tracks = getTrackDefinitions(config);
+  if (tracks.length > 0 && !tracks.some((track) => track.id === args.track)) {
+    return { result: `Track ${args.track} does not exist.` };
+  }
+
+  const nextConfig = cloneConfig(config);
+  const clipId = `clip-${crypto.randomUUID().slice(0, 6)}`;
+  const clip = args.mediaType === "video"
+    ? {
+      id: clipId,
+      at: roundSeconds(args.at),
+      track: args.track,
+      asset: args.assetKey,
+      clipType: "media" as const,
+      from: 0,
+      to: roundSeconds(getAssetDuration(registry, args.assetKey) ?? 5),
+      speed: 1,
+      volume: 1,
+      opacity: 1,
+    }
+    : {
+      id: clipId,
+      at: roundSeconds(args.at),
+      track: args.track,
+      asset: args.assetKey,
+      clipType: "hold" as const,
+      hold: 5,
+      opacity: 1,
+    };
+  nextConfig.clips.push(clip);
+
+  return {
+    config: nextConfig,
+    result: `Added media clip ${clipId} on track ${args.track} at ${roundSeconds(args.at)}s using asset ${args.assetKey}.`,
+  };
+}
+
 export function findIssues(config: TimelineConfig, registry: AssetRegistry): TimelineToolResult {
   const issues: string[] = [];
   const clipsByTrack = new Map<string, TimelineClip[]>();
@@ -456,6 +507,7 @@ export function batchAddText(
 }
 
 export const timelineTools = {
+  add_media_clip: addMediaClip,
   add_text_clip: addTextClip,
   delete_clip: deleteClip,
   duplicate_clip: duplicateClip,
@@ -468,6 +520,7 @@ export const timelineTools = {
 };
 
 export const handlers: Record<string, ToolHandler> = {
+  add_media_clip: (args, ctx) => addMediaClip(ctx.config, ctx.registry, args),
   add_text_clip: (args, ctx) => addTextClip(ctx.config, ctx.registry, args),
   delete_clip: (args, ctx) => deleteClip(ctx.config, ctx.registry, args),
   duplicate_clip: (args, ctx) => duplicateClip(ctx.config, ctx.registry, args),

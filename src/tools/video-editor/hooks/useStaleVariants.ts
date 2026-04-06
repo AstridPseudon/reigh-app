@@ -2,7 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getSupabaseClient } from '@/integrations/supabase/client';
 import { realtimeEventProcessor } from '@/shared/realtime/RealtimeEventProcessor';
 import type { AssetRegistryEntry, ResolvedAssetRegistryEntry } from '@/tools/video-editor/types';
-import type { UseTimelineDataResult } from '@/tools/video-editor/hooks/useTimelineData';
+import type {
+  TimelinePatchRegistry,
+  TimelineRegisterAsset,
+} from '@/tools/video-editor/hooks/useTimelineData.types';
 
 interface PrimaryVariantInfo {
   location: string;
@@ -11,8 +14,8 @@ interface PrimaryVariantInfo {
 
 interface UseStaleVariantsArgs {
   registry: Record<string, ResolvedAssetRegistryEntry> | undefined;
-  patchRegistry: UseTimelineDataResult['patchRegistry'];
-  registerAsset: UseTimelineDataResult['registerAsset'];
+  patchRegistry: TimelinePatchRegistry;
+  registerAsset: TimelineRegisterAsset;
 }
 
 const POLL_INTERVAL_MS = 15_000;

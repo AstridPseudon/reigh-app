@@ -8,6 +8,7 @@ import {
 } from '@dnd-kit/core';
 import type { Shot } from '@/domains/generation/types';
 import { useShotCreation } from '@/shared/hooks/shotCreation/useShotCreation';
+import { useShotNavigation } from '@/shared/hooks/shots/useShotNavigation';
 import { useShots } from '@/shared/contexts/ShotsContext';
 import { sortableKeyboardCoordinates } from '@dnd-kit/sortable';
 import { VideoGenerationModal } from '@/tools/travel-between-images/components/VideoGenerationModal';
@@ -16,13 +17,18 @@ import { ClipAction } from '@/tools/video-editor/components/TimelineEditor/ClipA
 import { DropIndicator } from '@/tools/video-editor/components/TimelineEditor/DropIndicator';
 import { TimelineCanvas } from '@/tools/video-editor/components/TimelineEditor/TimelineCanvas';
 import { ROW_HEIGHT, TIMELINE_START_LEFT } from '@/tools/video-editor/lib/coordinate-utils';
+import type { ClipMeta } from '@/tools/video-editor/lib/timeline-data';
 import { useTimelineChromeContext } from '@/tools/video-editor/contexts/TimelineChromeContext';
 import { useTimelineEditorContext } from '@/tools/video-editor/contexts/TimelineEditorContext';
 import { useClipDrag } from '@/tools/video-editor/hooks/useClipDrag';
 import { useMarqueeSelect } from '@/tools/video-editor/hooks/useMarqueeSelect';
+import { useShotGroups } from '@/tools/video-editor/hooks/useShotGroups';
 import { useStaleVariants } from '@/tools/video-editor/hooks/useStaleVariants';
 import type { AssetRegistry } from '@/tools/video-editor/types';
 import type { TimelineAction, TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
+
+const EMPTY_CLIP_META: Record<string, ClipMeta> = {};
+const EMPTY_ASSET_REGISTRY: AssetRegistry = { assets: {} };
 
 export function resolveSelectedGenerationIdsForShotCreation({
   rows,
@@ -47,6 +53,17 @@ export function resolveSelectedGenerationIdsForShotCreation({
         const assetKey = meta[action.id]?.asset;
         const assetEntry = assetKey ? registry.assets[assetKey] : undefined;
 
+        console.log('[ShotCreate:resolve]', {
+          clipId: action.id,
+          assetKey,
+          registryEntry: assetEntry ? {
+            file: assetEntry.file,
+            generationId: assetEntry.generationId,
+            variantId: assetEntry.variantId,
+            type: assetEntry.type,
+          } : null,
+        });
+
         return {
           trackIndex,
           start: action.start,
@@ -70,6 +87,7 @@ function TimelineEditorComponent() {
   const [newTrackDropLabel, setNewTrackDropLabel] = useState<string | null>(null);
   const [videoModalShot, setVideoModalShot] = useState<Shot | null>(null);
   const { createShot, isCreating } = useShotCreation();
+  const { navigateToShot } = useShotNavigation();
   const { shots } = useShots();
   const {
     data,
@@ -77,7 +95,7 @@ function TimelineEditorComponent() {
     timelineRef,
     timelineWrapperRef,
     dataRef,
-    applyTimelineEdit,
+    applyEdit,
     moveClipToRow,
     createTrackAndMoveClip,
     selectClip,
@@ -91,6 +109,7 @@ function TimelineEditorComponent() {
     setSelectedTrackId,
     scale,
     scaleWidth,
+    pendingOpsRef,
     coordinator,
     indicatorRef,
     editAreaRef,
@@ -129,9 +148,10 @@ function TimelineEditorComponent() {
   const { dragSessionRef } = useClipDrag({
     timelineWrapperRef,
     dataRef,
+    pendingOpsRef,
     moveClipToRow,
     createTrackAndMoveClip,
-    applyTimelineEdit,
+    applyEdit,
     selectClip,
     selectClips,
     selectedClipIdsRef,
@@ -204,6 +224,12 @@ function TimelineEditorComponent() {
   }, [selectClip, setSelectedTrackId]);
 
   const pixelsPerSecond = scaleWidth / scale;
+  const shotGroups = useShotGroups(
+    data?.rows ?? [],
+    data?.meta ?? EMPTY_CLIP_META,
+    data?.registry ?? EMPTY_ASSET_REGISTRY,
+    shots,
+  );
 
   const selectionShotCreationState = useMemo(() => {
     if (!data) {
@@ -218,12 +244,37 @@ function TimelineEditorComponent() {
     });
   }, [data, selectedClipIds]);
 
-  const handleCreateShotFromSelection = useCallback(async () => {
-    if (!selectionShotCreationState.canCreateShot) {
-      return;
+  const existingShotsForSelection = useMemo(() => {
+    if (selectionShotCreationState.generationIds.length === 0 || !shots?.length) {
+      return [] as Shot[];
     }
 
-    await createShot({ generationIds: selectionShotCreationState.generationIds });
+    return shots.filter((shot) => {
+      const shotGenerationIds = new Set(
+        (shot.images ?? [])
+          .map((image) => image.generation_id)
+          .filter((generationId): generationId is string => typeof generationId === 'string' && generationId.length > 0),
+      );
+
+      return selectionShotCreationState.generationIds.every((generationId) => shotGenerationIds.has(generationId));
+    });
+  }, [shots, selectionShotCreationState.generationIds]);
+
+  const handleCreateShotFromSelection = useCallback(async (): Promise<Shot | null> => {
+    console.log('[ShotCreate] handleCreateShotFromSelection', {
+      canCreateShot: selectionShotCreationState.canCreateShot,
+      generationIds: selectionShotCreationState.generationIds,
+    });
+    if (!selectionShotCreationState.canCreateShot) {
+      return null;
+    }
+
+    const result = await createShot({ generationIds: selectionShotCreationState.generationIds });
+    console.log('[ShotCreate] createShot result', result);
+    if (result?.shot) {
+      return result.shot;
+    }
+    return null;
   }, [createShot, selectionShotCreationState]);
 
   const handleGenerateVideoFromSelection = useCallback(async () => {
@@ -232,11 +283,33 @@ function TimelineEditorComponent() {
     }
 
     const result = await createShot({ generationIds: selectionShotCreationState.generationIds });
-    const createdShot = result?.shot ?? shots?.find((shot) => shot.id === result?.shotId) ?? null;
+    if (!result?.shotId) {
+      return;
+    }
+
+    const createdShot = result.shot ?? shots?.find((shot) => shot.id === result.shotId) ?? null;
     if (createdShot) {
       setVideoModalShot(createdShot);
     }
   }, [createShot, selectionShotCreationState, shots]);
+
+  const handleNavigateToShot = useCallback((shot: Shot) => {
+    navigateToShot(shot, { isNewlyCreated: true });
+  }, [navigateToShot]);
+
+  const handleOpenGenerateVideo = useCallback((shot: Shot) => {
+    setVideoModalShot(shot);
+  }, []);
+
+  const handleShotGroupNavigate = useCallback((shotId: string) => {
+    const shot = shots?.find((s) => s.id === shotId);
+    if (shot) navigateToShot(shot, { isNewlyCreated: false });
+  }, [navigateToShot, shots]);
+
+  const handleShotGroupGenerateVideo = useCallback((shotId: string) => {
+    const shot = shots?.find((s) => s.id === shotId);
+    if (shot) setVideoModalShot(shot);
+  }, [shots]);
 
   const clientXToTime = useCallback((clientX: number): number => {
     const wrapper = timelineWrapperRef.current;
@@ -286,13 +359,17 @@ function TimelineEditorComponent() {
         onUpdateVariant={isGenAsset && assetKey ? () => void updateAssetToCurrentVariant(assetKey) : undefined}
         onDismissStale={isStale && assetKey ? () => dismissAsset(assetKey) : undefined}
         canCreateShotFromSelection={selectionShotCreationState.canCreateShot}
+        existingShots={existingShotsForSelection}
         onCreateShotFromSelection={handleCreateShotFromSelection}
         onGenerateVideoFromSelection={handleGenerateVideoFromSelection}
+        onNavigateToShot={handleNavigateToShot}
+        onOpenGenerateVideo={handleOpenGenerateVideo}
         isCreatingShot={isCreating}
       />
     );
   }, [
     selectionShotCreationState.canCreateShot,
+    existingShotsForSelection,
     data,
     dismissAsset,
     dismissedAssetKeys,
@@ -302,6 +379,8 @@ function TimelineEditorComponent() {
     handleDeleteClip,
     handleDeleteClips,
     handleGenerateVideoFromSelection,
+    handleNavigateToShot,
+    handleOpenGenerateVideo,
     handleSplitClipHere,
     handleSplitClipsAtPlayhead,
     handleToggleMuteClips,
@@ -343,14 +422,14 @@ function TimelineEditorComponent() {
   return (
     <div className="flex h-full overflow-hidden rounded-xl border border-border bg-card/80">
       <div
-        ref={timelineWrapperRef}
+        ref={timelineWrapperRef as React.RefObject<HTMLDivElement>}
         className="timeline-wrapper relative min-w-0 flex-1 overflow-hidden"
         onDragOver={onTimelineDragOver}
         onDragLeave={onTimelineDragLeave}
         onDrop={onTimelineDrop}
       >
         <TimelineCanvas
-          ref={timelineRef}
+          ref={timelineRef as React.RefObject<import('@/tools/video-editor/types/timeline-canvas').TimelineCanvasHandle>}
           rows={data.rows}
           tracks={data.tracks}
           scale={scale}
@@ -371,6 +450,11 @@ function TimelineEditorComponent() {
           onClickTimeArea={onClickTimeArea}
           onActionResizeStart={onActionResizeStart}
           onActionResizeEnd={onActionResizeEnd}
+          shotGroups={shotGroups}
+          onShotGroupNavigate={handleShotGroupNavigate}
+          onShotGroupGenerateVideo={handleShotGroupGenerateVideo}
+          onSelectClips={selectClips}
+          dragSessionRef={dragSessionRef}
           marqueeRect={marqueeRect}
           onEditAreaPointerDown={onMarqueePointerDown}
           onAddTrack={chrome.handleAddTrack}

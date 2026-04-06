@@ -1,9 +1,10 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect, useMemo, useSyncExternalStore } from 'react';
 import { DynamicEffectRegistry } from '@/tools/video-editor/effects/DynamicEffectRegistry';
 import {
   continuousEffects,
   entranceEffects,
   exitEffects,
+  getEffectRegistry,
   replaceEffectRegistry,
 } from '@/tools/video-editor/effects';
 import { loadDraftEffects } from '@/tools/video-editor/effects/effect-store';
@@ -26,26 +27,37 @@ export function useEffectRegistry(
 ) {
   const draftEffects = useMemo(() => loadDraftEffects(), []);
   const registry = useMemo(() => new DynamicEffectRegistry(BUILT_INS), []);
+  if (getEffectRegistry() !== registry) replaceEffectRegistry(registry);
+  useSyncExternalStore(registry.subscribe, registry.getSnapshot);
 
   useEffect(() => {
-    replaceEffectRegistry(registry);
+    let stale = false;
     const drafts = Object.entries(draftEffects);
     const db = dbEffects ?? [];
     const resources = resourceEffects ?? [];
-    console.log('[EffectRegistry] registering drafts=%d db=%d resources=%d', drafts.length, db.length, resources.length);
-    if (resources.length > 0) {
-      console.log('[EffectRegistry] resource IDs:', resources.map((e) => e.id));
+    if (db.length > 0) {
+      console.warn('[EffectRegistry] legacy DB effects are deprecated; migrate to resource-based effects via useEffectResources.');
     }
-    void Promise.all([
-      ...drafts.map(([name, code]) => registry.registerAsync(name, code)),
-      ...db.map((effect) => registry.registerAsync(effect.slug, effect.code)),
-      ...resources.map((effect) => registry.registerAsync(effect.id, effect.code).then(() => {
-        console.log('[EffectRegistry] registered resource effect id=%s', effect.id);
-      })),
-    ]).then(() => {
-      console.log('[EffectRegistry] all done, registry has:', registry.listAll());
+
+    void registry.batch(async () => {
+      for (const [name, code] of drafts) {
+        if (stale) return;
+        await registry.registerAsync(name, code);
+      }
+      for (const effect of db) {
+        if (stale) return;
+        await registry.registerAsync(effect.slug, effect.code);
+      }
+      for (const effect of resources) {
+        if (stale) return;
+        await registry.registerAsync(effect.id, effect.code, effect.parameterSchema);
+      }
     });
-  }, [dbEffects, resourceEffects, draftEffects, registry]);
+
+    return () => {
+      stale = true;
+    };
+  }, [dbEffects, draftEffects, registry, resourceEffects]);
 
   return registry;
 }

@@ -1,17 +1,23 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
+import { useEffect, useMemo } from 'react';
 import { useGallerySelection } from '@/shared/contexts/GallerySelectionContext';
 import { useProjectSelectionContext } from '@/shared/contexts/ProjectContext';
 import { useVideoEditorRuntime } from '@/tools/video-editor/contexts/DataProviderContext';
 import { ROW_HEIGHT, TIMELINE_START_LEFT } from '@/tools/video-editor/lib/coordinate-utils';
 import { useAssetManagement } from '@/tools/video-editor/hooks/useAssetManagement';
+import { useAssetOperations } from '@/tools/video-editor/hooks/useAssetOperations';
 import { useClipEditing } from '@/tools/video-editor/hooks/useClipEditing';
 import { useClipResize } from '@/tools/video-editor/hooks/useClipResize';
 import { useDerivedTimeline } from '@/tools/video-editor/hooks/useDerivedTimeline';
-import { useTimelineData } from '@/tools/video-editor/hooks/useTimelineData';
 import { useDragCoordinator } from '@/tools/video-editor/hooks/useDragCoordinator';
+import { useEditorPreferences } from '@/tools/video-editor/hooks/useEditorPreferences';
 import { useExternalDrop } from '@/tools/video-editor/hooks/useExternalDrop';
-import { useMultiSelect, type SelectClipOptions } from '@/tools/video-editor/hooks/useMultiSelect';
 import { useTimelinePlayback } from '@/tools/video-editor/hooks/useTimelinePlayback';
+import { useRenderState } from '@/tools/video-editor/hooks/useRenderState';
+import { useTimelineHistory } from '@/tools/video-editor/hooks/useTimelineHistory';
+import { useTimelineQueries } from '@/tools/video-editor/hooks/useTimelineQueries';
+import { useTimelineSave } from '@/tools/video-editor/hooks/useTimelineSave';
+import { useTimelineSelection } from '@/tools/video-editor/hooks/useTimelineSelection';
 import type {
   TimelineChromeContextValue,
   TimelineEditorContextValue,
@@ -20,196 +26,158 @@ import type {
 } from '@/tools/video-editor/hooks/useTimelineState.types';
 import { useTimelineTrackManagement } from '@/tools/video-editor/hooks/useTimelineTrackManagement';
 
-export type { SaveStatus, RenderStatus, EditorPreferences } from '@/tools/video-editor/hooks/useTimelineData';
-
-const getFirstSelectedClipId = (clipIds: ReadonlySet<string>): string | null => {
-  for (const clipId of clipIds) {
-    return clipId;
-  }
-
-  return null;
-};
-
-const getPrimaryClipId = (
-  clipIds: ReadonlySet<string>,
-  preferredClipId: string | null,
-): string | null => {
-  if (preferredClipId && clipIds.has(preferredClipId)) {
-    return preferredClipId;
-  }
-
-  return getFirstSelectedClipId(clipIds);
-};
+export type { SaveStatus, RenderStatus, EditorPreferences } from '@/tools/video-editor/hooks/useTimelineData.types';
 
 export function useTimelineState(): UseTimelineStateResult {
   const runtime = useVideoEditorRuntime();
+  const queryClient = useQueryClient();
   const playback = useTimelinePlayback();
-  const dataHook = useTimelineData();
-  const multiSelect = useMultiSelect();
-  const {
-    addToSelection: addToSelectionState,
-    clearSelection: clearSelectionState,
-    isClipSelected,
-    primaryClipId,
-    pruneSelection,
-    selectClip: selectClipState,
-    selectClips: selectClipsState,
-    selectedClipIds,
-    selectedClipIdsRef,
-  } = multiSelect;
-  const selectionDerived = useDerivedTimeline(
-    dataHook.data,
-    primaryClipId,
-    dataHook.selectedTrackId,
+  const preferences = useEditorPreferences(runtime.timelineId);
+  const queries = useTimelineQueries(runtime.provider, runtime.timelineId);
+  const save = useTimelineSave(queries, runtime.provider);
+  const history = useTimelineHistory({
+    dataRef: save.dataRef,
+    commitData: save.commitData,
+  });
+  const derived = useDerivedTimeline(save.data, save.selectedClipId, save.selectedTrackId);
+  const render = useRenderState(derived.resolvedConfig, derived.renderMetadata);
+  const assetOperations = useAssetOperations(
+    runtime.provider,
+    runtime.timelineId,
+    runtime.userId,
+    queryClient,
+    save.pendingOpsRef,
   );
+  const {
+    data,
+    dataRef,
+    eventBus,
+    isConflictExhausted,
+    selectedClipId,
+    selectedTrackId,
+    saveStatus,
+    setSelectedClipId,
+    setSelectedTrackId,
+    applyEdit,
+    patchRegistry,
+    reloadFromServer,
+    retrySaveAfterConflict,
+    pendingOpsRef,
+    isLoading,
+  } = save;
+  const {
+    resolvedConfig,
+    compositionSize,
+    trackScaleMap,
+  } = derived;
+  const {
+    renderStatus,
+    renderLog,
+    renderDirty,
+    renderProgress,
+    renderResultUrl,
+    renderResultFilename,
+    setRenderDirty,
+    startRender,
+  } = render;
+  const {
+    canUndo,
+    canRedo,
+    checkpoints,
+    undo,
+    redo,
+    jumpToCheckpoint,
+    createManualCheckpoint,
+    onBeforeCommit,
+  } = history;
+  const {
+    scale,
+    scaleWidth,
+    preferences: editorPreferences,
+    setScaleWidth,
+    setActiveClipTab,
+    setAssetPanelState,
+  } = preferences;
+  const {
+    registerAsset,
+    uploadAsset,
+    uploadFiles,
+    invalidateAssetRegistry,
+  } = assetOperations;
   const { selectedProjectId } = useProjectSelectionContext();
   const { clearGallerySelection, registerPeerClear } = useGallerySelection();
-
-  const selectClip = useCallback((clipId: string, opts?: SelectClipOptions) => {
-    if (!opts?.toggle) {
-      clearGallerySelection();
-    }
-
-    let nextPrimaryClipId = clipId;
-
-    if (opts?.toggle) {
-      const nextSelection = new Set(selectedClipIdsRef.current);
-      if (nextSelection.has(clipId)) {
-        nextSelection.delete(clipId);
-        nextPrimaryClipId = getPrimaryClipId(
-          nextSelection,
-          primaryClipId === clipId ? null : primaryClipId,
-        );
-      }
-    }
-
-    selectClipState(clipId, opts);
-    dataHook.setSelectedClipId(nextPrimaryClipId);
-  }, [clearGallerySelection, dataHook, primaryClipId, selectClipState, selectedClipIdsRef]);
-
-  const selectClips = useCallback((clipIds: Iterable<string>) => {
-    clearGallerySelection();
-
-    const nextSelection = new Set<string>();
-    for (const clipId of clipIds) {
-      nextSelection.add(clipId);
-    }
-
-    selectClipsState(nextSelection);
-    dataHook.setSelectedClipId(getPrimaryClipId(nextSelection, null));
-  }, [clearGallerySelection, dataHook, selectClipsState]);
-
-  const addToSelection = useCallback((clipIds: Iterable<string>) => {
-    const nextSelection = new Set(selectedClipIdsRef.current);
-    const nextClipIds = new Set<string>();
-    for (const clipId of clipIds) {
-      nextSelection.add(clipId);
-      nextClipIds.add(clipId);
-    }
-
-    addToSelectionState(nextClipIds);
-    dataHook.setSelectedClipId(getPrimaryClipId(nextSelection, primaryClipId));
-  }, [addToSelectionState, dataHook, primaryClipId, selectedClipIdsRef]);
-
-  const clearSelection = useCallback(() => {
-    clearGallerySelection();
-    clearSelectionState();
-    dataHook.setSelectedClipId(null);
-  }, [clearGallerySelection, clearSelectionState, dataHook]);
-
-  const clearTimelineOnly = useCallback(() => {
-    clearSelectionState();
-    dataHook.setSelectedClipId(null);
-  }, [clearSelectionState, dataHook]);
+  const selection = useTimelineSelection({
+    data,
+    selectedClipId,
+    selectedTrackId,
+    setSelectedClipId,
+    clearGallerySelection,
+    registerPeerClear,
+  });
 
   useEffect(() => {
-    registerPeerClear(clearTimelineOnly);
-    return () => {
-      registerPeerClear(null);
-    };
-  }, [clearTimelineOnly, registerPeerClear]);
+    return eventBus.on('beforeCommit', onBeforeCommit);
+  }, [eventBus, onBeforeCommit]);
 
-  const setSelectedClipId = useCallback<React.Dispatch<React.SetStateAction<string | null>>>((updater) => {
-    const nextClipId = typeof updater === 'function'
-      ? updater(primaryClipId)
-      : updater;
+  useEffect(() => {
+    return eventBus.on('pruneSelection', selection.pruneSelection);
+  }, [eventBus, selection.pruneSelection]);
 
-    if (nextClipId === null) {
-      clearSelection();
-      return;
-    }
-
-    selectClip(nextClipId);
-  }, [clearSelection, primaryClipId, selectClip]);
-
-  useLayoutEffect(() => {
-    dataHook.pruneSelectionRef.current = pruneSelection;
-
-    return () => {
-      if (dataHook.pruneSelectionRef.current === pruneSelection) {
-        dataHook.pruneSelectionRef.current = null;
-      }
-    };
-  }, [dataHook.pruneSelectionRef, pruneSelection]);
-
-  useLayoutEffect(() => {
-    if (!dataHook.selectedClipId || dataHook.selectedClipId === primaryClipId) {
-      return;
-    }
-
-    clearGallerySelection();
-    selectClipState(dataHook.selectedClipId);
-  }, [clearGallerySelection, dataHook.selectedClipId, primaryClipId, selectClipState]);
+  useEffect(() => {
+    return eventBus.on('saveSuccess', () => {
+      setRenderDirty(true);
+    });
+  }, [eventBus, setRenderDirty]);
 
   const dragCoordinator = useDragCoordinator({
-    dataRef: dataHook.dataRef,
-    scale: dataHook.scale,
-    scaleWidth: dataHook.scaleWidth,
+    dataRef,
+    scale,
+    scaleWidth,
     startLeft: TIMELINE_START_LEFT,
     rowHeight: ROW_HEIGHT,
   });
 
   const assetManagement = useAssetManagement({
-    dataRef: dataHook.dataRef,
-    selectedTrackId: dataHook.selectedTrackId,
+    dataRef,
+    selectedTrackId,
     selectedProjectId,
-    setSelectedClipId,
-    setSelectedTrackId: dataHook.setSelectedTrackId,
-    applyTimelineEdit: dataHook.applyTimelineEdit,
-    patchRegistry: dataHook.patchRegistry,
-    registerAsset: dataHook.registerAsset,
-    uploadAsset: dataHook.uploadAsset,
-    invalidateAssetRegistry: dataHook.invalidateAssetRegistry,
+    setSelectedClipId: selection.setSelectedClipId,
+    setSelectedTrackId,
+    applyEdit,
+    patchRegistry,
+    registerAsset,
+    uploadAsset,
+    invalidateAssetRegistry,
     resolveAssetUrl: runtime.provider.resolveAssetUrl.bind(runtime.provider),
   });
 
   const clipResize = useClipResize({
-    dataRef: dataHook.dataRef,
-    applyTimelineEdit: dataHook.applyTimelineEdit,
+    dataRef,
+    applyEdit,
   });
 
   const clipEditing = useClipEditing({
-    dataRef: dataHook.dataRef,
-    resolvedConfig: selectionDerived.resolvedConfig,
-    selectedClipId: primaryClipId,
-    selectedTrack: selectionDerived.selectedTrack,
+    dataRef,
+    resolvedConfig: selection.resolvedConfig,
+    selectedClipId: selection.primaryClipId,
+    selectedTrack: selection.selectedTrack,
     currentTime: playback.currentTime,
-    setSelectedClipId,
-    setSelectedTrackId: dataHook.setSelectedTrackId,
-    applyTimelineEdit: dataHook.applyTimelineEdit,
-    applyResolvedConfigEdit: dataHook.applyResolvedConfigEdit,
+    setSelectedClipId: selection.setSelectedClipId,
+    setSelectedTrackId,
+    applyEdit,
   });
 
   const externalDrop = useExternalDrop({
-    dataRef: dataHook.dataRef,
-    scale: dataHook.scale,
-    scaleWidth: dataHook.scaleWidth,
-    selectedTrackId: dataHook.selectedTrackId,
-    applyTimelineEdit: dataHook.applyTimelineEdit,
-    patchRegistry: dataHook.patchRegistry,
-    registerAsset: dataHook.registerAsset,
-    uploadAsset: dataHook.uploadAsset,
-    invalidateAssetRegistry: dataHook.invalidateAssetRegistry,
+    dataRef,
+    pendingOpsRef,
+    scale,
+    scaleWidth,
+    selectedTrackId,
+    applyEdit,
+    patchRegistry,
+    registerAsset,
+    uploadAsset,
+    invalidateAssetRegistry,
     resolveAssetUrl: runtime.provider.resolveAssetUrl.bind(runtime.provider),
     coordinator: dragCoordinator.coordinator,
     registerGenerationAsset: assetManagement.registerGenerationAsset,
@@ -219,46 +187,46 @@ export function useTimelineState(): UseTimelineStateResult {
   });
 
   const trackManagement = useTimelineTrackManagement({
-    dataRef: dataHook.dataRef,
-    resolvedConfig: selectionDerived.resolvedConfig,
-    selectedClipId: primaryClipId,
-    setSelectedTrackId: dataHook.setSelectedTrackId,
-    applyTimelineEdit: dataHook.applyTimelineEdit,
-    applyResolvedConfigEdit: dataHook.applyResolvedConfigEdit,
+    dataRef,
+    resolvedConfig: selection.resolvedConfig,
+    selectedClipId: selection.primaryClipId,
+    setSelectedTrackId,
+    applyEdit,
   });
 
   const editor = useMemo<TimelineEditorContextValue>(() => ({
-    data: dataHook.data,
-    resolvedConfig: selectionDerived.resolvedConfig,
-    selectedClipId: primaryClipId,
-    selectedClipIds,
-    selectedClipIdsRef,
-    selectedTrackId: dataHook.selectedTrackId,
-    primaryClipId,
-    selectedClip: selectionDerived.selectedClip,
-    selectedTrack: selectionDerived.selectedTrack,
-    selectedClipHasPredecessor: selectionDerived.selectedClipHasPredecessor,
-    compositionSize: dataHook.compositionSize,
-    trackScaleMap: dataHook.trackScaleMap,
-    scale: dataHook.scale,
-    scaleWidth: dataHook.scaleWidth,
-    isLoading: dataHook.isLoading,
-    dataRef: dataHook.dataRef,
+    data,
+    resolvedConfig: selection.resolvedConfig,
+    selectedClipId: selection.primaryClipId,
+    selectedClipIds: selection.selectedClipIds,
+    selectedClipIdsRef: selection.selectedClipIdsRef,
+    selectedTrackId,
+    primaryClipId: selection.primaryClipId,
+    selectedClip: selection.selectedClip,
+    selectedTrack: selection.selectedTrack,
+    selectedClipHasPredecessor: selection.selectedClipHasPredecessor,
+    compositionSize,
+    trackScaleMap,
+    scale,
+    scaleWidth,
+    isLoading,
+    dataRef,
+    pendingOpsRef,
     coordinator: dragCoordinator.coordinator,
     indicatorRef: dragCoordinator.indicatorRef,
     editAreaRef: dragCoordinator.editAreaRef,
-    preferences: dataHook.preferences,
+    preferences: editorPreferences,
     timelineRef: playback.timelineRef,
     timelineWrapperRef: playback.timelineWrapperRef,
-    setSelectedClipId,
-    isClipSelected,
-    selectClip,
-    selectClips,
-    addToSelection,
-    clearSelection,
-    setSelectedTrackId: dataHook.setSelectedTrackId,
-    setActiveClipTab: dataHook.setActiveClipTab,
-    setAssetPanelState: dataHook.setAssetPanelState,
+    setSelectedClipId: selection.setSelectedClipId,
+    isClipSelected: selection.isClipSelected,
+    selectClip: selection.selectClip,
+    selectClips: selection.selectClips,
+    addToSelection: selection.addToSelection,
+    clearSelection: selection.clearSelection,
+    setSelectedTrackId,
+    setActiveClipTab,
+    setAssetPanelState,
     registerGenerationAsset: assetManagement.registerGenerationAsset,
     onCursorDrag: playback.onCursorDrag,
     onClickTimeArea: playback.onClickTimeArea,
@@ -288,31 +256,32 @@ export function useTimelineState(): UseTimelineStateResult {
     moveSelectedClipsToTrack: trackManagement.moveSelectedClipsToTrack,
     moveClipToRow: trackManagement.moveClipToRow,
     createTrackAndMoveClip: trackManagement.createTrackAndMoveClip,
-    uploadFiles: dataHook.uploadFiles,
-    applyTimelineEdit: dataHook.applyTimelineEdit,
-    patchRegistry: dataHook.patchRegistry,
-    registerAsset: dataHook.registerAsset,
+    uploadFiles,
+    applyEdit,
+    patchRegistry,
+    registerAsset,
   }), [
-    dataHook.compositionSize,
-    dataHook.data,
-    dataHook.dataRef,
-    dataHook.isLoading,
-    dataHook.preferences,
-    dataHook.scale,
-    dataHook.scaleWidth,
-    dataHook.selectedTrackId,
-    dataHook.setActiveClipTab,
-    dataHook.setAssetPanelState,
-    dataHook.setSelectedTrackId,
-    dataHook.trackScaleMap,
-    dataHook.uploadFiles,
-    dataHook.applyTimelineEdit,
-    dataHook.patchRegistry,
-    dataHook.registerAsset,
-    addToSelection,
+    compositionSize,
+    data,
+    dataRef,
+    isLoading,
+    pendingOpsRef,
+    editorPreferences,
+    scale,
+    scaleWidth,
+    selectedTrackId,
+    setActiveClipTab,
+    setAssetPanelState,
+    setSelectedTrackId,
+    trackScaleMap,
+    uploadFiles,
+    applyEdit,
+    patchRegistry,
+    registerAsset,
+    selection.addToSelection,
     assetManagement.handleAssetDrop,
     assetManagement.registerGenerationAsset,
-    clearSelection,
+    selection.clearSelection,
     clipEditing.handleDeleteClip,
     clipEditing.handleDeleteClips,
     clipEditing.handleResetClipPosition,
@@ -334,21 +303,21 @@ export function useTimelineState(): UseTimelineStateResult {
     externalDrop.onTimelineDragLeave,
     externalDrop.onTimelineDragOver,
     externalDrop.onTimelineDrop,
-    isClipSelected,
+    selection.isClipSelected,
     playback.onClickTimeArea,
     playback.onCursorDrag,
     playback.timelineRef,
     playback.timelineWrapperRef,
-    primaryClipId,
-    selectClip,
-    selectClips,
-    selectedClipIds,
-    selectedClipIdsRef,
-    selectionDerived.resolvedConfig,
-    selectionDerived.selectedClip,
-    selectionDerived.selectedClipHasPredecessor,
-    selectionDerived.selectedTrack,
-    setSelectedClipId,
+    selection.primaryClipId,
+    selection.selectClip,
+    selection.selectClips,
+    selection.selectedClipIds,
+    selection.selectedClipIdsRef,
+    selection.resolvedConfig,
+    selection.selectedClip,
+    selection.selectedClipHasPredecessor,
+    selection.selectedTrack,
+    selection.setSelectedClipId,
     trackManagement.createTrackAndMoveClip,
     trackManagement.handleMoveTrack,
     trackManagement.handleRemoveTrack,
@@ -360,51 +329,51 @@ export function useTimelineState(): UseTimelineStateResult {
 
   const chrome = useMemo<TimelineChromeContextValue>(() => ({
     timelineName: runtime.timelineName ?? null,
-    saveStatus: dataHook.saveStatus,
-    isConflictExhausted: dataHook.isConflictExhausted,
-    renderStatus: dataHook.renderStatus,
-    renderLog: dataHook.renderLog,
-    renderDirty: dataHook.renderDirty,
-    renderProgress: dataHook.renderProgress,
-    renderResultUrl: dataHook.renderResultUrl,
-    renderResultFilename: dataHook.renderResultFilename,
-    undo: dataHook.undo,
-    redo: dataHook.redo,
-    canUndo: dataHook.canUndo,
-    canRedo: dataHook.canRedo,
-    checkpoints: dataHook.checkpoints,
-    jumpToCheckpoint: dataHook.jumpToCheckpoint,
-    createManualCheckpoint: dataHook.createManualCheckpoint,
-    setScaleWidth: dataHook.setScaleWidth,
+    saveStatus,
+    isConflictExhausted,
+    renderStatus,
+    renderLog,
+    renderDirty,
+    renderProgress,
+    renderResultUrl,
+    renderResultFilename,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    checkpoints,
+    jumpToCheckpoint,
+    createManualCheckpoint,
+    setScaleWidth,
     handleAddTrack: trackManagement.handleAddTrack,
     handleClearUnusedTracks: trackManagement.handleClearUnusedTracks,
     unusedTrackCount: trackManagement.unusedTrackCount,
     handleAddText: clipEditing.handleAddText,
     handleAddTextAt: clipEditing.handleAddTextAt,
-    reloadFromServer: dataHook.reloadFromServer,
-    retrySaveAfterConflict: dataHook.retrySaveAfterConflict,
-    startRender: dataHook.startRender,
+    reloadFromServer,
+    retrySaveAfterConflict,
+    startRender,
   }), [
     runtime.timelineName,
-    dataHook.isConflictExhausted,
-    dataHook.reloadFromServer,
-    dataHook.retrySaveAfterConflict,
-    dataHook.renderDirty,
-    dataHook.renderLog,
-    dataHook.renderProgress,
-    dataHook.renderResultFilename,
-    dataHook.renderResultUrl,
-    dataHook.renderStatus,
-    dataHook.saveStatus,
-    dataHook.setScaleWidth,
-    dataHook.startRender,
-    dataHook.undo,
-    dataHook.redo,
-    dataHook.canUndo,
-    dataHook.canRedo,
-    dataHook.checkpoints,
-    dataHook.jumpToCheckpoint,
-    dataHook.createManualCheckpoint,
+    isConflictExhausted,
+    reloadFromServer,
+    retrySaveAfterConflict,
+    renderDirty,
+    renderLog,
+    renderProgress,
+    renderResultFilename,
+    renderResultUrl,
+    renderStatus,
+    saveStatus,
+    setScaleWidth,
+    startRender,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    checkpoints,
+    jumpToCheckpoint,
+    createManualCheckpoint,
     clipEditing.handleAddText,
     clipEditing.handleAddTextAt,
     trackManagement.handleAddTrack,

@@ -32,8 +32,11 @@ function buildProps(overrides: Partial<ComponentProps<typeof ClipAction>> = {}) 
     onDeleteClips: vi.fn(),
     onToggleMuteClips: vi.fn(),
     canCreateShotFromSelection: true,
+    existingShots: [],
     onCreateShotFromSelection: vi.fn(),
     onGenerateVideoFromSelection: vi.fn(),
+    onNavigateToShot: vi.fn(),
+    onOpenGenerateVideo: vi.fn(),
     isCreatingShot: false,
     ...overrides,
   };
@@ -95,5 +98,28 @@ describe('ClipAction', () => {
     expect(screen.getByText('Delete Clip')).toBeInTheDocument();
 
     window.requestAnimationFrame = originalRequestAnimationFrame;
+  });
+
+  it('shows existing shots and keeps the snapshotted list while the menu is open', () => {
+    const existingShot = { id: 'shot-9', name: 'Shot 9' };
+    const props = buildProps({
+      existingShots: [existingShot],
+    });
+    const { container, rerender } = render(<ClipAction {...props} />);
+
+    fireEvent.contextMenu(container.querySelector('[data-clip-id="clip-1"]') as HTMLElement);
+
+    expect(screen.getByText('Shot 9')).toBeInTheDocument();
+    expect(screen.getByTitle('Jump to shot')).toBeInTheDocument();
+    expect(screen.getByTitle('Generate Video')).toBeInTheDocument();
+    expect(screen.getByText('Create Shot')).toBeInTheDocument();
+
+    rerender(<ClipAction {...props} existingShots={[]} />);
+
+    expect(screen.getByText('Shot 9')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByTitle('Jump to shot'));
+
+    expect(props.onNavigateToShot).toHaveBeenCalledWith(existingShot);
   });
 });

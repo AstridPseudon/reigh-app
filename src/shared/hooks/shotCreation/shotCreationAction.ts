@@ -26,7 +26,7 @@ export function useCreateShotAction({
   generateShotName,
   applyPostCreationEffects,
   createShotMutation,
-  createShotWithImageMutation,
+  createShotWithGenerationsMutation,
   handleExternalImageDropMutation,
 }: CreateShotActionInput): UseShotCreationReturn['createShot'] {
   return useCallback(async (options: CreateShotOptions = {}): Promise<ShotCreationResult | null> => {
@@ -39,7 +39,6 @@ export function useCreateShotAction({
       name,
       generationId,
       generationIds,
-      generationPreview,
       files,
       aspectRatio,
       dispatchSkeletonEvents = true,
@@ -60,19 +59,16 @@ export function useCreateShotAction({
           selectedProjectId,
           shotName,
           generationIds,
-          shots,
           queryClient,
-          createShot: createShotMutation,
+          createShotWithGenerations: createShotWithGenerationsMutation,
         });
       } else if (generationId && !files?.length) {
         result = await createShotWithGenerationPath({
           selectedProjectId,
           shotName,
           generationId,
-          generationPreview,
-          shots,
           queryClient,
-          createShotWithImage: createShotWithImageMutation,
+          createShotWithGenerations: createShotWithGenerationsMutation,
         });
       } else if (files?.length) {
         result = await createShotWithFilesPath({
@@ -81,6 +77,7 @@ export function useCreateShotAction({
           files,
           aspectRatio,
           shots,
+          queryClient,
           onProgress,
           createShot: createShotMutation,
           uploadToShot: handleExternalImageDropMutation,
@@ -113,10 +110,10 @@ export function useCreateShotAction({
     selectedProjectId,
     generateShotName,
     setIsCreating,
-    createShotWithImageMutation,
     shots,
     queryClient,
     createShotMutation,
+    createShotWithGenerationsMutation,
     handleExternalImageDropMutation,
     applyPostCreationEffects,
   ]);

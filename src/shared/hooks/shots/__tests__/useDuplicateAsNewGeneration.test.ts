@@ -2,12 +2,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import React from 'react';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
-// Mock supabase
-const mockFrom = vi.fn();
+const mocks = vi.hoisted(() => ({
+  rpc: vi.fn(),
+  enqueueGenerationsInvalidation: vi.fn(),
+  invalidateShotsQueries: vi.fn(),
+}));
+
 vi.mock('@/integrations/supabase/client', () => ({
   getSupabaseClient: () => ({
-    from: (...args: unknown[]) => mockFrom(...args),
+    rpc: (...args: unknown[]) => mocks.rpc(...args),
   }),
 }));
 
@@ -16,7 +21,11 @@ vi.mock('@/shared/components/ui/runtime/sonner', () => ({
 }));
 
 vi.mock('@/shared/hooks/invalidation', () => ({
-  enqueueGenerationsInvalidation: vi.fn(),
+  enqueueGenerationsInvalidation: (...args: unknown[]) => mocks.enqueueGenerationsInvalidation(...args),
+}));
+
+vi.mock('@/shared/hooks/shots/cacheUtils', () => ({
+  invalidateShotsQueries: (...args: unknown[]) => mocks.invalidateShotsQueries(...args),
 }));
 
 import { useDuplicateAsNewGeneration } from '../useDuplicateAsNewGeneration';
@@ -37,97 +46,6 @@ describe('useDuplicateAsNewGeneration', () => {
     vi.clearAllMocks();
   });
 
-  function setupMocks(options: {
-    primaryVariant?: Record<string, unknown> | null;
-    generation?: Record<string, unknown> | null;
-    newGeneration?: Record<string, unknown>;
-    existingFrames?: number[];
-    newShotGeneration?: Record<string, unknown>;
-  }) {
-    const {
-      primaryVariant = {
-        location: 'https://example.com/image.png',
-        thumbnail_url: 'https://example.com/thumb.png',
-        params: { prompt: 'test' },
-      },
-      newGeneration = {
-        id: 'gen-new',
-        location: 'https://example.com/image.png',
-      },
-      existingFrames = [0, 50, 100],
-      newShotGeneration = { id: 'sg-new', timeline_frame: 75, generation_id: 'gen-new' },
-    } = options;
-
-    let callCount = 0;
-    mockFrom.mockImplementation((table: string) => {
-      if (table === 'generation_variants') {
-        return {
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              eq: vi.fn().mockReturnValue({
-                maybeSingle: vi.fn().mockResolvedValue({
-                  data: primaryVariant,
-                  error: null,
-                }),
-              }),
-            }),
-          }),
-          insert: vi.fn().mockResolvedValue({ data: null, error: null }),
-        };
-      }
-      if (table === 'generations') {
-        return {
-          insert: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: newGeneration,
-                error: null,
-              }),
-            }),
-          }),
-          select: vi.fn().mockReturnValue({
-            eq: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: options.generation || null,
-                error: options.generation ? null : { message: 'Not found' },
-              }),
-            }),
-          }),
-        };
-      }
-      if (table === 'shot_generations') {
-        callCount++;
-        if (callCount <= 1) {
-          // First call: fetch existing frames
-          return {
-            select: vi.fn().mockReturnValue({
-              eq: vi.fn().mockResolvedValue({
-                data: existingFrames.map(f => ({ timeline_frame: f })),
-                error: null,
-              }),
-            }),
-          };
-        }
-        // Second call: insert new shot_generation
-        return {
-          insert: vi.fn().mockReturnValue({
-            select: vi.fn().mockReturnValue({
-              single: vi.fn().mockResolvedValue({
-                data: newShotGeneration,
-                error: null,
-              }),
-            }),
-          }),
-        };
-      }
-      return {
-        select: vi.fn().mockReturnThis(),
-        eq: vi.fn().mockReturnThis(),
-        single: vi.fn().mockResolvedValue({ data: null, error: null }),
-      };
-    });
-  }
-
   it('returns a mutation hook', () => {
     const { wrapper } = createWrapper();
     const { result } = renderHook(() => useDuplicateAsNewGeneration(), { wrapper });
@@ -136,10 +54,24 @@ describe('useDuplicateAsNewGeneration', () => {
     expect(result.current).toHaveProperty('isPending');
   });
 
-  it('calculates midpoint timeline frame between current and next', async () => {
-    setupMocks({ existingFrames: [0, 50, 100] });
+  it('duplicates via RPC and preserves targeted invalidations', async () => {
+    const rpcSingle = vi.fn().mockResolvedValue({
+      data: {
+        new_generation_id: 'gen-new',
+        new_shot_generation_id: 'sg-new',
+        timeline_frame: 75,
+        location: 'https://example.com/image.png',
+        thumbnail_url: 'https://example.com/thumb.png',
+        type: 'image',
+        params: { prompt: 'test' },
+        created_at: '2026-04-06T00:00:00.000Z',
+      },
+      error: null,
+    });
+    mocks.rpc.mockReturnValue({ single: rpcSingle });
 
-    const { wrapper } = createWrapper();
+    const { queryClient, wrapper } = createWrapper();
+    const invalidateQueriesSpy = vi.spyOn(queryClient, 'invalidateQueries');
     const { result } = renderHook(() => useDuplicateAsNewGeneration(), { wrapper });
 
     let data: Awaited<ReturnType<typeof result.current.mutateAsync>>;
@@ -153,76 +85,43 @@ describe('useDuplicateAsNewGeneration', () => {
       });
     });
 
-    // Midpoint of 50 and 100 = 75
-    expect(data!.timeline_frame).toBeDefined();
-  });
-
-  it('adds 30 when no next_timeline_frame', async () => {
-    setupMocks({
-      existingFrames: [0, 50, 100],
-      newShotGeneration: { id: 'sg-new', timeline_frame: 130, generation_id: 'gen-new' },
+    expect(mocks.rpc).toHaveBeenCalledWith('duplicate_as_new_generation', {
+      p_shot_id: 'shot-1',
+      p_generation_id: 'gen-1',
+      p_project_id: 'project-1',
+      p_timeline_frame: 50,
+      p_next_timeline_frame: 100,
+      p_target_timeline_frame: undefined,
     });
-
-    const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useDuplicateAsNewGeneration(), { wrapper });
-
-    let data: Awaited<ReturnType<typeof result.current.mutateAsync>>;
-    await act(async () => {
-      data = await result.current.mutateAsync({
-        shot_id: 'shot-1',
-        generation_id: 'gen-1',
-        project_id: 'project-1',
-        timeline_frame: 100,
-      });
+    expect(rpcSingle).toHaveBeenCalledTimes(1);
+    expect(mocks.enqueueGenerationsInvalidation).toHaveBeenCalledWith(queryClient, 'shot-1', {
+      reason: 'duplicate-as-new-generation',
+      scope: 'all',
+      includeShots: false,
+      projectId: 'project-1',
+      includeProjectUnified: true,
     });
-
-    expect(data!.new_generation_id).toBe('gen-new');
-  });
-
-  it('uses explicit target_timeline_frame when provided', async () => {
-    setupMocks({
-      existingFrames: [0, 50, 100],
-      newShotGeneration: { id: 'sg-new', timeline_frame: 42, generation_id: 'gen-new' },
+    expect(mocks.invalidateShotsQueries).toHaveBeenCalledWith(queryClient, 'project-1', {
+      refetchType: 'inactive',
     });
-
-    const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useDuplicateAsNewGeneration(), { wrapper });
-
-    let data: Awaited<ReturnType<typeof result.current.mutateAsync>>;
-    await act(async () => {
-      data = await result.current.mutateAsync({
-        shot_id: 'shot-1',
-        generation_id: 'gen-1',
-        project_id: 'project-1',
-        timeline_frame: 0,
-        target_timeline_frame: 42,
-      });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.generations.derivedGenerations('gen-1'),
     });
-
-    expect(data!.new_generation_id).toBe('gen-new');
-  });
-
-  it('returns expected result shape', async () => {
-    setupMocks({});
-
-    const { wrapper } = createWrapper();
-    const { result } = renderHook(() => useDuplicateAsNewGeneration(), { wrapper });
-
-    let data: Awaited<ReturnType<typeof result.current.mutateAsync>>;
-    await act(async () => {
-      data = await result.current.mutateAsync({
-        shot_id: 'shot-1',
-        generation_id: 'gen-1',
-        project_id: 'project-1',
-        timeline_frame: 50,
-        next_timeline_frame: 100,
-      });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: queryKeys.segments.parents('shot-1', 'project-1'),
     });
-
-    expect(data!).toHaveProperty('shot_id', 'shot-1');
-    expect(data!).toHaveProperty('original_generation_id', 'gen-1');
-    expect(data!).toHaveProperty('new_generation_id', 'gen-new');
-    expect(data!).toHaveProperty('new_shot_generation_id', 'sg-new');
-    expect(data!).toHaveProperty('project_id', 'project-1');
+    expect(data).toEqual({
+      shot_id: 'shot-1',
+      original_generation_id: 'gen-1',
+      new_generation_id: 'gen-new',
+      new_shot_generation_id: 'sg-new',
+      timeline_frame: 75,
+      project_id: 'project-1',
+      location: 'https://example.com/image.png',
+      thumbnail_url: 'https://example.com/thumb.png',
+      type: 'image',
+      params: { prompt: 'test' },
+      created_at: '2026-04-06T00:00:00.000Z',
+    });
   });
 });

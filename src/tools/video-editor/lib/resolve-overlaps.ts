@@ -9,6 +9,13 @@ export interface OverlapResult {
   rows: TimelineRow[];
   /** Metadata patch for the moved clip if its source-time `from`/`to` changed. */
   metaPatches: Record<string, Partial<ClipMeta>>;
+  /** Requested vs actual start positions when overlap resolution moves the clip. */
+  adjustments: Array<{ clipId: string; requestedStart: number; actualStart: number }>;
+}
+
+export interface GroupOverlapResult {
+  rows: TimelineRow[];
+  metaPatches: Record<string, Partial<ClipMeta>>;
 }
 
 export interface GroupMovedClip {
@@ -130,6 +137,7 @@ export function resolveOverlaps(
   meta: Record<string, ClipMeta>,
 ): OverlapResult {
   const metaPatches: Record<string, Partial<ClipMeta>> = {};
+  const adjustments: Array<{ clipId: string; requestedStart: number; actualStart: number }> = [];
 
   const nextRows = rows.map((row) => {
     if (row.id !== rowId) return row;
@@ -187,6 +195,14 @@ export function resolveOverlaps(
       };
     }
 
+    if (start !== movedAction.start) {
+      adjustments.push({
+        clipId,
+        requestedStart: movedAction.start,
+        actualStart: start,
+      });
+    }
+
     const trimmedAction = { ...movedAction, start, end };
     return {
       ...row,
@@ -194,18 +210,19 @@ export function resolveOverlaps(
     };
   });
 
-  return { rows: nextRows, metaPatches };
+  return { rows: nextRows, metaPatches, adjustments };
 }
 
 export function resolveGroupOverlaps(
   rows: TimelineRow[],
   movedClips: GroupMovedClip[],
-  _meta: Record<string, ClipMeta>,
-): TimelineRow[] {
+  meta: Record<string, ClipMeta>,
+): GroupOverlapResult {
   if (movedClips.length === 0) {
-    return rows;
+    return { rows, metaPatches: {} };
   }
 
+  const metaPatches: Record<string, Partial<ClipMeta>> = {};
   const movedClipsByRow = new Map<string, GroupMovedClip[]>();
   for (const movedClip of movedClips) {
     const existing = movedClipsByRow.get(movedClip.rowId);
@@ -221,7 +238,7 @@ export function resolveGroupOverlaps(
   for (const [rowId, rowMovedClips] of movedClipsByRow) {
     const row = rows.find((candidate) => candidate.id === rowId);
     if (!row) {
-      return rows;
+      return { rows, metaPatches: {} };
     }
 
     const movedClipIds = new Set(rowMovedClips.map((clip) => clip.clipId));
@@ -232,7 +249,7 @@ export function resolveGroupOverlaps(
     );
 
     if (movedActionsById.size !== rowMovedClips.length) {
-      return rows;
+      return { rows, metaPatches: {} };
     }
 
     const preferredStart = Math.min(...rowMovedClips.map((clip) => clip.newStart));
@@ -242,7 +259,7 @@ export function resolveGroupOverlaps(
     const groupStart = findBestGroupStart(preferredStart, groupDuration, siblings);
 
     if (groupStart === null) {
-      return rows;
+      return { rows, metaPatches: {} };
     }
 
     const delta = groupStart - preferredStart;
@@ -265,7 +282,26 @@ export function resolveGroupOverlaps(
     );
 
     if ([...movedUpdates.values()].some((value) => value === null)) {
-      return rows;
+      return { rows, metaPatches: {} };
+    }
+
+    for (const clip of rowMovedClips) {
+      if (delta === 0) {
+        continue;
+      }
+
+      const clipMeta = meta[clip.clipId];
+      if (!clipMeta || typeof clipMeta.hold === 'number') {
+        continue;
+      }
+
+      const speed = clipMeta.speed ?? 1;
+      const from = (clipMeta.from ?? 0) + delta * speed;
+      metaPatches[clip.clipId] = {
+        ...metaPatches[clip.clipId],
+        from,
+        to: from + (clip.newEnd - clip.newStart) * speed,
+      };
     }
 
     nextRowsById.set(rowId, {
@@ -274,5 +310,8 @@ export function resolveGroupOverlaps(
     });
   }
 
-  return rows.map((row) => nextRowsById.get(row.id) ?? row);
+  return {
+    rows: rows.map((row) => nextRowsById.get(row.id) ?? row),
+    metaPatches,
+  };
 }

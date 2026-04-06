@@ -106,9 +106,9 @@ export async function executeCreateTask(
     shotNote = ` Reused shot ${shotId}.`;
   }
 
-  const basedOn = taskType === "video-enhance"
+  const basedOn = asTrimmedString(args.based_on) ?? (taskType === "video-enhance"
     ? selectedVideoClip?.generation_id
-    : selectedReferenceClips[0]?.generation_id;
+    : selectedReferenceClips[0]?.generation_id);
   const generationId = taskType === "image-upscale" ? selectedReferenceClips[0]?.generation_id : undefined;
 
   const result = await createGenerationTask({

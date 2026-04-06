@@ -70,66 +70,7 @@ vi.mock('../useShotGenerationMutations', () => ({
   })),
 }));
 
-import { useCreateShotWithImage, useHandleExternalImageDrop } from '../useShotCreation';
-
-describe('useCreateShotWithImage', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    mockRpc.mockReturnValue({
-      single: vi.fn().mockResolvedValue({
-        data: {
-          success: true,
-          shot_id: 'shot-1',
-          shot_name: 'Shot 1',
-          shot_generation_id: 'sg-1',
-        },
-        error: null,
-      }),
-    });
-  });
-
-  it('returns a mutation', () => {
-    const { result } = renderHookWithProviders(() => useCreateShotWithImage());
-
-    expect(typeof result.current.mutateAsync).toBe('function');
-    expect(result.current.isPending).toBe(false);
-  });
-
-  it('calls the RPC function on mutate', async () => {
-    const { result } = renderHookWithProviders(() => useCreateShotWithImage());
-
-    await act(async () => {
-      await result.current.mutateAsync({
-        projectId: 'proj-1',
-        shotName: 'New Shot',
-        generationId: 'gen-1',
-      });
-    });
-
-    expect(mockRpc).toHaveBeenCalledWith('create_shot_with_image', {
-      p_project_id: 'proj-1',
-      p_shot_name: 'New Shot',
-      p_generation_id: 'gen-1',
-    });
-  });
-
-  it('returns shot data on success', async () => {
-    const { result } = renderHookWithProviders(() => useCreateShotWithImage());
-
-    let mutateResult: unknown;
-    await act(async () => {
-      mutateResult = await result.current.mutateAsync({
-        projectId: 'proj-1',
-        shotName: 'New Shot',
-        generationId: 'gen-1',
-      });
-    });
-
-    expect(mockRpc).toHaveBeenCalledTimes(1);
-    expect(mutateResult.shotId).toBe('shot-1');
-    expect(mutateResult.shotName).toBe('Shot 1');
-  });
-});
+import { useHandleExternalImageDrop } from '../useShotCreation';
 
 describe('useHandleExternalImageDrop', () => {
   beforeEach(() => {

@@ -2,15 +2,16 @@ import { useEffect, useRef } from 'react';
 import type { MutableRefObject, RefObject } from 'react';
 import type { DragCoordinator } from '@/tools/video-editor/hooks/useDragCoordinator';
 import type { SelectClipOptions } from '@/tools/video-editor/hooks/useMultiSelect';
-import type { UseTimelineDataResult } from '@/tools/video-editor/hooks/useTimelineData';
+import type { TimelineApplyEdit } from '@/tools/video-editor/hooks/useTimelineData.types';
 import type { TrackKind } from '@/tools/video-editor/types';
-import type { ClipMeta, ClipOrderMap, TimelineData } from '@/tools/video-editor/lib/timeline-data';
-import type { TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
+import type { TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import {
   type ClipOffset,
-  planMultiDragMoves,
   applyMultiDragMoves,
+  buildAugmentedData,
+  buildConfigFromDragResult,
   computeSecondaryGhosts,
+  planMultiDragMoves,
 } from '@/tools/video-editor/lib/multi-drag-utils';
 import { createAutoScroller } from '@/tools/video-editor/lib/auto-scroll';
 import { snapDrag } from '@/tools/video-editor/lib/snap-edges';
@@ -32,18 +33,13 @@ export interface ActionDragState {
 interface UseCrossTrackDragOptions {
   timelineWrapperRef: RefObject<HTMLDivElement | null>;
   dataRef: MutableRefObject<TimelineData | null>;
+  pendingOpsRef: MutableRefObject<number>;
   moveClipToRow: (clipId: string, targetRowId: string, newStartTime?: number, transactionId?: string) => void;
   createTrackAndMoveClip: (clipId: string, kind: TrackKind, newStartTime?: number, insertAtTop?: boolean) => void;
   selectClip: (clipId: string, opts?: SelectClipOptions) => void;
   selectClips: (clipIds: Iterable<string>) => void;
   selectedClipIdsRef: MutableRefObject<Set<string>>;
-  applyTimelineEdit: (
-    nextRows: TimelineRow[],
-    metaUpdates?: Record<string, Partial<ClipMeta>>,
-    metaDeletes?: string[],
-    clipOrderOverride?: ClipOrderMap,
-    options?: { save?: boolean; transactionId?: string; semantic?: boolean },
-  ) => void;
+  applyEdit: TimelineApplyEdit;
   coordinator: DragCoordinator;
   rowHeight: number;
   scale: number;
@@ -65,7 +61,6 @@ export interface DragSession {
   startClientY: number;
   pointerOffsetX: number;
   pointerOffsetY: number;
-  latestStart: number;
   clipDuration: number;
   clipEl: HTMLElement;
   moveListener: (event: PointerEvent) => void;
@@ -85,12 +80,13 @@ export interface UseClipDragResult {
 export const useClipDrag = ({
   timelineWrapperRef,
   dataRef,
+  pendingOpsRef,
   moveClipToRow,
   createTrackAndMoveClip,
   selectClip,
   selectClips,
   selectedClipIdsRef,
-  applyTimelineEdit,
+  applyEdit,
   coordinator,
   rowHeight: _rowHeight,
   scale,
@@ -120,8 +116,10 @@ export const useClipDrag = ({
   selectClipsRef.current = selectClips;
   const selectedClipIdsRefRef = useRef(selectedClipIdsRef);
   selectedClipIdsRefRef.current = selectedClipIdsRef;
-  const applyTimelineEditRef = useRef<UseTimelineDataResult['applyTimelineEdit']>(applyTimelineEdit);
-  applyTimelineEditRef.current = applyTimelineEdit;
+  const pendingOpsRefRef = useRef(pendingOpsRef);
+  pendingOpsRefRef.current = pendingOpsRef;
+  const applyEditRef = useRef<TimelineApplyEdit>(applyEdit);
+  applyEditRef.current = applyEdit;
 
   useEffect(() => {
     const clearSession = (session: DragSession | null, deferDeactivate = false) => {
@@ -149,6 +147,7 @@ export const useClipDrag = ({
         // Pointer capture can already be released by the browser during teardown.
       }
 
+      pendingOpsRefRef.current.current -= 1;
       dragSessionRef.current = null;
       actionDragStateRef.current = null;
       if (deferDeactivate) {
@@ -277,7 +276,6 @@ export const useClipDrag = ({
           session.draggedClipIds,
         );
 
-        session.latestStart = snappedStart;
         const dragState = actionDragStateRef.current;
         if (dragState) {
           const duration = dragState.initialEnd - dragState.initialStart;
@@ -362,7 +360,7 @@ export const useClipDrag = ({
         const dropPosition = coordinatorRef.current.lastPosition;
         // Use snapped time from drag state (computed during pointermove) rather than
         // the raw coordinator time, which doesn't account for edge snapping.
-        const nextStart = actionDragStateRef.current?.latestStart ?? session.latestStart;
+        const nextStart = actionDragStateRef.current!.latestStart;
 
         // Cross-track single-clip drag: use existing moveClipToRow / createTrackAndMoveClip
         if (crossTrackActiveRef.current && session.draggedClipIds.length === 1) {
@@ -383,26 +381,67 @@ export const useClipDrag = ({
         if (session.hasMoved && session.draggedClipIds.length > 1) {
           const current = dataRef.current;
           if (current) {
-            const anchorTargetRowId = crossTrackActiveRef.current
-              ? (dropPosition?.trackId && !dropPosition.isReject && !dropPosition.isNewTrack
-                  ? dropPosition.trackId
-                  : session.sourceRowId)
-              : session.sourceRowId;
             const timeDelta = getAnchorTimeDelta(session, nextStart);
-            const { canMove, moves } = planMultiDragMoves(
-              current,
-              session.clipOffsets,
-              session.clipId,
-              anchorTargetRowId,
-              session.sourceRowId,
-              timeDelta,
-            );
+            let handledNewTrackMove = false;
 
-            if (canMove && moves.length > 0) {
-              const { nextRows, metaUpdates, nextClipOrder } = applyMultiDragMoves(current, moves);
-              applyTimelineEditRef.current(nextRows, metaUpdates, undefined, nextClipOrder, {
-                transactionId: session.transactionId,
-              });
+            if (crossTrackActiveRef.current && dropPosition?.isNewTrack) {
+              const augmentedData = buildAugmentedData(current, session.sourceKind, dropPosition.isNewTrackTop);
+              if (augmentedData) {
+                const { augmented, newTrackId } = augmentedData;
+                const { canMove, moves } = planMultiDragMoves(
+                  augmented,
+                  session.clipOffsets,
+                  session.clipId,
+                  newTrackId,
+                  session.sourceRowId,
+                  timeDelta,
+                );
+
+                if (canMove && moves.length > 0) {
+                  const { nextRows, metaUpdates } = applyMultiDragMoves(augmented, moves);
+                  const finalConfig = buildConfigFromDragResult(
+                    augmented.resolvedConfig,
+                    augmented.meta,
+                    nextRows,
+                    metaUpdates,
+                  );
+                  applyEditRef.current({
+                    type: 'config',
+                    resolvedConfig: finalConfig,
+                  }, {
+                    transactionId: session.transactionId,
+                  });
+                  handledNewTrackMove = true;
+                }
+              }
+            }
+
+            if (!handledNewTrackMove) {
+              const anchorTargetRowId = crossTrackActiveRef.current
+                ? (dropPosition?.trackId && !dropPosition.isReject && !dropPosition.isNewTrack
+                    ? dropPosition.trackId
+                    : session.sourceRowId)
+                : session.sourceRowId;
+              const { canMove, moves } = planMultiDragMoves(
+                current,
+                session.clipOffsets,
+                session.clipId,
+                anchorTargetRowId,
+                session.sourceRowId,
+                timeDelta,
+              );
+
+              if (canMove && moves.length > 0) {
+                const { nextRows, metaUpdates, nextClipOrder } = applyMultiDragMoves(current, moves);
+                applyEditRef.current({
+                  type: 'rows',
+                  rows: nextRows,
+                  metaUpdates,
+                  clipOrderOverride: nextClipOrder,
+                }, {
+                  transactionId: session.transactionId,
+                });
+              }
             }
           }
           selectClipsRef.current(session.draggedClipIds);
@@ -428,6 +467,7 @@ export const useClipDrag = ({
         clearSession(session);
       };
 
+      pendingOpsRefRef.current.current += 1;
       dragSessionRef.current = {
         pointerId: event.pointerId,
         clipId,
@@ -442,7 +482,6 @@ export const useClipDrag = ({
         startClientY: event.clientY,
         pointerOffsetX: event.clientX - clipRect.left,
         pointerOffsetY: event.clientY - clipRect.top,
-        latestStart: initialStart,
         clipDuration,
         clipEl: clipTarget,
         moveListener: handlePointerMove,

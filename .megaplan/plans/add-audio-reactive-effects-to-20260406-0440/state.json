@@ -1,0 +1,38 @@
+{
+  "name": "add-audio-reactive-effects-to-20260406-0440",
+  "idea": "Add audio-reactive effects to the video editor. Effects should be able to respond to audio data (frequency bins, amplitude, beat detection) from a blended mix of all audio tracks in the timeline. This must integrate with the existing effects infrastructure: the DynamicEffectRegistry, the compileEffect.tsx runtime compilation (inject audio hooks as new globals alongside useCurrentFrame/interpolate/etc), the effectPromptTemplate.ts (so AI-generated effects can use audio data), and the ParameterControls system (new audio-binding parameter type). Key integration points: (1) Audio analysis layer that extracts frequency/amplitude/beat data from a mixed-down version of all timeline audio tracks, synchronized to Remotion's frame clock. (2) A useAudioReactive() hook (or similar) injected into compiled custom effects via the new Function() call in compileEffect.tsx. (3) Updated effectPromptTemplate.ts documenting the new audio globals. (4) The continuous effect category is the primary target but entrance/exit effects should also be able to use audio data. (5) Preview support in EffectCreatorPanel.tsx. The existing effect wrapping pipeline (wrapWithEffect/wrapWithClipEffects in effects/index.tsx -> VisualClip.tsx -> EffectLayerSequence.tsx) should remain unchanged - audio data flows through the hook, not through props.",
+  "current_state": "initialized",
+  "iteration": 0,
+  "created_at": "2026-04-06T02:40:46Z",
+  "config": {
+    "project_dir": "/Users/peteromalley/Documents/reigh-workspace/reigh-app",
+    "auto_approve": false,
+    "robustness": "heavy",
+    "agent": ""
+  },
+  "sessions": {},
+  "plan_versions": [],
+  "history": [
+    {
+      "step": "init",
+      "timestamp": "2026-04-06T02:40:46Z",
+      "duration_ms": 0,
+      "cost_usd": 0.0,
+      "result": "success",
+      "environment": {
+        "claude": true,
+        "codex": true
+      }
+    }
+  ],
+  "meta": {
+    "significant_counts": [],
+    "weighted_scores": [],
+    "plan_deltas": [],
+    "recurring_critiques": [],
+    "total_cost_usd": 0.0,
+    "overrides": [],
+    "notes": []
+  },
+  "last_gate": {}
+}

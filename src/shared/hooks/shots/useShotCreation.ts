@@ -7,36 +7,29 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import { enqueueGenerationsInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { useCreateShot } from './useShotsCrud';
 import { useAddImageToShot } from './useShotGenerationMutations';
 import { processDroppedImages, type ExternalImageDropVariables } from './externalImageDrop';
+import type { CreateShotWithGenerationsRpcResult } from '@/shared/hooks/shotCreation/shotCreationTypes';
 
-interface CreateShotWithImageResponse {
-  shot_id: string;
-  shot_name: string;
-  shot_generation_id: string;
-  success: boolean;
-}
-
-export const useCreateShotWithImage = () => {
+export const useCreateShotWithGenerations = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: async ({
       projectId,
       shotName,
-      generationId,
+      generationIds,
     }: {
       projectId: string;
       shotName: string;
-      generationId: string;
+      generationIds: string[];
     }) => {
-      const { data, error } = await supabase().rpc('create_shot_with_image', {
+      const { data, error } = await supabase().rpc('create_shot_with_generations', {
           p_project_id: projectId,
           p_shot_name: shotName,
-          p_generation_id: generationId,
+          p_generation_ids: generationIds,
         })
         .single();
 
@@ -44,19 +37,15 @@ export const useCreateShotWithImage = () => {
         throw error;
       }
 
-      const typedData = data as CreateShotWithImageResponse;
+      const typedData = data as CreateShotWithGenerationsRpcResult | null;
       if (!typedData?.success) {
-        throw new Error('Failed to create shot with image');
+        throw new Error('Failed to create shot with generations');
       }
 
-      return {
-        shotId: typedData.shot_id,
-        shotName: typedData.shot_name,
-        shotGenerationId: typedData.shot_generation_id,
-      };
+      return typedData;
     },
 
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       queryClient.invalidateQueries({
         queryKey: [...queryKeys.shots.all, variables.projectId],
         refetchType: 'inactive',
@@ -65,18 +54,10 @@ export const useCreateShotWithImage = () => {
         queryKey: queryKeys.unified.projectPrefix(variables.projectId),
         refetchType: 'inactive',
       });
-
-      if (data.shotId) {
-        enqueueGenerationsInvalidation(queryClient, data.shotId, {
-          reason: 'create-shot-with-image',
-          scope: 'all',
-          delayMs: 100,
-        });
-      }
     },
 
     onError: (error: Error) => {
-      normalizeAndPresentError(error, { context: 'useShotCreation', toastTitle: 'Failed to create shot with image' });
+      normalizeAndPresentError(error, { context: 'useShotCreation', toastTitle: 'Failed to create shot with generations' });
     },
   });
 };

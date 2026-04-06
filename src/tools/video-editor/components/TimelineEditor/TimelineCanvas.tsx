@@ -6,20 +6,25 @@ import React, {
   useMemo,
   useRef,
   useState,
+  type MutableRefObject,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
   type UIEvent,
 } from 'react';
+import { createPortal } from 'react-dom';
 import { DndContext, closestCenter, type DragEndEvent, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { Layers } from 'lucide-react';
+import { ArrowRight, Clapperboard, Layers } from 'lucide-react';
 import { TrackLabelContent } from '@/tools/video-editor/components/TimelineEditor/TrackLabel';
+import type { ShotGroup } from '@/tools/video-editor/hooks/useShotGroups';
+import { useTimelineEditorContext } from '@/tools/video-editor/contexts/TimelineEditorContext';
 import { TimeRuler } from '@/tools/video-editor/components/TimelineEditor/TimeRuler';
 import { LABEL_WIDTH } from '@/tools/video-editor/lib/coordinate-utils';
 import { snapResize } from '@/tools/video-editor/lib/snap-edges';
 import type { TrackDefinition } from '@/tools/video-editor/types';
 import type { TimelineAction, TimelineCanvasHandle, TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
+import type { DragSession } from '@/tools/video-editor/hooks/useClipDrag';
 import type { MarqueeRect } from '@/tools/video-editor/hooks/useMarqueeSelect';
 
 interface ScrollMetrics {
@@ -44,6 +49,18 @@ interface ResizeSession {
   initialClientX: number;
 }
 
+interface PositionedShotGroup {
+  key: string;
+  shotId: string;
+  shotName: string;
+  clipIds: string[];
+  color: string;
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
 export interface TimelineCanvasProps {
   rows: TimelineRow[];
   tracks: TrackDefinition[];
@@ -66,6 +83,11 @@ export interface TimelineCanvasProps {
   onActionResizeStart?: (params: { action: TimelineAction; row: TimelineRow; dir: ResizeDir }) => void;
   onActionResizing?: (params: { action: TimelineAction; row: TimelineRow; start: number; end: number; dir: ResizeDir }) => void;
   onActionResizeEnd?: (params: { action: TimelineAction; row: TimelineRow; start: number; end: number; dir: ResizeDir }) => void;
+  shotGroups?: ShotGroup[];
+  onShotGroupNavigate?: (shotId: string) => void;
+  onShotGroupGenerateVideo?: (shotId: string) => void;
+  onSelectClips?: (clipIds: string[]) => void;
+  dragSessionRef?: MutableRefObject<DragSession | null>;
   onScroll?: (metrics: ScrollMetrics) => void;
   marqueeRect?: MarqueeRect | null;
   onEditAreaPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void;
@@ -100,7 +122,7 @@ interface SortableRowProps {
   startLeft: number;
   pixelsPerSecond: number;
   selectedTrackId: string | null;
-  resizeOverrides: Record<string, ResizeOverride>;
+  resizeOverrides: Readonly<Record<string, ResizeOverride>>;
   getActionRender?: (action: TimelineAction, row: TimelineRow) => ReactNode;
   onSelectTrack: (trackId: string) => void;
   onTrackChange: (trackId: string, patch: Partial<TrackDefinition>) => void;
@@ -115,7 +137,9 @@ interface SortableRowProps {
   onResizeEnd: (event: ReactPointerEvent<HTMLDivElement>, cancelled: boolean) => void;
 }
 
-function SortableRow({
+const EMPTY_RESIZE_OVERRIDES: Readonly<Record<string, ResizeOverride>> = Object.freeze({});
+
+const SortableRow = React.memo(function SortableRow({
   row,
   track,
   rowHeight,
@@ -208,7 +232,9 @@ function SortableRow({
       })}
     </div>
   );
-}
+});
+
+SortableRow.displayName = 'SortableRow';
 
 export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasProps>(function TimelineCanvas({
   rows,
@@ -232,6 +258,11 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
   onActionResizeStart,
   onActionResizing,
   onActionResizeEnd,
+  shotGroups = [],
+  onShotGroupNavigate,
+  onShotGroupGenerateVideo,
+  onSelectClips,
+  dragSessionRef,
   onScroll,
   marqueeRect,
   onEditAreaPointerDown,
@@ -241,6 +272,7 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
   onClearUnusedTracks,
   newTrackDropLabel,
 }: TimelineCanvasProps, ref) {
+  const { pendingOpsRef } = useTimelineEditorContext();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
   const resizeSessionRef = useRef<ResizeSession | null>(null);
@@ -250,9 +282,30 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
   const scrollMetricsRef = useRef<ScrollMetrics>({ scrollLeft: 0, scrollTop: 0 });
   const [scrollLeft, setScrollLeft] = useState(0);
   const [resizeOverrides, setResizeOverrides] = useState<Record<string, ResizeOverride>>({});
+  const [shotGroupMenu, setShotGroupMenu] = useState<{ x: number; y: number; shotId: string; shotName: string } | null>(null);
+  const shotGroupMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!shotGroupMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (shotGroupMenuRef.current && !shotGroupMenuRef.current.contains(e.target as Node)) {
+        setShotGroupMenu(null);
+      }
+    };
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShotGroupMenu(null);
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleEscape);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleEscape);
+    };
+  }, [shotGroupMenu]);
 
   const pixelsPerSecond = scaleWidth / Math.max(scale, Number.EPSILON);
   const minDuration = MIN_ACTION_WIDTH_PX / pixelsPerSecond;
+  const actionHeight = Math.max(12, rowHeight - ACTION_VERTICAL_MARGIN * 2);
   const maxEnd = useMemo(() => rows.reduce(
     (currentMax, row) => row.actions.reduce((rowMax, action) => Math.max(rowMax, action.end), currentMax),
     0,
@@ -261,6 +314,80 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
   const scaleCount = clamp(derivedScaleCount, minScaleCount, maxScaleCount);
   const totalWidth = startLeft + scaleCount * scaleWidth;
   const totalHeight = Math.max(rows.length * rowHeight, rowHeight);
+  const rowActionMaps = useMemo(
+    () => rows.map((row) => new Map(row.actions.map((action) => [action.id, action] as const))),
+    [rows],
+  );
+  const hasResizeOverrides = Object.keys(resizeOverrides).length > 0;
+  const rowResizeOverrides = useMemo(
+    () => rows.map<Readonly<Record<string, ResizeOverride>>>((row) => {
+      let overridesForRow: Record<string, ResizeOverride> | null = null;
+      for (const action of row.actions) {
+        const override = resizeOverrides[action.id];
+        if (!override) {
+          continue;
+        }
+
+        if (!overridesForRow) {
+          overridesForRow = {};
+        }
+        overridesForRow[action.id] = override;
+      }
+
+      return overridesForRow ?? EMPTY_RESIZE_OVERRIDES;
+    }),
+    [resizeOverrides, rows],
+  );
+  const positionedShotGroups = useMemo(() => {
+    const snapThresholdSeconds = SNAP_THRESHOLD_PX / pixelsPerSecond;
+
+    return shotGroups.flatMap<PositionedShotGroup>((group) => {
+      const row = rows[group.rowIndex];
+      if (!row || row.id !== group.rowId) {
+        return [];
+      }
+
+      const actionMap = rowActionMaps[group.rowIndex];
+      const actions: TimelineAction[] = [];
+      for (const clipId of group.clipIds) {
+        const action = actionMap.get(clipId);
+        if (!action) {
+          return [];
+        }
+
+        const override = resizeOverrides[clipId];
+        actions.push(override ? { ...action, ...override } : action);
+      }
+
+      if (actions.length < 2) {
+        return [];
+      }
+
+      for (let index = 1; index < actions.length; index += 1) {
+        const previous = actions[index - 1];
+        const current = actions[index];
+        if (current.start < previous.start || current.start - previous.end > snapThresholdSeconds) {
+          return [];
+        }
+      }
+
+      const first = actions[0];
+      const last = actions[actions.length - 1];
+
+      return [{
+        key: `${group.shotId}:${group.rowId}:${group.clipIds.join(',')}`,
+        shotId: group.shotId,
+        shotName: group.shotName,
+        clipIds: group.clipIds,
+        color: group.color,
+        left: startLeft + first.start * pixelsPerSecond,
+        top: group.rowIndex * rowHeight + ACTION_VERTICAL_MARGIN,
+        width: Math.max((last.end - first.start) * pixelsPerSecond, 1),
+        height: actionHeight,
+      }];
+    });
+  }, [actionHeight, pixelsPerSecond, resizeOverrides, rowActionMaps, rowHeight, rows, shotGroups, startLeft]);
+  const hideShotGroups = dragSessionRef?.current !== null || hasResizeOverrides;
 
   const syncCursor = useCallback((time = timeRef.current) => {
     const cursor = cursorRef.current;
@@ -413,6 +540,7 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
 
+    pendingOpsRef.current -= 1;
     const context = getResizeContext(session.actionId, session.rowId);
     if (!cancelled && context) {
       onActionResizeEnd?.({
@@ -458,6 +586,7 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
       },
     }));
     onActionResizeStart?.({ action, row, dir });
+    pendingOpsRef.current += 1;
     event.currentTarget.setPointerCapture(event.pointerId);
     event.preventDefault();
     event.stopPropagation();
@@ -521,7 +650,75 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
             />
           )}
           {newTrackDropLabel?.includes('at top') && (
-            <div className="pointer-events-none absolute top-0 left-0 right-0 z-10 h-1 bg-sky-400/60" style={{ marginLeft: LABEL_WIDTH }} />
+            <div className="pointer-events-none absolute left-0 right-0 top-0 z-10 h-1 bg-sky-400/60" style={{ marginLeft: LABEL_WIDTH }} />
+          )}
+          {!hideShotGroups && positionedShotGroups.map((group) => (
+            <React.Fragment key={group.key}>
+              <div
+                className="pointer-events-none absolute rounded-md border"
+                style={{
+                  left: group.left - 2,
+                  top: group.top - 2,
+                  width: group.width + 4,
+                  height: group.height + 4,
+                  zIndex: 1,
+                  borderColor: `color-mix(in srgb, ${group.color} 72%, transparent)`,
+                  backgroundColor: `color-mix(in srgb, ${group.color} 18%, transparent)`,
+                }}
+              />
+              <div
+                className="absolute rounded-t-sm opacity-0 transition-opacity hover:opacity-100"
+                title={group.shotName}
+                onDoubleClick={(e) => {
+                  e.stopPropagation();
+                  onSelectClips?.(group.clipIds);
+                }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  setShotGroupMenu({ x: e.clientX, y: e.clientY, shotId: group.shotId, shotName: group.shotName });
+                }}
+                style={{
+                  left: group.left,
+                  top: group.top - ACTION_VERTICAL_MARGIN,
+                  width: group.width,
+                  height: ACTION_VERTICAL_MARGIN,
+                  zIndex: 8,
+                  pointerEvents: 'auto',
+                  background: `color-mix(in srgb, ${group.color} 78%, transparent)`,
+                }}
+              />
+            </React.Fragment>
+          ))}
+          {shotGroupMenu && createPortal(
+            <div
+              ref={shotGroupMenuRef}
+              className="fixed z-50 min-w-[10rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95"
+              style={{ left: shotGroupMenu.x, top: shotGroupMenu.y }}
+            >
+              <div className="px-2 py-1 text-xs font-medium text-muted-foreground">{shotGroupMenu.shotName}</div>
+              {onShotGroupNavigate && (
+                <button
+                  type="button"
+                  className="relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                  onClick={() => { onShotGroupNavigate(shotGroupMenu.shotId); setShotGroupMenu(null); }}
+                >
+                  <ArrowRight className="h-4 w-4" />
+                  Jump to Shot
+                </button>
+              )}
+              {onShotGroupGenerateVideo && (
+                <button
+                  type="button"
+                  className="relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
+                  onClick={() => { onShotGroupGenerateVideo(shotGroupMenu.shotId); setShotGroupMenu(null); }}
+                >
+                  <Clapperboard className="h-4 w-4" />
+                  Generate Video
+                </button>
+              )}
+            </div>,
+            document.body,
           )}
           <DndContext
             sensors={trackSensors}
@@ -547,7 +744,7 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
                     startLeft={startLeft}
                     pixelsPerSecond={pixelsPerSecond}
                     selectedTrackId={selectedTrackId}
-                    resizeOverrides={resizeOverrides}
+                    resizeOverrides={rowResizeOverrides[index] ?? EMPTY_RESIZE_OVERRIDES}
                     getActionRender={getActionRender}
                     onSelectTrack={onSelectTrack}
                     onTrackChange={onTrackChange}

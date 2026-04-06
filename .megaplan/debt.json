@@ -696,6 +696,212 @@
       "resolved": false,
       "resolved_by": null,
       "resolved_at": null
+    },
+    {
+      "id": "DEBT-042",
+      "subsystem": "usederivedtimeline",
+      "concern": "duplicate of correctness-1 \u2014 usememo dep array lint violation in sample code",
+      "flag_ids": [
+        "correctness-4"
+      ],
+      "plan_ids": [
+        "restructure-the-video-editor-20260406-0206"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T00:35:58Z",
+      "updated_at": "2026-04-06T00:35:58Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-043",
+      "subsystem": "multi-drag-utils",
+      "concern": "duplicate of correctness-2 \u2014 multi-drag meta patch accumulation not spelled out",
+      "flag_ids": [
+        "correctness-5"
+      ],
+      "plan_ids": [
+        "restructure-the-video-editor-20260406-0206"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T00:35:58Z",
+      "updated_at": "2026-04-06T00:35:58Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-044",
+      "subsystem": "multi-drag-utils",
+      "concern": "same merge strategy concern as correctness-2/5 from the caller perspective",
+      "flag_ids": [
+        "callers"
+      ],
+      "plan_ids": [
+        "restructure-the-video-editor-20260406-0206"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T00:35:58Z",
+      "updated_at": "2026-04-06T00:35:58Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-045",
+      "subsystem": "resolve-overlaps",
+      "concern": "resolve-overlaps.ts entirely lacks tests; plan only adds resolvegroupoverlaps tests",
+      "flag_ids": [
+        "issue_hints"
+      ],
+      "plan_ids": [
+        "restructure-the-video-editor-20260406-0206"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T00:35:58Z",
+      "updated_at": "2026-04-06T00:35:58Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-046",
+      "subsystem": "resolve-overlaps",
+      "concern": "phase 4 blast radius covers both resolveoverlaps and resolvegroupoverlaps return shapes",
+      "flag_ids": [
+        "scope"
+      ],
+      "plan_ids": [
+        "restructure-the-video-editor-20260406-0206"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T00:35:58Z",
+      "updated_at": "2026-04-06T00:35:58Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-047",
+      "subsystem": "video-editor-effect-registry",
+      "concern": "replaceeffectregistry() in render mutates module state during react render",
+      "flag_ids": [
+        "correctness-1"
+      ],
+      "plan_ids": [
+        "fix-all-5-architectural-20260406-0219"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T01:08:16Z",
+      "updated_at": "2026-04-06T01:08:16Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-048",
+      "subsystem": "video-editor-effect-registry",
+      "concern": "same render-purity concern as correctness-1",
+      "flag_ids": [
+        "correctness-5"
+      ],
+      "plan_ids": [
+        "fix-all-5-architectural-20260406-0219"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T01:08:16Z",
+      "updated_at": "2026-04-06T01:08:16Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-049",
+      "subsystem": "video-editor-effect-preview",
+      "concern": "preview fps source not exposed via existing context",
+      "flag_ids": [
+        "FLAG-004"
+      ],
+      "plan_ids": [
+        "fix-all-5-architectural-20260406-0219"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T01:08:16Z",
+      "updated_at": "2026-04-06T01:08:16Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-050",
+      "subsystem": "video-editor-effect-preview",
+      "concern": "same fps gap as flag-004",
+      "flag_ids": [
+        "correctness-2",
+        "issue_hints",
+        "callers"
+      ],
+      "plan_ids": [
+        "fix-all-5-architectural-20260406-0219"
+      ],
+      "occurrence_count": 3,
+      "created_at": "2026-04-06T01:08:16Z",
+      "updated_at": "2026-04-06T01:08:16Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-051",
+      "subsystem": "video-editor-effect-registry",
+      "concern": "o(n) re-renders during effect initialization",
+      "flag_ids": [
+        "performance-1"
+      ],
+      "plan_ids": [
+        "fix-all-5-architectural-20260406-0219"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T01:08:16Z",
+      "updated_at": "2026-04-06T01:08:16Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-052",
+      "subsystem": "video-editor-effect-registry",
+      "concern": "same batching gap as performance-1",
+      "flag_ids": [
+        "all_locations"
+      ],
+      "plan_ids": [
+        "fix-all-5-architectural-20260406-0219"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T01:08:16Z",
+      "updated_at": "2026-04-06T01:08:16Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-053",
+      "subsystem": "video-editor-effect-registry",
+      "concern": "success criterion hardcodes render-time assignment as implementation detail",
+      "flag_ids": [
+        "criteria_quality"
+      ],
+      "plan_ids": [
+        "fix-all-5-architectural-20260406-0219"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T01:08:16Z",
+      "updated_at": "2026-04-06T01:08:16Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
     }
   ]
 }

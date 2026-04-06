@@ -16,7 +16,7 @@ import {
 import { continuousEffectTypes, entranceEffectTypes, exitEffectTypes } from '@/tools/video-editor/effects';
 import { useVideoEditorRuntime } from '@/tools/video-editor/contexts/DataProviderContext';
 import { useEffectResources } from '@/tools/video-editor/hooks/useEffectResources';
-import type { ClipTab } from '@/tools/video-editor/hooks/useTimelineData';
+import type { ClipTab } from '@/tools/video-editor/hooks/useTimelineData.types';
 import type { ClipMeta } from '@/tools/video-editor/lib/timeline-data';
 import type { ResolvedTimelineClip } from '@/tools/video-editor/types';
 

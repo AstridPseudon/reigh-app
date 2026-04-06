@@ -26,6 +26,6 @@ export {
 
 // Composite creation operations
 export {
-  useCreateShotWithImage,
+  useCreateShotWithGenerations,
   useHandleExternalImageDrop,
 } from './useShotCreation';

@@ -1,6 +1,8 @@
 import type { FC, ReactNode } from 'react';
 import { secondsToFrames } from '@/tools/video-editor/lib/config-utils';
 import { DynamicEffectRegistry } from '@/tools/video-editor/effects/DynamicEffectRegistry';
+import { EffectErrorBoundary } from '@/tools/video-editor/effects/EffectErrorBoundary';
+import { validateAndCoerceParams } from '@/tools/video-editor/effects/validateParams';
 import {
   BounceEntrance,
   FadeEntrance,
@@ -30,7 +32,7 @@ import {
   SlideDownExit,
   ZoomOutExit,
 } from '@/tools/video-editor/effects/exits';
-import type { ResolvedTimelineClip } from '@/tools/video-editor/types';
+import type { ParameterSchema, ResolvedTimelineClip } from '@/tools/video-editor/types';
 
 export type ClipEffectComponent = FC<EffectComponentProps>;
 
@@ -104,11 +106,35 @@ export const lookupEffect = (
   }
 
   const registry = getEffectRegistry();
-  const result = registry.get(name) ?? null;
-  if (type.startsWith('custom:')) {
-    console.log('[EffectLookup] type=%s resolved=%s found=%s registryAll=%o', type, name, !!result, registry.listAll());
-  }
-  return result;
+  return registry.get(name) ?? null;
+};
+
+type WrapWithEffectConfig = {
+  effectName: string;
+  durationInFrames: number;
+  effectFrames?: number;
+  intensity?: number;
+  params?: Record<string, unknown>;
+  schema?: ParameterSchema;
+};
+
+export const wrapWithEffect = (
+  content: ReactNode,
+  EffectComponent: ClipEffectComponent,
+  { effectName, durationInFrames, effectFrames, intensity, params, schema }: WrapWithEffectConfig,
+): ReactNode => {
+  return (
+    <EffectErrorBoundary effectName={effectName} fallback={content}>
+      <EffectComponent
+        durationInFrames={durationInFrames}
+        effectFrames={effectFrames}
+        intensity={intensity}
+        params={validateAndCoerceParams(params, schema)}
+      >
+        {content}
+      </EffectComponent>
+    </EffectErrorBoundary>
+  );
 };
 
 export const wrapWithClipEffects = (
@@ -118,52 +144,45 @@ export const wrapWithClipEffects = (
   fps: number,
 ): ReactNode => {
   let wrapped = content;
+  const registry = getEffectRegistry();
 
   const continuous = clip.continuous ? lookupEffect(continuousEffects, clip.continuous.type) : null;
   if (clip.continuous && !continuous) {
     console.warn('[EffectWrap] continuous effect NOT FOUND for clip=%s type=%s', clip.id, clip.continuous.type);
   }
   if (continuous) {
-    const Continuous = continuous;
-    wrapped = (
-      <Continuous
-        durationInFrames={durationInFrames}
-        intensity={clip.continuous?.intensity ?? 0.5}
-        params={clip.continuous?.params}
-      >
-        {wrapped}
-      </Continuous>
-    );
+    wrapped = wrapWithEffect(wrapped, continuous, {
+      effectName: clip.continuous.type,
+      durationInFrames,
+      effectFrames: durationInFrames,
+      intensity: clip.continuous.intensity ?? 0.5,
+      params: clip.continuous.params,
+      schema: registry.getSchema(clip.continuous.type),
+    });
   }
 
   const entrance = clip.entrance ? lookupEffect(entranceEffects, clip.entrance.type) : null;
   if (entrance) {
-    const Entrance = entrance;
-    wrapped = (
-      <Entrance
-        durationInFrames={durationInFrames}
-        effectFrames={secondsToFrames(clip.entrance?.duration ?? 0.4, fps)}
-        intensity={clip.entrance?.intensity}
-        params={clip.entrance?.params}
-      >
-        {wrapped}
-      </Entrance>
-    );
+    wrapped = wrapWithEffect(wrapped, entrance, {
+      effectName: clip.entrance.type,
+      durationInFrames,
+      effectFrames: secondsToFrames(clip.entrance.duration ?? 0.4, fps),
+      intensity: clip.entrance.intensity,
+      params: clip.entrance.params,
+      schema: registry.getSchema(clip.entrance.type),
+    });
   }
 
   const exit = clip.exit ? lookupEffect(exitEffects, clip.exit.type) : null;
   if (exit) {
-    const Exit = exit;
-    wrapped = (
-      <Exit
-        durationInFrames={durationInFrames}
-        effectFrames={secondsToFrames(clip.exit?.duration ?? 0.4, fps)}
-        intensity={clip.exit?.intensity}
-        params={clip.exit?.params}
-      >
-        {wrapped}
-      </Exit>
-    );
+    wrapped = wrapWithEffect(wrapped, exit, {
+      effectName: clip.exit.type,
+      durationInFrames,
+      effectFrames: secondsToFrames(clip.exit.duration ?? 0.4, fps),
+      intensity: clip.exit.intensity,
+      params: clip.exit.params,
+      schema: registry.getSchema(clip.exit.type),
+    });
   }
 
   return wrapped;

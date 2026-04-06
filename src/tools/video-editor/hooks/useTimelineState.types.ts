@@ -1,14 +1,39 @@
 import type { useAssetManagement } from '@/tools/video-editor/hooks/useAssetManagement';
 import type { useClipEditing } from '@/tools/video-editor/hooks/useClipEditing';
 import type { useClipResize } from '@/tools/video-editor/hooks/useClipResize';
-import type { useTimelineData } from '@/tools/video-editor/hooks/useTimelineData';
 import type { useDragCoordinator } from '@/tools/video-editor/hooks/useDragCoordinator';
 import type { useExternalDrop } from '@/tools/video-editor/hooks/useExternalDrop';
 import type { useTimelinePlayback } from '@/tools/video-editor/hooks/useTimelinePlayback';
 import type { useTimelineTrackManagement } from '@/tools/video-editor/hooks/useTimelineTrackManagement';
+import type {
+  EditorPreferences,
+  RenderStatus,
+  SaveStatus,
+  TimelineApplyEdit,
+  TimelineCheckpoints,
+  TimelineCreateManualCheckpoint,
+  TimelineDataRef,
+  TimelineJumpToCheckpoint,
+  TimelinePatchRegistry,
+  TimelinePendingOpsRef,
+  TimelineRegisterAsset,
+  TimelineReloadFromServer,
+  TimelineRenderProgress,
+  TimelineResolvedConfig,
+  TimelineRetrySaveAfterConflict,
+  TimelineSelectedClip,
+  TimelineSelectedTrack,
+  TimelineSetActiveClipTab,
+  TimelineSetAssetPanelState,
+  TimelineSetScaleWidth,
+  TimelineSetSelectedClipId,
+  TimelineSetSelectedTrackId,
+  TimelineStartRender,
+  TimelineUploadFiles,
+} from '@/tools/video-editor/hooks/useTimelineData.types';
+import type { TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { UseMultiSelectResult } from '@/tools/video-editor/hooks/useMultiSelect';
 
-type TimelineDataHook = ReturnType<typeof useTimelineData>;
 type DragCoordinatorHook = ReturnType<typeof useDragCoordinator>;
 type TimelinePlaybackHook = ReturnType<typeof useTimelinePlayback>;
 type TimelineTrackManagementHook = ReturnType<typeof useTimelineTrackManagement>;
@@ -18,37 +43,38 @@ type ClipEditingHook = ReturnType<typeof useClipEditing>;
 type ExternalDropHook = ReturnType<typeof useExternalDrop>;
 
 export interface TimelineEditorContextValue {
-  data: TimelineDataHook['data'];
-  resolvedConfig: TimelineDataHook['resolvedConfig'];
-  selectedClipId: TimelineDataHook['selectedClipId'];
+  data: TimelineData | null;
+  resolvedConfig: TimelineResolvedConfig;
+  selectedClipId: string | null;
   selectedClipIds: UseMultiSelectResult['selectedClipIds'];
   selectedClipIdsRef: UseMultiSelectResult['selectedClipIdsRef'];
-  selectedTrackId: TimelineDataHook['selectedTrackId'];
+  selectedTrackId: string | null;
   primaryClipId: UseMultiSelectResult['primaryClipId'];
-  selectedClip: TimelineDataHook['selectedClip'];
-  selectedTrack: TimelineDataHook['selectedTrack'];
+  selectedClip: TimelineSelectedClip;
+  selectedTrack: TimelineSelectedTrack;
   selectedClipHasPredecessor: boolean;
-  compositionSize: TimelineDataHook['compositionSize'];
-  trackScaleMap: TimelineDataHook['trackScaleMap'];
+  compositionSize: { width: number; height: number };
+  trackScaleMap: Record<string, number>;
   scale: number;
   scaleWidth: number;
   isLoading: boolean;
-  dataRef: TimelineDataHook['dataRef'];
+  dataRef: TimelineDataRef;
+  pendingOpsRef: TimelinePendingOpsRef;
   coordinator: DragCoordinatorHook['coordinator'];
   indicatorRef: DragCoordinatorHook['indicatorRef'];
   editAreaRef: DragCoordinatorHook['editAreaRef'];
-  preferences: TimelineDataHook['preferences'];
+  preferences: EditorPreferences;
   timelineRef: TimelinePlaybackHook['timelineRef'];
   timelineWrapperRef: TimelinePlaybackHook['timelineWrapperRef'];
-  setSelectedClipId: TimelineDataHook['setSelectedClipId'];
+  setSelectedClipId: TimelineSetSelectedClipId;
   isClipSelected: UseMultiSelectResult['isClipSelected'];
   selectClip: UseMultiSelectResult['selectClip'];
   selectClips: UseMultiSelectResult['selectClips'];
   addToSelection: UseMultiSelectResult['addToSelection'];
   clearSelection: UseMultiSelectResult['clearSelection'];
-  setSelectedTrackId: TimelineDataHook['setSelectedTrackId'];
-  setActiveClipTab: TimelineDataHook['setActiveClipTab'];
-  setAssetPanelState: TimelineDataHook['setAssetPanelState'];
+  setSelectedTrackId: TimelineSetSelectedTrackId;
+  setActiveClipTab: TimelineSetActiveClipTab;
+  setAssetPanelState: TimelineSetAssetPanelState;
   registerGenerationAsset: AssetManagementHook['registerGenerationAsset'];
   onCursorDrag: TimelinePlaybackHook['onCursorDrag'];
   onClickTimeArea: TimelinePlaybackHook['onClickTimeArea'];
@@ -78,40 +104,40 @@ export interface TimelineEditorContextValue {
   moveSelectedClipsToTrack: TimelineTrackManagementHook['moveSelectedClipsToTrack'];
   moveClipToRow: TimelineTrackManagementHook['moveClipToRow'];
   createTrackAndMoveClip: TimelineTrackManagementHook['createTrackAndMoveClip'];
-  uploadFiles: TimelineDataHook['uploadFiles'];
-  applyTimelineEdit: TimelineDataHook['applyTimelineEdit'];
-  patchRegistry: TimelineDataHook['patchRegistry'];
-  registerAsset: TimelineDataHook['registerAsset'];
+  uploadFiles: TimelineUploadFiles;
+  applyEdit: TimelineApplyEdit;
+  patchRegistry: TimelinePatchRegistry;
+  registerAsset: TimelineRegisterAsset;
   onDoubleClickAsset?: (assetKey: string) => void;
   registerLightboxHandler?: (handler: ((assetKey: string) => void) | null) => void;
 }
 
 export interface TimelineChromeContextValue {
   timelineName: string | null;
-  saveStatus: TimelineDataHook['saveStatus'];
-  isConflictExhausted: TimelineDataHook['isConflictExhausted'];
-  renderStatus: TimelineDataHook['renderStatus'];
-  renderLog: TimelineDataHook['renderLog'];
-  renderDirty: TimelineDataHook['renderDirty'];
-  renderProgress: TimelineDataHook['renderProgress'];
-  renderResultUrl: TimelineDataHook['renderResultUrl'];
-  renderResultFilename: TimelineDataHook['renderResultFilename'];
-  undo: TimelineDataHook['undo'];
-  redo: TimelineDataHook['redo'];
-  canUndo: TimelineDataHook['canUndo'];
-  canRedo: TimelineDataHook['canRedo'];
-  checkpoints: TimelineDataHook['checkpoints'];
-  jumpToCheckpoint: TimelineDataHook['jumpToCheckpoint'];
-  createManualCheckpoint: TimelineDataHook['createManualCheckpoint'];
-  setScaleWidth: TimelineDataHook['setScaleWidth'];
+  saveStatus: SaveStatus;
+  isConflictExhausted: boolean;
+  renderStatus: RenderStatus;
+  renderLog: string;
+  renderDirty: boolean;
+  renderProgress: TimelineRenderProgress;
+  renderResultUrl: string | null;
+  renderResultFilename: string | null;
+  undo: () => void;
+  redo: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  checkpoints: TimelineCheckpoints;
+  jumpToCheckpoint: TimelineJumpToCheckpoint;
+  createManualCheckpoint: TimelineCreateManualCheckpoint;
+  setScaleWidth: TimelineSetScaleWidth;
   handleAddTrack: TimelineTrackManagementHook['handleAddTrack'];
   handleClearUnusedTracks: TimelineTrackManagementHook['handleClearUnusedTracks'];
   unusedTrackCount: TimelineTrackManagementHook['unusedTrackCount'];
   handleAddText: ClipEditingHook['handleAddText'];
   handleAddTextAt: ClipEditingHook['handleAddTextAt'];
-  reloadFromServer: TimelineDataHook['reloadFromServer'];
-  retrySaveAfterConflict: TimelineDataHook['retrySaveAfterConflict'];
-  startRender: TimelineDataHook['startRender'];
+  reloadFromServer: TimelineReloadFromServer;
+  retrySaveAfterConflict: TimelineRetrySaveAfterConflict;
+  startRender: TimelineStartRender;
 }
 
 export interface TimelinePlaybackContextValue {

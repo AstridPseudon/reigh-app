@@ -12,7 +12,7 @@ export const TIMELINE_AGENT_TOOLS: TimelineAgentToolDefinition[] = [
     type: "function",
     function: {
       name: "run",
-      description: "Execute a timeline editing command. Commands: view, move <clipId> <seconds>, trim <clipId> [--from N] [--to N] [--duration N], delete <clipId>, set <clipId> <property> <value>, add-text <track> <at> <duration> <text>, find-issues",
+      description: "Execute a timeline editing command. Commands: view, move <clipId> <seconds>, trim <clipId> [--from N] [--to N] [--duration N], delete <clipId>, set <clipId> <property> <value>, add-text <track> <at> <duration> <text>, add-media <track> <at> <generation_id> <url> [--type image|video], find-issues",
       parameters: {
         type: "object",
         properties: {
@@ -77,9 +77,31 @@ export const TIMELINE_AGENT_TOOLS: TimelineAgentToolDefinition[] = [
             description:
               "Number of outputs to request for text-to-image, style-transfer, subject-transfer, scene-transfer, image-to-image, or magic-edit tasks.",
           },
+          based_on: {
+            type: "string",
+            description: "Generation ID this task derives from. Overrides auto-detected value from selected clips.",
+          },
           shot_name: { type: "string", description: "Optional shot name to use if a new shot must be created." },
         },
         required: ["task_type"],
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
+      name: "duplicate_generation",
+      description: "Duplicate an existing generation instantly and return the new generation ID plus asset URL.",
+      parameters: {
+        type: "object",
+        properties: {
+          generation_id: {
+            type: "string",
+            description: "Generation ID to duplicate as a new generation record.",
+          },
+        },
+        required: ["generation_id"],
         additionalProperties: false,
       },
     },

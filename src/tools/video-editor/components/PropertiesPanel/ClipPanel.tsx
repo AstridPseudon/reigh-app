@@ -13,7 +13,7 @@ import { continuousEffectTypes, entranceEffectTypes, exitEffectTypes } from '@/t
 import { EffectCreatorPanel } from '@/tools/video-editor/components/EffectCreatorPanel';
 import { useVideoEditorRuntime } from '@/tools/video-editor/contexts/DataProviderContext';
 import { useEffectResources, type EffectCategory, type EffectResource } from '@/tools/video-editor/hooks/useEffectResources';
-import type { ClipTab } from '@/tools/video-editor/hooks/useTimelineData';
+import type { ClipTab } from '@/tools/video-editor/hooks/useTimelineData.types';
 import type { ClipMeta } from '@/tools/video-editor/lib/timeline-data';
 import type { ResolvedTimelineClip, TrackDefinition } from '@/tools/video-editor/types';
 
@@ -33,6 +33,7 @@ interface ClipPanelProps {
   isVariantStale?: boolean;
   onUpdateVariant?: () => void;
   onDismissStale?: () => void;
+  timelineFps?: number;
 }
 
 export const NO_EFFECT = '__none__';
@@ -136,6 +137,7 @@ export function ClipPanel({
   isVariantStale,
   onUpdateVariant,
   onDismissStale,
+  timelineFps,
 }: ClipPanelProps) {
   const { userId } = useVideoEditorRuntime();
   const effectResources = useEffectResources(userId);
@@ -435,6 +437,7 @@ export function ClipPanel({
               onOpenChange={setCreatorOpen}
               editingEffect={editingEffect}
               previewAssetSrc={clip?.assetEntry?.src}
+              timelineFps={timelineFps}
               onSaved={(resourceId, savedCategory, defaultParams) => {
                 const effectType = `custom:${resourceId}`;
                 const params = Object.keys(defaultParams).length > 0 ? defaultParams : undefined;

@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   executeCommand: vi.fn(),
   executeCreateTask: vi.fn(),
+  executeDuplicateGeneration: vi.fn(),
 }));
 
 vi.mock("./tools/registry.ts", () => ({
@@ -11,6 +12,10 @@ vi.mock("./tools/registry.ts", () => ({
 
 vi.mock("./tools/create-task.ts", () => ({
   executeCreateTask: (...args: unknown[]) => mocks.executeCreateTask(...args),
+}));
+
+vi.mock("./tools/duplicate-generation.ts", () => ({
+  executeDuplicateGeneration: (...args: unknown[]) => mocks.executeDuplicateGeneration(...args),
 }));
 
 import {
@@ -81,6 +86,33 @@ describe("loop helpers", () => {
       args: {},
       parseError: null,
     }, timelineState, supabaseAdmin, "timeline-1", selectedClips)).resolves.toEqual({ result: "Unknown tool: mystery." });
+  });
+
+  it("dispatches duplicate_generation to executeDuplicateGeneration", async () => {
+    const timelineState = {
+      config: { clips: [] },
+      configVersion: 1,
+      registry: { assets: {} },
+      projectId: "project-1",
+    } as unknown as import("./types.ts").TimelineState;
+    const supabaseAdmin = {} as import("./types.ts").SupabaseAdmin;
+    const selectedClips = [{ clip_id: "clip-1", url: "https://example.com/1.png", media_type: "image" as const }];
+
+    mocks.executeDuplicateGeneration.mockResolvedValue({ result: "duplicated" });
+
+    await expect(executeToolCall({
+      id: "dup",
+      name: "duplicate_generation",
+      args: { generation_id: "gen-abc" },
+      parseError: null,
+    }, timelineState, supabaseAdmin, "timeline-1", selectedClips)).resolves.toEqual({ result: "duplicated" });
+
+    expect(mocks.executeDuplicateGeneration).toHaveBeenCalledWith(
+      { generation_id: "gen-abc" },
+      timelineState,
+      selectedClips,
+      supabaseAdmin,
+    );
   });
 
   it("builds a tool-specific assistant error turn", () => {

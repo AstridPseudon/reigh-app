@@ -14,7 +14,13 @@ import {
   type ClipMeta,
   type TimelineData,
 } from '@/tools/video-editor/lib/timeline-data';
-import type { UseTimelineDataResult } from '@/tools/video-editor/hooks/useTimelineData';
+import type {
+  TimelineApplyEdit,
+  TimelineInvalidateAssetRegistry,
+  TimelinePatchRegistry,
+  TimelineRegisterAsset,
+  TimelineUploadAsset,
+} from '@/tools/video-editor/hooks/useTimelineData.types';
 import type { TimelineAction } from '@/tools/video-editor/types/timeline-canvas';
 import type { AssetRegistryEntry, ClipType } from '@/tools/video-editor/types';
 
@@ -24,11 +30,11 @@ export interface UseAssetManagementArgs {
   selectedProjectId: string | null;
   setSelectedClipId: Dispatch<SetStateAction<string | null>>;
   setSelectedTrackId: Dispatch<SetStateAction<string | null>>;
-  applyTimelineEdit: UseTimelineDataResult['applyTimelineEdit'];
-  patchRegistry: UseTimelineDataResult['patchRegistry'];
-  registerAsset: UseTimelineDataResult['registerAsset'];
-  uploadAsset: UseTimelineDataResult['uploadAsset'];
-  invalidateAssetRegistry: UseTimelineDataResult['invalidateAssetRegistry'];
+  applyEdit: TimelineApplyEdit;
+  patchRegistry: TimelinePatchRegistry;
+  registerAsset: TimelineRegisterAsset;
+  uploadAsset: TimelineUploadAsset;
+  invalidateAssetRegistry: TimelineInvalidateAssetRegistry;
   resolveAssetUrl: (file: string) => Promise<string>;
 }
 
@@ -53,7 +59,7 @@ export function useAssetManagement({
   selectedProjectId,
   setSelectedClipId,
   setSelectedTrackId,
-  applyTimelineEdit,
+  applyEdit,
   patchRegistry,
   registerAsset,
 }: UseAssetManagementArgs): UseAssetManagementResult {
@@ -155,20 +161,33 @@ export function useAssetManagement({
 
     // If no compatible track exists (or forced new track), create one immutably
     if (!resolvedTrackId) {
-      const prefix = assetKind === 'audio' ? 'A' : 'V';
-      const nextNumber = getTrackIndex(current.tracks, prefix) + 1;
-      resolvedTrackId = `${prefix}${nextNumber}`;
-      const newTrack = {
-        id: resolvedTrackId,
-        kind: assetKind,
-        label: `${prefix}${nextNumber}`,
-      };
-      current = {
-        ...current,
-        tracks: insertAtTop ? [newTrack, ...current.tracks] : [...current.tracks, newTrack],
-        rows: insertAtTop ? [{ id: resolvedTrackId, actions: [] }, ...current.rows] : [...current.rows, { id: resolvedTrackId, actions: [] }],
-      };
-      dataRef.current = current;
+      const latest = dataRef.current;
+      if (!latest) {
+        return;
+      }
+
+      const existingTrackId = forceNewTrack
+        ? null
+        : getCompatibleTrackId(latest.tracks, trackId, assetKind, selectedTrackId);
+      if (existingTrackId) {
+        current = latest;
+        resolvedTrackId = existingTrackId;
+      } else {
+        const prefix = assetKind === 'audio' ? 'A' : 'V';
+        const nextNumber = getTrackIndex(latest.tracks, prefix) + 1;
+        resolvedTrackId = `${prefix}${nextNumber}`;
+        const newTrack = {
+          id: resolvedTrackId,
+          kind: assetKind,
+          label: `${prefix}${nextNumber}`,
+        };
+        current = {
+          ...latest,
+          tracks: insertAtTop ? [newTrack, ...latest.tracks] : [...latest.tracks, newTrack],
+          rows: insertAtTop ? [{ id: resolvedTrackId, actions: [] }, ...latest.rows] : [...latest.rows, { id: resolvedTrackId, actions: [] }],
+        };
+        dataRef.current = current;
+      }
     }
 
     const track = current.tracks.find((candidate) => candidate.id === resolvedTrackId);
@@ -242,10 +261,15 @@ export function useAssetManagement({
 
     const nextRows = current.rows.map((row) => (row.id === resolvedTrackId ? { ...row, actions: [...row.actions, action] } : row));
     const nextClipOrder = updateClipOrder(current.clipOrder, resolvedTrackId, (ids) => [...ids, clipId]);
-    applyTimelineEdit(nextRows, { [clipId]: clipMeta }, undefined, nextClipOrder);
+    applyEdit({
+      type: 'rows',
+      rows: nextRows,
+      metaUpdates: { [clipId]: clipMeta },
+      clipOrderOverride: nextClipOrder,
+    });
     setSelectedClipId(clipId);
     setSelectedTrackId(resolvedTrackId);
-  }, [applyTimelineEdit, dataRef, selectedTrackId, setSelectedClipId, setSelectedTrackId]);
+  }, [applyEdit, dataRef, selectedTrackId, setSelectedClipId, setSelectedTrackId]);
 
   return {
     registerGenerationAsset,

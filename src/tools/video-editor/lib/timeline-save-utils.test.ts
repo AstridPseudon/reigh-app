@@ -312,4 +312,8 @@ describe('timeline save utils regression coverage', () => {
     expect(shouldAcceptPolledData(4, 4, 1, 'polled', 'saved')).toBe(false);
     expect(shouldAcceptPolledData(4, 4, 0, 'polled', 'saved')).toBe(true);
   });
+
+  it('rejects polled data while drag is in progress (pendingOps incremented by drag)', () => {
+    expect(shouldAcceptPolledData(5, 5, 1, 'polled-sig', 'saved-sig')).toBe(false);
+  });
 });

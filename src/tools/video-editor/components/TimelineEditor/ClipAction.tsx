@@ -1,7 +1,8 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Clapperboard, FolderPlus, ImageIcon, Layers, Music2, RefreshCw, Scissors, Trash2, Type, X } from 'lucide-react';
+import { ArrowRight, Clapperboard, FolderPlus, ImageIcon, Layers, Music2, RefreshCw, Scissors, Trash2, Type, X } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
+import type { Shot } from '@/domains/generation/types';
 import type { ClipMeta } from '@/tools/video-editor/lib/timeline-data';
 import type { TimelineAction } from '@/tools/video-editor/types/timeline-canvas';
 
@@ -32,8 +33,11 @@ interface ClipActionProps {
   onUpdateVariant?: () => void;
   onDismissStale?: () => void;
   canCreateShotFromSelection?: boolean;
-  onCreateShotFromSelection?: () => void | Promise<void>;
+  existingShots?: Shot[];
+  onCreateShotFromSelection?: () => Promise<Shot | null>;
   onGenerateVideoFromSelection?: () => void | Promise<void>;
+  onNavigateToShot?: (shot: Shot) => void;
+  onOpenGenerateVideo?: (shot: Shot) => void;
   isCreatingShot?: boolean;
 }
 
@@ -41,8 +45,17 @@ const menuItemClassName = 'relative flex w-full cursor-default select-none items
 const destructiveMenuItemClassName = `${menuItemClassName} hover:bg-destructive hover:text-destructive-foreground`;
 const disabledMenuItemClassName = 'disabled:cursor-wait disabled:opacity-60';
 
-type ClipContextMenuProps = Pick<ClipActionProps, 'isGenerationAsset' | 'onUpdateVariant' | 'isVariantStale' | 'onDismissStale' | 'onSplitHere' | 'onToggleMuteClips' | 'onSplitClipsAtPlayhead' | 'onCreateShotFromSelection' | 'onGenerateVideoFromSelection' | 'isCreatingShot' | 'onDeleteClip' | 'onDeleteClips'> & { actionId: string; contextMenu: ContextMenuState; menuRef: React.RefObject<HTMLDivElement | null>; closeMenu: () => void; hasBatchSelection: boolean; selectedClipIds: string[]; showShotActions: boolean; hasActionsBeforeShotSection: boolean; };
+type ClipContextMenuProps = Pick<ClipActionProps, 'isGenerationAsset' | 'onUpdateVariant' | 'isVariantStale' | 'onDismissStale' | 'onSplitHere' | 'onToggleMuteClips' | 'onSplitClipsAtPlayhead' | 'onCreateShotFromSelection' | 'onGenerateVideoFromSelection' | 'onNavigateToShot' | 'onOpenGenerateVideo' | 'isCreatingShot' | 'onDeleteClip' | 'onDeleteClips'> & { actionId: string; contextMenu: ContextMenuState; menuRef: React.RefObject<HTMLDivElement | null>; closeMenu: () => void; hasBatchSelection: boolean; selectedClipIds: string[]; showShotActions: boolean; hasActionsBeforeShotSection: boolean; existingShots?: Shot[]; };
 type ClipContextMenuItemProps = { icon: React.ComponentType<{ className?: string }>; onClick: () => void; children: React.ReactNode; disabled?: boolean; destructive?: boolean; suffix?: React.ReactNode; };
+type ShotActionSnapshot = {
+  showShotActions: boolean;
+  existingShots?: Shot[];
+  onCreateShotFromSelection?: () => Promise<Shot | null>;
+  onGenerateVideoFromSelection?: () => void | Promise<void>;
+  onNavigateToShot?: (shot: Shot) => void;
+  onOpenGenerateVideo?: (shot: Shot) => void;
+  isCreatingShot: boolean;
+};
 
 function ClipContextMenuItem({ icon: Icon, onClick, children, disabled = false, destructive = false, suffix }: ClipContextMenuItemProps) {
   return (
@@ -60,11 +73,55 @@ function ClipContextMenuItem({ icon: Icon, onClick, children, disabled = false, 
 }
 
 function ClipContextMenu(props: ClipContextMenuProps) {
+  const [adjusted, setAdjusted] = useState<{ x: number; y: number } | null>(null);
+  const [createdShot, setCreatedShot] = useState<Shot | null>(null);
+  const [isCreatingLocal, setIsCreatingLocal] = useState(false);
+
+  useLayoutEffect(() => {
+    if (!props.menuRef.current) {
+      setAdjusted(null);
+      return;
+    }
+    const rect = props.menuRef.current.getBoundingClientRect();
+    const pad = 8;
+    const x = Math.min(props.contextMenu.x, window.innerWidth - rect.width - pad);
+    const y = Math.min(props.contextMenu.y, window.innerHeight - rect.height - pad);
+    setAdjusted({ x: Math.max(pad, x), y: Math.max(pad, y) });
+  }, [props.contextMenu.x, props.contextMenu.y, props.menuRef]);
+
+  // Stop native mousedown from reaching the document-level click-outside listener.
+  // Portal DOM hierarchy doesn't match the React tree, so Node.contains() can
+  // return false for elements that ARE visually inside the menu.
+  useEffect(() => {
+    const el = props.menuRef.current;
+    if (!el) return;
+    const stop = (e: MouseEvent) => e.stopPropagation();
+    el.addEventListener('mousedown', stop);
+    return () => el.removeEventListener('mousedown', stop);
+  }, [props.menuRef]);
+
+  const handleCreateShot = useCallback(async () => {
+    if (!props.onCreateShotFromSelection) return;
+    setIsCreatingLocal(true);
+    const shot = await props.onCreateShotFromSelection();
+    setIsCreatingLocal(false);
+    if (shot) {
+      setCreatedShot(shot);
+    }
+  }, [props.onCreateShotFromSelection]);
+
+  const pos = adjusted ?? props.contextMenu;
+  const visibleExistingShots = (props.existingShots ?? []).filter((shot) => shot.id !== createdShot?.id);
+  const hasLowerShotActions = Boolean(
+    (!createdShot && (props.onCreateShotFromSelection || props.onGenerateVideoFromSelection))
+    || (createdShot && (props.onNavigateToShot || props.onOpenGenerateVideo)),
+  );
+
   return createPortal(
     <div
       ref={props.menuRef}
       className="fixed z-50 min-w-[10rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95"
-      style={{ left: props.contextMenu.x, top: props.contextMenu.y }}
+      style={{ left: pos.x, top: pos.y }}
     >
       {!props.hasBatchSelection && props.isGenerationAsset && props.onUpdateVariant && (
         <ClipContextMenuItem icon={RefreshCw} onClick={() => { props.onUpdateVariant?.(); props.closeMenu(); }}>
@@ -95,12 +152,40 @@ function ClipContextMenu(props: ClipContextMenuProps) {
         </ClipContextMenuItem>
       )}
       {props.showShotActions && props.hasActionsBeforeShotSection && <div className="my-1 h-px bg-border" />}
-      {props.showShotActions && props.onCreateShotFromSelection && (
-        <ClipContextMenuItem icon={FolderPlus} onClick={() => { props.closeMenu(); void props.onCreateShotFromSelection?.(); }} disabled={props.isCreatingShot}>
-          Create Shot
+      {props.showShotActions && visibleExistingShots.map((shot) => (
+        <div key={shot.id} className="flex w-full items-center gap-1 rounded-sm px-2 py-1.5 text-sm">
+          <span className="min-w-0 flex-1 truncate">{shot.name}</span>
+          {props.onOpenGenerateVideo && (
+            <button type="button" className="flex h-5 w-5 shrink-0 items-center justify-center rounded hover:bg-accent hover:text-accent-foreground" onClick={() => { props.onOpenGenerateVideo?.(shot); props.closeMenu(); }} title="Generate Video">
+              <Clapperboard className="h-3.5 w-3.5" />
+            </button>
+          )}
+          {props.onNavigateToShot && (
+            <button type="button" className="flex h-5 w-5 shrink-0 items-center justify-center rounded hover:bg-accent hover:text-accent-foreground" onClick={() => { props.onNavigateToShot?.(shot); props.closeMenu(); }} title="Jump to shot">
+              <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      ))}
+      {props.showShotActions && visibleExistingShots.length > 0 && hasLowerShotActions && (
+        <div className="my-1 h-px bg-border" />
+      )}
+      {props.showShotActions && !createdShot && props.onCreateShotFromSelection && (
+        <ClipContextMenuItem icon={FolderPlus} onClick={() => void handleCreateShot()} disabled={isCreatingLocal || props.isCreatingShot}>
+          {isCreatingLocal ? 'Creating…' : 'Create Shot'}
         </ClipContextMenuItem>
       )}
-      {props.showShotActions && props.onGenerateVideoFromSelection && (
+      {props.showShotActions && createdShot && props.onNavigateToShot && (
+        <ClipContextMenuItem icon={ArrowRight} onClick={() => { props.onNavigateToShot?.(createdShot); props.closeMenu(); }}>
+          Jump to {createdShot.name}
+        </ClipContextMenuItem>
+      )}
+      {props.showShotActions && createdShot && props.onOpenGenerateVideo && (
+        <ClipContextMenuItem icon={Clapperboard} onClick={() => { props.onOpenGenerateVideo?.(createdShot); props.closeMenu(); }}>
+          Generate Video
+        </ClipContextMenuItem>
+      )}
+      {props.showShotActions && !createdShot && props.onGenerateVideoFromSelection && (
         <ClipContextMenuItem icon={Clapperboard} onClick={() => { props.closeMenu(); void props.onGenerateVideoFromSelection?.(); }} disabled={props.isCreatingShot}>
           Generate Video
         </ClipContextMenuItem>
@@ -129,7 +214,7 @@ function ClipContextMenu(props: ClipContextMenuProps) {
   );
 }
 
-export function ClipAction({
+function ClipActionComponent({
   action,
   clipMeta,
   isSelected,
@@ -148,12 +233,21 @@ export function ClipAction({
   onUpdateVariant,
   onDismissStale,
   canCreateShotFromSelection = false,
+  existingShots,
   onCreateShotFromSelection,
   onGenerateVideoFromSelection,
+  onNavigateToShot,
+  onOpenGenerateVideo,
   isCreatingShot = false,
 }: ClipActionProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
+  const openMenuWithSelectionRef = useRef<(clientX: number, clientY: number) => void>(() => undefined);
+
+  // Snapshot shot-creation state when the menu opens so that re-renders
+  // (e.g. from EffectRegistry) can't remove the items while the menu is visible.
+  const shotActionsSnapshotRef = useRef<ShotActionSnapshot>({ showShotActions: false, isCreatingShot: false });
+  const latestShotActionsRef = useRef<ShotActionSnapshot>({ showShotActions: false, isCreatingShot: false });
 
   const closeMenu = useCallback(() => setContextMenu(null), []);
   const openMenuAt = useCallback((x: number, y: number) => { setContextMenu({ x, y, clientX: x }); }, []);
@@ -176,17 +270,37 @@ export function ClipAction({
     };
   }, [contextMenu, closeMenu]);
 
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const { clientX, clientY } = e;
+  latestShotActionsRef.current = {
+    showShotActions: canCreateShotFromSelection && (
+      typeof onCreateShotFromSelection === 'function' || typeof onGenerateVideoFromSelection === 'function'
+    ),
+    existingShots,
+    onCreateShotFromSelection,
+    onGenerateVideoFromSelection,
+    onNavigateToShot,
+    onOpenGenerateVideo,
+    isCreatingShot,
+  };
+
+  openMenuWithSelectionRef.current = (clientX: number, clientY: number) => {
     if (!isSelected) {
       onSelect(action.id, clipMeta.track);
       requestAnimationFrame(() => openMenuAt(clientX, clientY));
       return;
     }
+
     openMenuAt(clientX, clientY);
-  }, [action.id, clipMeta.track, isSelected, onSelect, openMenuAt]);
+  };
+
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const { clientX, clientY } = e;
+
+    // Snapshot shot actions at menu-open time so re-renders can't remove them
+    shotActionsSnapshotRef.current = latestShotActionsRef.current;
+    openMenuWithSelectionRef.current(clientX, clientY);
+  }, []);
   const isEffectLayer = clipMeta.clipType === 'effect-layer';
   const icon = isEffectLayer
     ? <Layers className="h-3 w-3" />
@@ -196,9 +310,14 @@ export function ClipAction({
       ? <Music2 className="h-3 w-3" />
       : <ImageIcon className="h-3 w-3" />;
   const hasBatchSelection = isSelected && selectedClipIds.length > 1;
-  const showShotActions = canCreateShotFromSelection && (
+  // Use the snapshot so re-renders don't remove items while menu is open,
+  // but fall through to current props when the snapshot was taken before
+  // onSelect propagated (e.g. right-clicking an unselected clip).
+  const snap = shotActionsSnapshotRef.current;
+  const currentCanCreate = canCreateShotFromSelection && (
     typeof onCreateShotFromSelection === 'function' || typeof onGenerateVideoFromSelection === 'function'
   );
+  const showShotActions = contextMenu ? (snap.showShotActions || currentCanCreate) : false;
   const hasActionsBeforeShotSection = (
     (!hasBatchSelection && isGenerationAsset && onUpdateVariant)
     || (!hasBatchSelection && isVariantStale && onDismissStale)
@@ -264,12 +383,8 @@ export function ClipAction({
             onClick={(e) => {
               e.stopPropagation();
               const { clientX, clientY } = e;
-              if (!isSelected) {
-                onSelect(action.id, clipMeta.track);
-                requestAnimationFrame(() => openMenuAt(clientX, clientY));
-                return;
-              }
-              openMenuAt(clientX, clientY);
+              shotActionsSnapshotRef.current = latestShotActionsRef.current;
+              openMenuWithSelectionRef.current(clientX, clientY);
             }}
           >
             <RefreshCw className="h-2.5 w-2.5" />
@@ -294,9 +409,12 @@ export function ClipAction({
           onSplitClipsAtPlayhead={onSplitClipsAtPlayhead}
           showShotActions={showShotActions}
           hasActionsBeforeShotSection={hasActionsBeforeShotSection}
-          onCreateShotFromSelection={onCreateShotFromSelection}
-          onGenerateVideoFromSelection={onGenerateVideoFromSelection}
-          isCreatingShot={isCreatingShot}
+          existingShots={snap.existingShots?.length ? snap.existingShots : existingShots}
+          onCreateShotFromSelection={snap.onCreateShotFromSelection ?? onCreateShotFromSelection}
+          onGenerateVideoFromSelection={snap.onGenerateVideoFromSelection ?? onGenerateVideoFromSelection}
+          onNavigateToShot={snap.onNavigateToShot ?? onNavigateToShot}
+          onOpenGenerateVideo={snap.onOpenGenerateVideo ?? onOpenGenerateVideo}
+          isCreatingShot={snap.isCreatingShot}
           onDeleteClip={onDeleteClip}
           onDeleteClips={onDeleteClips}
         />
@@ -304,3 +422,48 @@ export function ClipAction({
     </>
   );
 }
+
+function areClipActionPropsEqual(prev: ClipActionProps, next: ClipActionProps): boolean {
+  if (prev.action !== next.action) return false;
+  if (prev.clipMeta !== next.clipMeta) return false;
+  if (prev.isSelected !== next.isSelected) return false;
+  if (prev.isPrimary !== next.isPrimary) return false;
+  if (prev.thumbnailSrc !== next.thumbnailSrc) return false;
+  if (prev.isVariantStale !== next.isVariantStale) return false;
+  if (prev.isGenerationAsset !== next.isGenerationAsset) return false;
+  if (prev.canCreateShotFromSelection !== next.canCreateShotFromSelection) return false;
+  if (prev.isCreatingShot !== next.isCreatingShot) return false;
+  if (prev.selectedClipIds.length !== next.selectedClipIds.length) return false;
+  if ((prev.existingShots?.length ?? 0) !== (next.existingShots?.length ?? 0)) return false;
+
+  for (let index = 0; index < prev.selectedClipIds.length; index += 1) {
+    if (prev.selectedClipIds[index] !== next.selectedClipIds[index]) {
+      return false;
+    }
+  }
+
+  const previousShots = prev.existingShots ?? [];
+  const nextShots = next.existingShots ?? [];
+  for (let index = 0; index < previousShots.length; index += 1) {
+    if (previousShots[index]?.id !== nextShots[index]?.id) {
+      return false;
+    }
+  }
+
+  return (
+    prev.onSelect === next.onSelect
+    && prev.onDoubleClickAsset === next.onDoubleClickAsset
+    && prev.onSplitHere === next.onSplitHere
+    && prev.onSplitClipsAtPlayhead === next.onSplitClipsAtPlayhead
+    && prev.onDeleteClip === next.onDeleteClip
+    && prev.onDeleteClips === next.onDeleteClips
+    && prev.onToggleMuteClips === next.onToggleMuteClips
+    && prev.onCreateShotFromSelection === next.onCreateShotFromSelection
+    && prev.onGenerateVideoFromSelection === next.onGenerateVideoFromSelection
+    && prev.onNavigateToShot === next.onNavigateToShot
+    && prev.onOpenGenerateVideo === next.onOpenGenerateVideo
+  );
+}
+
+export const ClipAction = React.memo(ClipActionComponent, areClipActionPropsEqual);
+ClipAction.displayName = 'ClipAction';

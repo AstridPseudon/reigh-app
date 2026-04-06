@@ -3,6 +3,7 @@ import { getSupabaseClient } from '@/integrations/supabase/client';
 
 export const effectsQueryKey = (userId: string | null | undefined) => ['effects', userId] as const;
 
+/** @deprecated Legacy effects table — use resource-based effects via useEffectResources instead. */
 export function useEffects(userId: string | null | undefined) {
   const queryClient = useQueryClient();
 

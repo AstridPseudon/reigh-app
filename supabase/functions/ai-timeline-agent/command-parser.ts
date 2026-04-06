@@ -7,6 +7,7 @@ export type ParsedCommand =
   | { type: "delete"; clipId: string }
   | { type: "set"; clipId: string; property: string; value: number }
   | { type: "add-text"; track: string; at: number; duration: number; text: string }
+  | { type: "add-media"; track: string; at: number; generationId: string; url: string; mediaType: "image" | "video" }
   | { type: "set-text"; clipId: string; text: string }
   | { type: "duplicate"; clipId: string; count: number }
   | { type: "repeat"; count: number; varName: string; from: number; step: number; template: string }
@@ -108,6 +109,26 @@ function parseAddTextCommand(tokens: string[]): ParsedCommand {
   return { type: "add-text", track: tokens[1], at, duration, text };
 }
 
+function parseAddMediaCommand(tokens: string[]): ParsedCommand {
+  if (tokens.length < 5) {
+    return { type: "error", message: "Usage: add-media <track> <at> <generation_id> <url> [--type image|video]" };
+  }
+  const at = parseNumber(tokens[2], "at");
+  if (typeof at === "string") return { type: "error", message: at };
+  const mediaType = parseFlag(tokens.slice(5), "--type") ?? "image";
+  if (mediaType !== "image" && mediaType !== "video") {
+    return { type: "error", message: '--type must be "image" or "video"' };
+  }
+  return {
+    type: "add-media",
+    track: tokens[1],
+    at,
+    generationId: tokens[3],
+    url: tokens[4],
+    mediaType,
+  };
+}
+
 function parseSetTextCommand(tokens: string[]): ParsedCommand {
   if (tokens.length < 3) return { type: "error", message: 'Usage: set-text <clipId> "<new text>"' };
   const text = tokens.slice(2).join(" ");
@@ -180,6 +201,7 @@ const COMMAND_ALIASES: Record<string, string> = {
   issues: "find-issues",
   rm: "delete",
   addtext: "add-text",
+  addmedia: "add-media",
   text: "add-text",
   settext: "set-text",
   "update-text": "set-text",
@@ -196,6 +218,7 @@ const PARSERS: Record<string, CommandParser> = {
   delete: parseDeleteCommand,
   set: parseSetCommand,
   "add-text": parseAddTextCommand,
+  "add-media": parseAddMediaCommand,
   "set-text": parseSetTextCommand,
   duplicate: parseDuplicateCommand,
   repeat: parseRepeatCommand,
@@ -240,8 +263,8 @@ export function validateCommand(
     }
   }
 
-  // Validate track exists for add-text
-  if (parsed.type === "add-text") {
+  // Validate track exists for add-text and add-media
+  if (parsed.type === "add-text" || parsed.type === "add-media") {
     const tracks = config.tracks ?? [];
     if (tracks.length > 0 && !tracks.some((t) => t.id === parsed.track)) {
       const ids = tracks.map((t) => t.id).join(", ");

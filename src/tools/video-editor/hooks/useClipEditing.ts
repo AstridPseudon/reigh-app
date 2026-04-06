@@ -14,19 +14,22 @@ import {
   type ClipMeta,
   type TimelineData,
 } from '@/tools/video-editor/lib/timeline-data';
-import type { UseTimelineDataResult } from '@/tools/video-editor/hooks/useTimelineData';
+import type { ApplyEditOptions } from '@/tools/video-editor/hooks/useTimelineCommit';
+import type {
+  TimelineApplyEdit,
+  TimelineSelectedTrack,
+} from '@/tools/video-editor/hooks/useTimelineData.types';
 import type { TimelineAction } from '@/tools/video-editor/types/timeline-canvas';
 
 export interface UseClipEditingArgs {
   dataRef: MutableRefObject<TimelineData | null>;
   resolvedConfig: TimelineData['resolvedConfig'] | null;
   selectedClipId: string | null;
-  selectedTrack: UseTimelineDataResult['selectedTrack'];
+  selectedTrack: TimelineSelectedTrack;
   currentTime: number;
   setSelectedClipId: Dispatch<SetStateAction<string | null>>;
   setSelectedTrackId: Dispatch<SetStateAction<string | null>>;
-  applyTimelineEdit: UseTimelineDataResult['applyTimelineEdit'];
-  applyResolvedConfigEdit: UseTimelineDataResult['applyResolvedConfigEdit'];
+  applyEdit: TimelineApplyEdit;
 }
 
 export interface UseClipEditingResult {
@@ -74,10 +77,49 @@ export function useClipEditing({
   currentTime,
   setSelectedClipId,
   setSelectedTrackId,
-  applyTimelineEdit,
-  applyResolvedConfigEdit,
+  applyEdit,
 }: UseClipEditingArgs): UseClipEditingResult {
   const currentTimeRef = useRef(currentTime);
+
+  const applyRowsEdit = useCallback((
+    rows: TimelineData['rows'],
+    metaUpdates?: Record<string, Partial<ClipMeta>>,
+    metaDeletes?: string[],
+    clipOrderOverride?: TimelineData['clipOrder'],
+    options?: ApplyEditOptions,
+  ) => {
+    const mutation = {
+      type: 'rows',
+      rows,
+      ...(metaUpdates ? { metaUpdates } : {}),
+      ...(metaDeletes ? { metaDeletes } : {}),
+      ...(clipOrderOverride ? { clipOrderOverride } : {}),
+    } as const;
+
+    if (options) {
+      applyEdit(mutation, options);
+      return;
+    }
+
+    applyEdit(mutation);
+  }, [applyEdit]);
+
+  const applyConfigEdit = useCallback((
+    resolvedConfig: TimelineData['resolvedConfig'],
+    options?: ApplyEditOptions,
+  ) => {
+    const mutation = {
+      type: 'config',
+      resolvedConfig,
+    } as const;
+
+    if (options) {
+      applyEdit(mutation, options);
+      return;
+    }
+
+    applyEdit(mutation);
+  }, [applyEdit]);
 
   useLayoutEffect(() => {
     currentTimeRef.current = currentTime;
@@ -89,8 +131,8 @@ export function useClipEditing({
       return;
     }
 
-    applyTimelineEdit(current.rows, { [actionId]: patch });
-  }, [applyTimelineEdit, dataRef]);
+    applyRowsEdit(current.rows, { [actionId]: patch });
+  }, [applyRowsEdit, dataRef]);
 
   const getValidClipIds = useCallback((clipIds: string[]) => {
     const current = dataRef.current;
@@ -126,7 +168,7 @@ export function useClipEditing({
     ) as Record<string, Partial<ClipMeta>>;
 
     if (!patchAffectsDuration(patch)) {
-      applyTimelineEdit(current.rows, metaUpdates);
+      applyRowsEdit(current.rows, metaUpdates);
       return;
     }
 
@@ -150,8 +192,8 @@ export function useClipEditing({
       }),
     }));
 
-    applyTimelineEdit(nextRows, metaUpdates);
-  }, [applyTimelineEdit, dataRef, getValidClipIds]);
+    applyRowsEdit(nextRows, metaUpdates);
+  }, [applyRowsEdit, dataRef, getValidClipIds]);
 
   const handleUpdateClipsDeep = useCallback((
     clipIds: string[],
@@ -182,8 +224,8 @@ export function useClipEditing({
       return;
     }
 
-    applyTimelineEdit(current.rows, metaUpdates);
-  }, [applyTimelineEdit, dataRef, getValidClipIds]);
+    applyRowsEdit(current.rows, metaUpdates);
+  }, [applyRowsEdit, dataRef, getValidClipIds]);
 
   const handleDeleteClips = useCallback((clipIds: string[]) => {
     const current = dataRef.current;
@@ -200,8 +242,8 @@ export function useClipEditing({
       ...row,
       actions: row.actions.filter((action) => !clipIdSet.has(action.id)),
     }));
-    applyTimelineEdit(nextRows, undefined, [...clipIdSet], undefined, { semantic: true });
-  }, [applyTimelineEdit, dataRef, getValidClipIds]);
+    applyRowsEdit(nextRows, undefined, [...clipIdSet], undefined, { semantic: true });
+  }, [applyRowsEdit, dataRef, getValidClipIds]);
 
   const handleDeleteClip = useCallback((clipId: string) => {
     handleDeleteClips([clipId]);
@@ -254,8 +296,8 @@ export function useClipEditing({
       };
     });
 
-    applyTimelineEdit(nextRows, { [selectedClipId]: metaPatch });
-  }, [applyTimelineEdit, dataRef, selectedClipId]);
+    applyRowsEdit(nextRows, { [selectedClipId]: metaPatch });
+  }, [applyRowsEdit, dataRef, selectedClipId]);
 
   const handleResetClipPosition = useCallback(() => {
     if (!selectedClipId || !resolvedConfig) {
@@ -273,8 +315,8 @@ export function useClipEditing({
       cropLeft: undefined,
       cropRight: undefined,
     }));
-    applyResolvedConfigEdit(nextConfig, { selectedClipId });
-  }, [applyResolvedConfigEdit, resolvedConfig, selectedClipId]);
+    applyConfigEdit(nextConfig, { selectedClipId });
+  }, [applyConfigEdit, resolvedConfig, selectedClipId]);
 
   const handleResetClipsPosition = useCallback((clipIds: string[]) => {
     const current = dataRef.current;
@@ -300,8 +342,8 @@ export function useClipEditing({
       }]),
     ) as Record<string, Partial<ClipMeta>>;
 
-    applyTimelineEdit(current.rows, metaUpdates);
-  }, [applyTimelineEdit, dataRef, getValidClipIds]);
+    applyRowsEdit(current.rows, metaUpdates);
+  }, [applyRowsEdit, dataRef, getValidClipIds]);
 
   const handleSplitSelectedClip = useCallback(() => {
     if (!selectedClipId || !resolvedConfig) {
@@ -313,8 +355,8 @@ export function useClipEditing({
       return;
     }
 
-    applyResolvedConfigEdit(splitResult.config, { selectedClipId: splitResult.nextSelectedClipId });
-  }, [applyResolvedConfigEdit, resolvedConfig, selectedClipId]);
+    applyConfigEdit(splitResult.config, { selectedClipId: splitResult.nextSelectedClipId });
+  }, [applyConfigEdit, resolvedConfig, selectedClipId]);
 
   const handleSplitClipAtTime = useCallback((clipId: string, timeSeconds: number) => {
     if (!resolvedConfig) {
@@ -326,8 +368,8 @@ export function useClipEditing({
       return;
     }
 
-    applyResolvedConfigEdit(splitResult.config, { selectedClipId: splitResult.nextSelectedClipId });
-  }, [applyResolvedConfigEdit, resolvedConfig]);
+    applyConfigEdit(splitResult.config, { selectedClipId: splitResult.nextSelectedClipId });
+  }, [applyConfigEdit, resolvedConfig]);
 
   const handleSplitClipsAtPlayhead = useCallback((clipIds: string[]) => {
     const current = dataRef.current;
@@ -380,8 +422,8 @@ export function useClipEditing({
       return;
     }
 
-    applyResolvedConfigEdit(nextResolvedConfig);
-  }, [applyResolvedConfigEdit, dataRef, getValidClipIds, resolvedConfig]);
+    applyConfigEdit(nextResolvedConfig);
+  }, [applyConfigEdit, dataRef, getValidClipIds, resolvedConfig]);
 
   const handleToggleMuteClips = useCallback((clipIds: string[]) => {
     const current = dataRef.current;
@@ -401,8 +443,8 @@ export function useClipEditing({
       }),
     ) as Record<string, Partial<ClipMeta>>;
 
-    applyTimelineEdit(current.rows, metaUpdates);
-  }, [applyTimelineEdit, dataRef, getValidClipIds]);
+    applyRowsEdit(current.rows, metaUpdates);
+  }, [applyRowsEdit, dataRef, getValidClipIds]);
 
   const handleToggleMute = useCallback(() => {
     if (!selectedClipId || !resolvedConfig) {
@@ -439,11 +481,11 @@ export function useClipEditing({
         : row
     ));
     // Resolve overlaps so the text clip doesn't land on top of existing clips
-    const { rows: nextRows, metaPatches } = resolveOverlaps(
+    const { rows: nextRows, metaPatches, adjustments: _adjustments } = resolveOverlaps(
       rowsWithClip, visualTrack.id, clipId, current.meta,
     );
     const nextClipOrder = updateClipOrder(current.clipOrder, visualTrack.id, (ids) => [...ids, clipId]);
-    applyTimelineEdit(nextRows, {
+    applyRowsEdit(nextRows, {
       ...metaPatches,
       [clipId]: {
         track: visualTrack.id,
@@ -463,7 +505,7 @@ export function useClipEditing({
     }, undefined, nextClipOrder);
     setSelectedClipId(clipId);
     setSelectedTrackId(visualTrack.id);
-  }, [applyTimelineEdit, dataRef, selectedTrack, setSelectedClipId, setSelectedTrackId]);
+  }, [applyRowsEdit, dataRef, selectedTrack, setSelectedClipId, setSelectedTrackId]);
 
   const handleAddTextAt = useCallback((trackId: string, time: number) => {
     const current = dataRef.current;
@@ -493,11 +535,11 @@ export function useClipEditing({
         ? { ...row, actions: [...row.actions, action] }
         : row
     ));
-    const { rows: nextRows, metaPatches } = resolveOverlaps(
+    const { rows: nextRows, metaPatches, adjustments: _adjustments } = resolveOverlaps(
       rowsWithClip, visualTrack.id, clipId, current.meta,
     );
     const nextClipOrder = updateClipOrder(current.clipOrder, visualTrack.id, (ids) => [...ids, clipId]);
-    applyTimelineEdit(nextRows, {
+    applyRowsEdit(nextRows, {
       ...metaPatches,
       [clipId]: {
         track: visualTrack.id,
@@ -517,7 +559,7 @@ export function useClipEditing({
     }, undefined, nextClipOrder);
     setSelectedClipId(clipId);
     setSelectedTrackId(visualTrack.id);
-  }, [applyTimelineEdit, dataRef, setSelectedClipId, setSelectedTrackId]);
+  }, [applyRowsEdit, dataRef, setSelectedClipId, setSelectedTrackId]);
 
   return {
     onOverlayChange,

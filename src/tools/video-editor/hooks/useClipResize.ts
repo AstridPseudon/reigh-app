@@ -2,12 +2,12 @@ import { useCallback, useRef } from 'react';
 import { buildRowTrackPatches } from '@/tools/video-editor/lib/coordinate-utils';
 import { getSourceTime, type ClipMeta, type TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import { resolveOverlaps } from '@/tools/video-editor/lib/resolve-overlaps';
-import type { UseTimelineDataResult } from '@/tools/video-editor/hooks/useTimelineData';
+import type { TimelineApplyEdit } from '@/tools/video-editor/hooks/useTimelineData.types';
 import type { TimelineAction, TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 
 export interface UseClipResizeArgs {
   dataRef: React.MutableRefObject<TimelineData | null>;
-  applyTimelineEdit: UseTimelineDataResult['applyTimelineEdit'];
+  applyEdit: TimelineApplyEdit;
 }
 
 export interface UseClipResizeResult {
@@ -17,7 +17,7 @@ export interface UseClipResizeResult {
 
 export function useClipResize({
   dataRef,
-  applyTimelineEdit,
+  applyEdit,
 }: UseClipResizeArgs): UseClipResizeResult {
   const resizeStartRef = useRef<Record<string, { start: number; from: number }>>({});
   const resizeTransactionIdRef = useRef<Record<string, string>>({});
@@ -73,7 +73,7 @@ export function useClipResize({
       };
     }
 
-    let nextRows = current.rows.map((entry) => {
+    const nextRows = current.rows.map((entry) => {
       if (entry.id !== row.id) {
         return entry;
       }
@@ -89,20 +89,18 @@ export function useClipResize({
     });
 
     // Trim the resized clip if it overlaps existing siblings
-    const { rows: resolvedRows, metaPatches: overlapPatches } = resolveOverlaps(
+    const { rows: resolvedRows, metaPatches: overlapPatches, adjustments: _adjustments } = resolveOverlaps(
       nextRows, row.id, action.id, current.meta,
     );
 
-    applyTimelineEdit(
-      resolvedRows,
-      { ...metaUpdates, ...overlapPatches },
-      undefined,
-      undefined,
-      { transactionId: resizeTransactionIdRef.current[action.id] },
-    );
+    applyEdit({
+      type: 'rows',
+      rows: resolvedRows,
+      metaUpdates: { ...metaUpdates, ...overlapPatches },
+    }, { transactionId: resizeTransactionIdRef.current[action.id] });
     delete resizeStartRef.current[action.id];
     delete resizeTransactionIdRef.current[action.id];
-  }, [applyTimelineEdit, dataRef]);
+  }, [applyEdit, dataRef]);
 
   return {
     onActionResizeStart,

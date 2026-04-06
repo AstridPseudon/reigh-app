@@ -1,6 +1,8 @@
-import type { TrackKind } from '@/tools/video-editor/types';
-import type { ClipMeta, ClipOrderMap, TimelineData } from '@/tools/video-editor/lib/timeline-data';
+import { getConfigSignature, getStableConfigSignature } from '@/tools/video-editor/lib/config-utils';
+import { addTrack } from '@/tools/video-editor/lib/editor-utils';
+import { getSourceTime, type ClipMeta, type ClipOrderMap, type TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
+import type { ResolvedTimelineConfig, TrackKind } from '@/tools/video-editor/types';
 import { moveClipBetweenTracks } from '@/tools/video-editor/lib/coordinate-utils';
 import { resolveGroupOverlaps, type GroupMovedClip } from '@/tools/video-editor/lib/resolve-overlaps';
 
@@ -33,6 +35,119 @@ export interface GhostRect {
   top: number;
   width: number;
   height: number;
+}
+
+const roundConfigValue = (value: number): number => Math.round(value * 100) / 100;
+
+export function buildAugmentedData(
+  data: TimelineData,
+  kind: TrackKind,
+  insertAtTop: boolean,
+): { augmented: TimelineData; newTrackId: string } | null {
+  const augmentedResolvedConfig = addTrack(data.resolvedConfig, kind, insertAtTop ? 0 : undefined);
+  const newTrack = augmentedResolvedConfig.tracks.find((track) => {
+    return !data.resolvedConfig.tracks.some((existingTrack) => existingTrack.id === track.id);
+  });
+
+  if (!newTrack) {
+    return null;
+  }
+
+  const nextConfig = {
+    ...data.config,
+    tracks: augmentedResolvedConfig.tracks.map((track) => ({ ...track })),
+  };
+  const nextRows = insertAtTop
+    ? [{ id: newTrack.id, actions: [] }, ...data.rows]
+    : [...data.rows, { id: newTrack.id, actions: [] }];
+
+  return {
+    augmented: {
+      ...data,
+      config: nextConfig,
+      resolvedConfig: augmentedResolvedConfig,
+      rows: nextRows,
+      tracks: augmentedResolvedConfig.tracks,
+      clipOrder: {
+        ...data.clipOrder,
+        [newTrack.id]: [],
+      },
+      signature: getConfigSignature(augmentedResolvedConfig),
+      stableSignature: getStableConfigSignature(nextConfig, data.registry),
+    },
+    newTrackId: newTrack.id,
+  };
+}
+
+export function buildConfigFromDragResult(
+  baseConfig: ResolvedTimelineConfig,
+  baseMeta: Record<string, ClipMeta>,
+  nextRows: TimelineRow[],
+  metaUpdates: Record<string, Partial<ClipMeta>>,
+): ResolvedTimelineConfig {
+  const mergedMeta: Record<string, ClipMeta> = Object.fromEntries(
+    Object.entries(baseMeta).map(([clipId, clipMeta]) => [
+      clipId,
+      {
+        ...clipMeta,
+        ...metaUpdates[clipId],
+      },
+    ]),
+  );
+
+  for (const [clipId, patch] of Object.entries(metaUpdates)) {
+    if (!mergedMeta[clipId]) {
+      mergedMeta[clipId] = patch as ClipMeta;
+    }
+  }
+
+  const positions = new Map<string, { at: number; track: string; duration: number }>();
+  for (const row of nextRows) {
+    for (const action of row.actions) {
+      positions.set(action.id, {
+        at: action.start,
+        track: row.id,
+        duration: action.end - action.start,
+      });
+    }
+  }
+
+  return {
+    ...baseConfig,
+    clips: baseConfig.clips.flatMap((clip) => {
+      const position = positions.get(clip.id);
+      const clipMeta = mergedMeta[clip.id];
+      if (!position || !clipMeta) {
+        return [];
+      }
+
+      const nextClip = {
+        ...clip,
+        at: roundConfigValue(position.at),
+        track: position.track,
+      };
+
+      if (typeof clipMeta.hold === 'number') {
+        delete nextClip.from;
+        delete nextClip.to;
+        delete nextClip.speed;
+        return [{
+          ...nextClip,
+          hold: roundConfigValue(position.duration),
+        }];
+      }
+
+      const speed = clipMeta.speed ?? 1;
+      const from = clipMeta.from ?? 0;
+      delete nextClip.hold;
+      return [{
+        ...nextClip,
+        speed: clipMeta.speed,
+        from: roundConfigValue(from),
+        to: roundConfigValue(getSourceTime({ from, start: position.at, speed }, position.at + position.duration)),
+      }];
+    }),
+  };
 }
 
 // ── Planning ─────────────────────────────────────────────────────────
@@ -97,7 +212,7 @@ export function planMultiDragMoves(
 /**
  * Apply a set of planned moves to the timeline rows, resolve overlaps,
  * and update clip ordering. Returns the new rows, meta updates, and
- * clip order — ready to pass to `applyTimelineEdit`.
+ * clip order — ready to pass to `applyEdit`.
  */
 export function applyMultiDragMoves(
   data: TimelineData,
@@ -154,7 +269,14 @@ export function applyMultiDragMoves(
       const newStart = Math.max(0, m.newStart);
       return { rowId: targetRowId, clipId: m.clipId, newStart, newEnd: newStart + duration };
     });
-    nextRows = resolveGroupOverlaps(nextRows, groupMoved, data.meta);
+    const { rows: resolvedRows, metaPatches } = resolveGroupOverlaps(nextRows, groupMoved, data.meta);
+    nextRows = resolvedRows;
+    for (const [clipId, patch] of Object.entries(metaPatches)) {
+      metaUpdates[clipId] = {
+        ...metaUpdates[clipId],
+        ...patch,
+      };
+    }
   }
 
   // Update clip order for cross-track moves

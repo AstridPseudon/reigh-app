@@ -40,13 +40,20 @@ export function buildTimelineAgentSystemPrompt(
 run(command="view") | run(command="move clip-0 5") | run(command="trim clip-0 --duration 2")
 run(command="delete clip-3") | run(command="set clip-0 volume 0.5") | run(command="find-issues")
 run(command="add-text V1 0 2 hello") | run(command="set-text clip-3 new text")
+run(command="add-media V1 6 gen-123 https://example.com/new-image.png") | run(command="add-media V2 8 gen-456 https://example.com/new-video.mp4 --type video")
 run(command="duplicate clip-0 5")
 run(command="repeat 50 add-text V8 0.1 hello --start 2.74 --gap 0.1")
 
 Use create_task({...}) for generation tasks. Copy selected clip URLs exactly into reference_image_urls or video_url.
+Use duplicate_generation({"generation_id":"..."}) to copy an existing generation instantly when the user wants a non-destructive derivative or alternate edit path.
 For style, subject, or scene transfer with multiple selections, choose the strongest matching reference instead of guessing.
 For image-to-video or travel-between-images requests, use all selected reference_image_urls in the order that best matches the requested motion.
 When a selected clip includes prompt="...", treat it as source metadata and reuse it instead of re-describing the image.
+Duplicate workflow: duplicate_generation returns a new_generation_id and asset URL. Reuse that new_generation_id as based_on in create_task for edits derived from the duplicate, and keep the returned asset URL available for a later add-media placement step.
+Timeline insert guide:
+- add-media <track> <at> <generation_id> <url> [--type video]
+- default media type is image when --type is omitted
+- use the asset URL returned by duplicate_generation or by a gallery result the user chose
 Model guide:
 - text-to-image: wan-2.2 = default look, z-image = faster alt look, qwen-image = best when style/reference behavior matters
 - image-to-video: wan-2.2 = default travel model, ltx-2.3 = higher quality/slower, ltx-2.3-fast = faster LTX variant
@@ -71,6 +78,7 @@ create_task({"task_type":"magic-edit","prompt":"replace the background with a mo
 create_task({"task_type":"image-upscale","reference_image_urls":["https://example.com/upscale-source.png"]})
 create_task({"task_type":"video-enhance","video_url":"https://example.com/source-video.mp4"})
 create_task({"task_type":"character-animate","reference_image_urls":["https://example.com/character.png"],"video_url":"https://example.com/motion.mp4","prompt":"subtle confident head movement"})
+duplicate_generation({"generation_id":"11111111-1111-1111-1111-111111111111"})
 Reuse an existing shared shot when possible. Only provide shot_name when the selected anchors need a new shot.
 
 Coordinate system: x, y, width, height are all 0–1 normalized to the canvas. (0,0) = top-left, (1,1) = bottom-right. width=1 means full canvas width. Default (unset) = full-size at origin.

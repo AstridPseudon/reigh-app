@@ -6,6 +6,7 @@ import {
   rollbackShotsCaches,
   cancelShotsQueries,
   findShotsCache,
+  upsertShotInCache,
   rollbackShotGenerationsCache,
   cancelShotGenerationsQuery,
 } from '../cacheUtils';
@@ -155,6 +156,53 @@ describe('cacheUtils', () => {
 
       const result = findShotsCache(queryClient, projectId);
       expect(result).toEqual(shots);
+    });
+  });
+
+  // ============================================================================
+  // upsertShotInCache
+  // ============================================================================
+
+  describe('upsertShotInCache', () => {
+    it('inserts a shot at the correct sorted position and seeds the detail cache', () => {
+      queryClient.setQueryData(queryKeys.shots.list(projectId, 0), [
+        createShot('shot-1', 0),
+        createShot('shot-3', 2),
+      ]);
+      const insertedShot = createShot('shot-2', 1);
+
+      upsertShotInCache(queryClient, projectId, insertedShot);
+
+      expect(queryClient.getQueryData<Shot[]>(queryKeys.shots.list(projectId, 0))).toEqual([
+        createShot('shot-1', 0),
+        insertedShot,
+        createShot('shot-3', 2),
+      ]);
+      expect(queryClient.getQueryData<Shot>(queryKeys.shots.detail('shot-2'))).toEqual(insertedShot);
+    });
+
+    it('replaces an existing shot with the same id in both list and detail caches', () => {
+      const originalShot = createShot('shot-2', 1);
+      const updatedShot = {
+        ...createShot('shot-2', 3),
+        name: 'Updated Shot 2',
+      } as Shot;
+
+      queryClient.setQueryData(queryKeys.shots.list(projectId, 0), [
+        createShot('shot-1', 0),
+        originalShot,
+        createShot('shot-3', 2),
+      ]);
+      queryClient.setQueryData(queryKeys.shots.detail('shot-2'), originalShot);
+
+      upsertShotInCache(queryClient, projectId, updatedShot);
+
+      expect(queryClient.getQueryData<Shot[]>(queryKeys.shots.list(projectId, 0))).toEqual([
+        createShot('shot-1', 0),
+        createShot('shot-3', 2),
+        updatedShot,
+      ]);
+      expect(queryClient.getQueryData<Shot>(queryKeys.shots.detail('shot-2'))).toEqual(updatedShot);
     });
   });
 

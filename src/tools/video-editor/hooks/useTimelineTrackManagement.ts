@@ -6,15 +6,14 @@ import type { TrackDefinition, TrackKind } from '@/tools/video-editor/types';
 import { moveClipBetweenTracks } from '@/tools/video-editor/lib/coordinate-utils';
 import type { TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import { resolveOverlaps } from '@/tools/video-editor/lib/resolve-overlaps';
-import type { UseTimelineDataResult } from '@/tools/video-editor/hooks/useTimelineData';
+import type { TimelineApplyEdit } from '@/tools/video-editor/hooks/useTimelineData.types';
 
 export interface UseTimelineTrackManagementArgs {
   dataRef: React.MutableRefObject<TimelineData | null>;
   resolvedConfig: TimelineData['resolvedConfig'] | null;
   selectedClipId: string | null;
   setSelectedTrackId: React.Dispatch<React.SetStateAction<string | null>>;
-  applyTimelineEdit: UseTimelineDataResult['applyTimelineEdit'];
-  applyResolvedConfigEdit: UseTimelineDataResult['applyResolvedConfigEdit'];
+  applyEdit: TimelineApplyEdit;
 }
 
 export interface UseTimelineTrackManagementResult {
@@ -78,8 +77,7 @@ export function useTimelineTrackManagement({
   resolvedConfig,
   selectedClipId,
   setSelectedTrackId,
-  applyTimelineEdit,
-  applyResolvedConfigEdit,
+  applyEdit,
 }: UseTimelineTrackManagementArgs): UseTimelineTrackManagementResult {
   const moveClipToRow = useCallback((
     clipId: string,
@@ -128,19 +126,25 @@ export function useTimelineTrackManagement({
     });
 
     // Trim the moved clip if it overlaps existing siblings
-    const { rows: resolvedRows, metaPatches } = resolveOverlaps(
+    const { rows: resolvedRows, metaPatches, adjustments: _adjustments } = resolveOverlaps(
       placedRows, targetRow.id, clipId, current.meta,
     );
+    const nextMetaUpdates = {
+      ...metaPatches,
+      [clipId]: {
+        track: targetRow.id,
+        ...metaPatches[clipId],
+      },
+    };
 
     const nextClipOrder = moveClipBetweenTracks(current.clipOrder, clipId, sourceRow.id, targetRow.id);
-    applyTimelineEdit(
-      resolvedRows,
-      { [clipId]: { track: targetRow.id }, ...metaPatches },
-      undefined,
-      nextClipOrder,
-      { transactionId },
-    );
-  }, [applyTimelineEdit, dataRef]);
+    applyEdit({
+      type: 'rows',
+      rows: resolvedRows,
+      metaUpdates: nextMetaUpdates,
+      clipOrderOverride: nextClipOrder,
+    }, { transactionId });
+  }, [applyEdit, dataRef]);
 
   const createTrackAndMoveClip = useCallback((clipId: string, kind: TrackKind, newStartTime?: number, insertAtTop = false) => {
     const current = dataRef.current;
@@ -177,11 +181,14 @@ export function useTimelineTrackManagement({
       }),
     };
 
-    applyResolvedConfigEdit(nextResolvedConfig, {
+    applyEdit({
+      type: 'config',
+      resolvedConfig: nextResolvedConfig,
+    }, {
       selectedClipId: clipId,
       selectedTrackId: newTrack.id,
     });
-  }, [applyResolvedConfigEdit, dataRef]);
+  }, [applyEdit, dataRef]);
 
   const moveSelectedClipToTrack = useCallback((direction: 'up' | 'down') => {
     const current = dataRef.current;
@@ -320,8 +327,8 @@ export function useTimelineTrackManagement({
 
     const nextResolvedConfig = addTrack(resolvedConfig, kind);
     const nextTrack = nextResolvedConfig.tracks[nextResolvedConfig.tracks.length - 1] ?? null;
-    applyResolvedConfigEdit(nextResolvedConfig, { selectedTrackId: nextTrack?.id ?? null });
-  }, [applyResolvedConfigEdit, resolvedConfig]);
+    applyEdit({ type: 'config', resolvedConfig: nextResolvedConfig }, { selectedTrackId: nextTrack?.id ?? null });
+  }, [applyEdit, resolvedConfig]);
 
   const handleTrackPopoverChange = useCallback((trackId: string, patch: Partial<TrackDefinition>) => {
     if (!resolvedConfig) {
@@ -332,8 +339,8 @@ export function useTimelineTrackManagement({
       ...resolvedConfig,
       tracks: resolvedConfig.tracks.map((track) => (track.id === trackId ? { ...track, ...patch } : track)),
     };
-    applyResolvedConfigEdit(nextConfig, { selectedTrackId: trackId });
-  }, [applyResolvedConfigEdit, resolvedConfig]);
+    applyEdit({ type: 'config', resolvedConfig: nextConfig }, { selectedTrackId: trackId });
+  }, [applyEdit, resolvedConfig]);
 
   const handleMoveTrack = useCallback((activeId: string, overId: string) => {
     if (!resolvedConfig) {
@@ -345,8 +352,8 @@ export function useTimelineTrackManagement({
       return;
     }
 
-    applyResolvedConfigEdit({ ...resolvedConfig, tracks: nextTracks }, { selectedTrackId: activeId });
-  }, [applyResolvedConfigEdit, resolvedConfig]);
+    applyEdit({ type: 'config', resolvedConfig: { ...resolvedConfig, tracks: nextTracks } }, { selectedTrackId: activeId });
+  }, [applyEdit, resolvedConfig]);
 
   const handleRemoveTrack = useCallback((trackId: string) => {
     if (!resolvedConfig) {
@@ -368,8 +375,8 @@ export function useTimelineTrackManagement({
       tracks: resolvedConfig.tracks.filter((entry) => entry.id !== trackId),
       clips: resolvedConfig.clips.filter((clip) => clip.track !== trackId),
     };
-    applyResolvedConfigEdit(nextConfig, { selectedTrackId: null, semantic: true });
-  }, [applyResolvedConfigEdit, resolvedConfig]);
+    applyEdit({ type: 'config', resolvedConfig: nextConfig }, { selectedTrackId: null, semantic: true });
+  }, [applyEdit, resolvedConfig]);
 
   const unusedTrackCount = useMemo(() => {
     if (!resolvedConfig) {
@@ -444,8 +451,8 @@ export function useTimelineTrackManagement({
       return false;
     });
 
-    applyResolvedConfigEdit({ ...resolvedConfig, tracks: nextTracks }, { selectedTrackId: null, semantic: true });
-  }, [applyResolvedConfigEdit, resolvedConfig, unusedTrackCount]);
+    applyEdit({ type: 'config', resolvedConfig: { ...resolvedConfig, tracks: nextTracks } }, { selectedTrackId: null, semantic: true });
+  }, [applyEdit, resolvedConfig, unusedTrackCount]);
 
   return {
     handleAddTrack,

@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => ({
   useGallerySelection: vi.fn(),
   useShots: vi.fn(),
   useShotCreation: vi.fn(),
+  useShotNavigation: vi.fn(),
   useModifierKeys: vi.fn(),
   useLassoSelection: vi.fn(),
 }));
@@ -55,6 +56,10 @@ vi.mock('@/shared/contexts/ShotsContext', () => ({
 
 vi.mock('@/shared/hooks/shotCreation/useShotCreation', () => ({
   useShotCreation: () => mocks.useShotCreation(),
+}));
+
+vi.mock('@/shared/hooks/shots/useShotNavigation', () => ({
+  useShotNavigation: () => mocks.useShotNavigation(),
 }));
 
 vi.mock('@/tools/travel-between-images/components/VideoGenerationModal', () => ({
@@ -114,6 +119,9 @@ describe('GenerationsPaneGallery', () => {
     mocks.useShotCreation.mockReturnValue({
       createShot: vi.fn(),
       isCreating: false,
+    });
+    mocks.useShotNavigation.mockReturnValue({
+      navigateToShot: vi.fn(),
     });
     mocks.useModifierKeys.mockReturnValue({
       shiftKey: false,
@@ -316,7 +324,7 @@ describe('GenerationsPaneGallery', () => {
     expect(screen.getByTestId('selection-context-menu')).toBeInTheDocument();
   });
 
-  it('creates a shot from gallery selection order and clears the selection', async () => {
+  it('creates a shot from gallery selection order without clearing the selection', async () => {
     const createShot = vi.fn().mockResolvedValue({
       shotId: 'shot-9',
       shot: { id: 'shot-9', name: 'Shot 9' },
@@ -362,7 +370,7 @@ describe('GenerationsPaneGallery', () => {
     await waitFor(() => {
       expect(createShot).toHaveBeenCalledWith({ generationIds: ['gen-2', 'gen-1'] });
     });
-    expect(clearGallerySelection).toHaveBeenCalledTimes(1);
+    expect(clearGallerySelection).not.toHaveBeenCalled();
   });
 
   it('opens the video generation modal with the newly created shot', async () => {
@@ -423,5 +431,53 @@ describe('GenerationsPaneGallery', () => {
 
     expect(screen.getByText('Error: failed')).toBeInTheDocument();
     expect(screen.getByText('No generations found for this project.')).toBeInTheDocument();
+  });
+
+  it('passes only full-match existing shots to the selection context menu using gallery selection generation ids', () => {
+    mocks.useGallerySelection.mockReturnValue({
+      selectedGalleryIds: new Set(['gallery-item-1', 'gallery-item-2']),
+      gallerySelectionMap: new Map([
+        ['gallery-item-1', { url: 'https://example.com/1.png', mediaType: 'image', generationId: 'gen-1' }],
+        ['gallery-item-2', { url: 'https://example.com/2.png', mediaType: 'image', generationId: 'gen-2' }],
+      ]),
+      selectGalleryItem: vi.fn(),
+      selectGalleryItems: vi.fn(),
+      clearGallerySelection: vi.fn(),
+    });
+    mocks.useShots.mockReturnValue({
+      shots: [
+        {
+          id: 'shot-full',
+          name: 'Full Match',
+          images: [
+            { id: 'sg-1', generation_id: 'gen-1' },
+            { id: 'sg-2', generation_id: 'gen-2' },
+          ],
+        },
+        {
+          id: 'shot-partial',
+          name: 'Partial Match',
+          images: [{ id: 'sg-3', generation_id: 'gen-1' }],
+        },
+        {
+          id: 'shot-wrong-source',
+          name: 'Wrong Source',
+          images: [
+            { id: 'sg-4', generation_id: 'gallery-item-1' },
+            { id: 'sg-5', generation_id: 'gallery-item-2' },
+          ],
+        },
+      ],
+    });
+
+    render(<GenerationsPaneGallery {...buildProps()} />);
+
+    expect(mocks.SelectionContextMenu).toHaveBeenCalledWith(
+      expect.objectContaining({
+        existingShots: [
+          expect.objectContaining({ id: 'shot-full', name: 'Full Match' }),
+        ],
+      }),
+    );
   });
 });

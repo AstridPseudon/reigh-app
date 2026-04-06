@@ -25,6 +25,7 @@ import { toast } from '@/shared/components/ui/toast';
 import { invokeSupabaseEdgeFunction } from '@/integrations/supabase/functions/invokeSupabaseEdgeFunction';
 import { ParameterControls, getDefaultValues } from '@/tools/video-editor/components/ParameterControls';
 import { tryCompileEffectAsync, type CompileResult } from '@/tools/video-editor/effects/compileEffect';
+import { wrapWithEffect } from '@/tools/video-editor/effects';
 import type { EffectComponentProps } from '@/tools/video-editor/effects/entrances';
 import {
   useCreateEffectResource,
@@ -47,6 +48,8 @@ interface EffectCreatorPanelProps {
   onSaved?: (resourceId: string, category: EffectCategory, defaultParams: Record<string, unknown>) => void;
   /** URL of the clip's image/video to use as preview background */
   previewAssetSrc?: string | null;
+  /** Timeline FPS for preview timing fidelity; falls back to 30 */
+  timelineFps?: number;
 }
 
 type CompileStatus = 'idle' | 'compiling' | 'success' | 'error';
@@ -65,7 +68,6 @@ interface GenerateEffectResponse {
 // Preview composition — colored rectangle wrapped by the effect component
 // ---------------------------------------------------------------------------
 
-const PREVIEW_FPS = 30;
 const PREVIEW_SIZE = 320;
 
 interface PreviewParams {
@@ -138,27 +140,37 @@ function PreviewRect({ assetSrc }: { assetSrc?: string | null }) {
 
 function makePreviewComposition(
   EffectComponent: FC<EffectComponentProps> | null,
+  category: EffectCategory,
   params: PreviewParams,
   effectParams: Record<string, unknown>,
+  fps: number,
+  schema?: ParameterSchema,
   assetSrc?: string | null,
 ) {
-  const durationInFrames = Math.max(1, Math.round(params.durationSeconds * PREVIEW_FPS));
-  const effectFrames = Math.max(1, Math.round(params.effectSeconds * PREVIEW_FPS));
+  const durationInFrames = Math.max(1, Math.round(params.durationSeconds * fps));
+  const effectFrames = category === 'continuous'
+    ? durationInFrames
+    : Math.max(1, Math.round(params.effectSeconds * fps));
+
   return function EffectPreviewComposition() {
+    const fallback = <PreviewRect assetSrc={assetSrc} />;
     if (!EffectComponent) {
-      return <PreviewRect assetSrc={assetSrc} />;
+      return fallback;
     }
-    return (
-      <EffectComponent
-        durationInFrames={durationInFrames}
-        effectFrames={effectFrames}
-        intensity={params.intensity}
-        params={effectParams}
-      >
-        <AbsoluteFill style={{ overflow: 'hidden' }}>
-          <PreviewRect assetSrc={assetSrc} />
-        </AbsoluteFill>
-      </EffectComponent>
+
+    return wrapWithEffect(
+      <AbsoluteFill style={{ overflow: 'hidden' }}>
+        <PreviewRect assetSrc={assetSrc} />
+      </AbsoluteFill>,
+      EffectComponent,
+      {
+        effectName: 'preview',
+        durationInFrames,
+        effectFrames,
+        intensity: params.intensity,
+        params: effectParams,
+        schema,
+      },
     );
   };
 }
@@ -173,7 +185,9 @@ export function EffectCreatorPanel({
   editingEffect,
   onSaved,
   previewAssetSrc,
+  timelineFps,
 }: EffectCreatorPanelProps) {
+  const previewFps = timelineFps ?? 30;
   const isEditing = Boolean(editingEffect);
 
   // Form state
@@ -380,10 +394,10 @@ export function EffectCreatorPanel({
   }, [name, code, category, generatedDescription, parameterSchema, prompt, isPublic, compileStatus, compileCode, isEditing, editingEffect, createEffect, updateEffect, onSaved, onOpenChange]);
 
   // Preview composition memoized on the component ref
-  const previewDurationFrames = Math.max(1, Math.round(previewParams.durationSeconds * PREVIEW_FPS));
+  const previewDurationFrames = Math.max(1, Math.round(previewParams.durationSeconds * previewFps));
   const PreviewComposition = useMemo(
-    () => makePreviewComposition(previewComponent, previewParams, previewParamValues, previewAssetSrc),
-    [previewComponent, previewParams, previewParamValues, previewAssetSrc],
+    () => makePreviewComposition(previewComponent, category, previewParams, previewParamValues, previewFps, parameterSchema, previewAssetSrc),
+    [category, previewComponent, previewParams, previewParamValues, previewFps, parameterSchema, previewAssetSrc],
   );
 
   const hasGeneratedCode = Boolean(code.trim());
@@ -473,7 +487,7 @@ export function EffectCreatorPanel({
                   compositionWidth={PREVIEW_SIZE}
                   compositionHeight={PREVIEW_SIZE}
                   durationInFrames={previewDurationFrames}
-                  fps={PREVIEW_FPS}
+                  fps={previewFps}
                   style={{ width: '100%', aspectRatio: '1' }}
                   loop
                   autoPlay

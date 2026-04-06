@@ -53,7 +53,7 @@ describe('useCreateShotAction', () => {
         generateShotName: vi.fn(),
         applyPostCreationEffects: vi.fn(),
         createShotMutation: vi.fn(),
-        createShotWithImageMutation: vi.fn(),
+        createShotWithGenerationsMutation: vi.fn(),
         handleExternalImageDropMutation: vi.fn(),
       }),
     );
@@ -72,7 +72,7 @@ describe('useCreateShotAction', () => {
     const setIsCreating = vi.fn();
     const applyPostCreationEffects = vi.fn();
     const onSuccess = vi.fn();
-    const createShotWithImageMutation = vi.fn();
+    const createShotWithGenerationsMutation = vi.fn();
     const generationResult = { shotId: 'shot-1', shotName: 'Generated Shot' };
     mocks.createShotWithGenerationPath.mockResolvedValueOnce(generationResult);
 
@@ -85,7 +85,7 @@ describe('useCreateShotAction', () => {
         generateShotName: () => 'Generated Shot',
         applyPostCreationEffects,
         createShotMutation: vi.fn(),
-        createShotWithImageMutation,
+        createShotWithGenerationsMutation,
         handleExternalImageDropMutation: vi.fn(),
       }),
     );
@@ -93,7 +93,6 @@ describe('useCreateShotAction', () => {
     await act(async () => {
       await result.current({
         generationId: 'gen-1',
-        generationPreview: { imageUrl: 'preview.png' },
         onSuccess,
       });
     });
@@ -104,7 +103,7 @@ describe('useCreateShotAction', () => {
         selectedProjectId: 'project-1',
         shotName: 'Generated Shot',
         generationId: 'gen-1',
-        createShotWithImage: createShotWithImageMutation,
+        createShotWithGenerations: createShotWithGenerationsMutation,
       }),
     );
     expect(applyPostCreationEffects).toHaveBeenCalledWith(
@@ -120,6 +119,7 @@ describe('useCreateShotAction', () => {
     const setIsCreating = vi.fn();
     const applyPostCreationEffects = vi.fn();
     const createShotMutation = vi.fn();
+    const createShotWithGenerationsMutation = vi.fn();
     const generationResult = {
       shotId: 'shot-2',
       shotName: 'Generated Shot',
@@ -136,7 +136,7 @@ describe('useCreateShotAction', () => {
         generateShotName: () => 'Generated Shot',
         applyPostCreationEffects,
         createShotMutation,
-        createShotWithImageMutation: vi.fn(),
+        createShotWithGenerationsMutation,
         handleExternalImageDropMutation: vi.fn(),
       }),
     );
@@ -153,7 +153,7 @@ describe('useCreateShotAction', () => {
         selectedProjectId: 'project-1',
         shotName: 'Generated Shot',
         generationIds: ['gen-1', 'gen-2'],
-        createShot: createShotMutation,
+        createShotWithGenerations: createShotWithGenerationsMutation,
       }),
     );
     expect(mocks.createShotWithGenerationPath).not.toHaveBeenCalled();
@@ -178,7 +178,7 @@ describe('useCreateShotAction', () => {
         generateShotName: () => 'Generated Shot',
         applyPostCreationEffects: vi.fn(),
         createShotMutation: vi.fn(),
-        createShotWithImageMutation: vi.fn(),
+        createShotWithGenerationsMutation: vi.fn(),
         handleExternalImageDropMutation: vi.fn(),
       }),
     );
