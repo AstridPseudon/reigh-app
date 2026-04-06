@@ -16,6 +16,7 @@ import { findShotForGenerations, resolveClipGenerationIds } from "./clips.ts";
 type SetLoraAction = "add" | "remove" | "update_strength";
 type SetLoraTarget = "video-travel" | "image-generation";
 type ImageLoraCategory = "qwen" | "z-image";
+type CatalogLoraMatch = Awaited<ReturnType<typeof searchLoras>>[number];
 
 const DEFAULT_VIDEO_TRAVEL_CONTEXT = {
   selectedModel: "wan-2.2",
@@ -67,6 +68,44 @@ function formatSearchResultLine(result: {
     result.lowNoiseUrl || result.highNoiseUrl ? "multi_stage=yes" : "multi_stage=no",
   ];
   return `- ${parts.join(" | ")}`;
+}
+
+function inferLoraNameFromPath(path: string): string {
+  return path.split("/").pop()?.replace(/\.[^.]+$/, "") ?? path;
+}
+
+async function resolveCatalogLoraMatch(
+  supabaseAdmin: SupabaseAdmin,
+  loraPath: string,
+  loraName?: string | null,
+): Promise<CatalogLoraMatch | null> {
+  const candidateQueries = Array.from(
+    new Set(
+      [loraName, inferLoraNameFromPath(loraPath)]
+        .map((value) => value?.trim())
+        .filter((value): value is string => Boolean(value)),
+    ),
+  );
+
+  for (const query of candidateQueries) {
+    const matches = await searchLoras(supabaseAdmin, query);
+    const exactPathMatch = matches.find((match) => match.path === loraPath);
+    if (exactPathMatch) {
+      return exactPathMatch;
+    }
+
+    const exactNameMatch = matches.find((match) => {
+      if (!loraName) {
+        return false;
+      }
+      return match.name.trim().toLowerCase() === loraName.trim().toLowerCase();
+    });
+    if (exactNameMatch) {
+      return exactNameMatch;
+    }
+  }
+
+  return null;
 }
 
 function resolveVideoTravelShotId(
@@ -154,15 +193,19 @@ export async function executeSetLora(
         return { result: `LoRA ${loraPath} is already active for video travel.` };
       }
 
-      const fallbackName = loraName ?? loraPath.split("/").pop()?.replace(/\.[^.]+$/, "") ?? loraPath;
+      const catalogMatch = await resolveCatalogLoraMatch(supabaseAdmin, loraPath, loraName);
+      const resolvedName = loraName ?? catalogMatch?.name ?? inferLoraNameFromPath(loraPath);
+      const resolvedTriggerWord = triggerWord ?? catalogMatch?.triggerWord;
+      const resolvedLowNoisePath = lowNoisePath ?? catalogMatch?.lowNoiseUrl;
+      const isMultiStage = Boolean(resolvedLowNoisePath || catalogMatch?.highNoiseUrl);
       const nextLora = {
         id: crypto.randomUUID(),
-        name: fallbackName,
+        name: resolvedName,
         path: loraPath,
         strength: nextStrength,
-        ...(triggerWord ? { triggerWord, trigger_word: triggerWord } : {}),
-        ...(lowNoisePath ? { lowNoisePath, low_noise_path: lowNoisePath } : {}),
-        ...(lowNoisePath ? { isMultiStage: true, is_multi_stage: true } : {}),
+        ...(resolvedTriggerWord ? { triggerWord: resolvedTriggerWord } : {}),
+        ...(resolvedLowNoisePath ? { lowNoisePath: resolvedLowNoisePath } : {}),
+        ...(isMultiStage ? { isMultiStage: true } : {}),
       };
       updatedTravelLoras = [...currentTravelLoras, nextLora];
     } else if (action === "remove") {

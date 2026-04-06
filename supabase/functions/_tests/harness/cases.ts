@@ -44,6 +44,7 @@ export const COMPOUND_CASES_BLOCKED_REASON = null;
 
 const TEXT_TO_IMAGE_PROMPT = "harness lighthouse mist matte painting";
 const STYLE_TRANSFER_PROMPT = "harness style transfer editorial portrait";
+const SEARCH_AND_ADD_LORA_PROMPT = "harness editorial portrait with soft window light";
 const TEXT_CLIP_CONTENT = "Harness caption alpha";
 
 function pass(reason: string): AssertionResult {
@@ -371,6 +372,40 @@ export const seedTestCases: TestCase[] = [
         // Verify project LoRAs were passed through
         expectTaskParamsContain(diff, "harness-lora", "harness test LoRA path in params"),
         expectGenerationCreatedSoft(diff, task?.id),
+        expectSessionTerminal(after),
+        expectNoCollateralDamage(diff, {
+          user: true,
+          tables: {
+            tasks: { added: "*" },
+            generations: { added: "*" },
+            generation_variants: { added: "*" },
+            timeline_agent_sessions: { modified: "*" },
+            credits_ledger: { added: "*" },
+          },
+        }),
+      ]);
+    },
+  },
+  {
+    name: "search for a LoRA in natural language and use it for image generation",
+    category: "generation",
+    message: () =>
+      `Find the public InStyle LoRA, add it to image generation for this project, and create "${SEARCH_AND_ADD_LORA_PROMPT}".`,
+    skipTaskCompletion: true,
+    evaluate: ({ after, diff }) => {
+      const task = findAddedTask(
+        diff,
+        (row) => JSON.stringify(row.params).toLowerCase().includes(SEARCH_AND_ADD_LORA_PROMPT),
+      );
+      return evaluateWith([
+        expectTaskCreatedByPrompt(diff, SEARCH_AND_ADD_LORA_PROMPT),
+        expectTaskParam(
+          diff,
+          (row) => row.id === task?.id && (row.task_type === "qwen_image" || row.task_type === "qwen_image_style"),
+          'task_type is qwen_image or qwen_image_style after natural-language LoRA setup',
+        ),
+        expectTaskParamsContain(diff, "instyle.safetensors", "InStyle LoRA path in params"),
+        expectSessionMentions(after, "instyle"),
         expectSessionTerminal(after),
         expectNoCollateralDamage(diff, {
           user: true,
