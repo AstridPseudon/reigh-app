@@ -211,7 +211,7 @@ export function AgentChat({ timelineId }: AgentChatProps) {
   // Cmd+Shift+R global shortcut — toggle recording without opening chat
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key === 'r') {
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'r') {
         event.preventDefault();
         if (voice.isRecording) {
           voice.stopRecording();
