@@ -485,8 +485,10 @@ function TimelineEditorComponent() {
   const handleDoubleClickVideoClip = useCallback((clipId: string) => {
     const pinnedShotGroups = dataRef.current?.config.pinnedShotGroups ?? [];
     const group = pinnedShotGroups.find((g) => g.clipIds.includes(clipId));
+    console.log('[TimelineEditor] handleDoubleClickVideoClip', { clipId, foundGroup: !!group, shotId: group?.shotId, pinnedGroupCount: pinnedShotGroups.length });
     if (group) {
       const shot = shots?.find((s) => s.id === group.shotId);
+      console.log('[TimelineEditor] found shot:', shot?.id, shot?.name);
       if (shot) {
         setVideoModalShot(shot);
         return;
@@ -494,6 +496,7 @@ function TimelineEditorComponent() {
     }
     // Fallback: try lightbox for videos with generationId
     const assetKey = data?.meta[clipId]?.asset;
+    console.log('[TimelineEditor] video fallback to lightbox, assetKey:', assetKey);
     if (assetKey) {
       onDoubleClickAsset?.(assetKey);
     }
