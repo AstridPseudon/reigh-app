@@ -1242,6 +1242,159 @@
       "resolved": false,
       "resolved_by": null,
       "resolved_at": null
+    },
+    {
+      "id": "DEBT-074",
+      "subsystem": "final-video-duration-handling",
+      "concern": "final-video duration handling: `useshotfinalvideos()` does not provide duration and the timeline uses `clip.to - clip.from` as truth, so the proposed in-place trim can overrun shorter source media.",
+      "flag_ids": [
+        "FLAG-003"
+      ],
+      "plan_ids": [
+        "add-a-final-video-available-20260406-0801"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T06:25:48Z",
+      "updated_at": "2026-04-06T06:25:48Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-075",
+      "subsystem": "did-the-work-fully-address-the-issue-hints-user-notes-and-approved-plan-requirements",
+      "concern": "did the work fully address the issue hints, user notes, and approved plan requirements?: checked `src/tools/video-editor/hooks/usestalevariants.ts` against the proposed `usefinalvideoavailable` state model: stale reminders are dismissed per `assetkey` and can clear when the asset changes, but the plan dismisses by `shotid`, which would hide any newer final video for the same shot for the rest of the session even though `useshotfinalvideos()` exposes a changing final-video `id`.",
+      "flag_ids": [
+        "issue_hints-1"
+      ],
+      "plan_ids": [
+        "add-a-final-video-available-20260406-0801"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T06:25:48Z",
+      "updated_at": "2026-04-06T06:25:48Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-076",
+      "subsystem": "are-the-proposed-changes-technically-correct",
+      "concern": "are the proposed changes technically correct?: checked the no-duration-fetch decision against `src/tools/travel-between-images/hooks/video/useshotfinalvideos.ts:19-37`, `src/tools/video-editor/lib/config-utils.ts:17-35`, and `src/tools/video-editor/compositions/visualclip.tsx:114-123`. the repository still derives clip length from `to - from`, and the final-video query still provides no duration metadata, so the revised plan still cannot prove that `to: endtime - starttime` is safe for shorter source media; a short final video can still be asked to play longer than its actual content.",
+      "flag_ids": [
+        "correctness-1"
+      ],
+      "plan_ids": [
+        "add-a-final-video-available-20260406-0801"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T06:25:48Z",
+      "updated_at": "2026-04-06T06:25:48Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-077",
+      "subsystem": "are-the-proposed-changes-technically-correct",
+      "concern": "are the proposed changes technically correct?: checked the hand-built replacement clip against the existing insert path in `src/tools/video-editor/hooks/useassetmanagement.ts:201-252,262-271` and serialization in `src/tools/video-editor/hooks/usetimelinecommit.ts:210-216`. the revised `timelineeditor` sketch still bypasses current insertion invariants such as manual-track geometry defaults and explicit `cliporder` updates, so replacement clips on manual visual tracks will not be initialized the same way as other inserted video clips and may serialize in a different per-track order.",
+      "flag_ids": [
+        "correctness-2"
+      ],
+      "plan_ids": [
+        "add-a-final-video-available-20260406-0801"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T06:25:48Z",
+      "updated_at": "2026-04-06T06:25:48Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-078",
+      "subsystem": "search-for-related-code-that-handles-the-same-concept-is-the-reported-issue-a-symptom-of-something-broader",
+      "concern": "search for related code that handles the same concept. is the reported issue a symptom of something broader?: checked the existing video-drop paths in `src/tools/video-editor/lib/external-drop-utils.ts:46-55,386-412` and `src/tools/video-editor/hooks/useassetmanagement.ts:198-252`. the broader repository pattern for video assets is not just \u201cregister then insert\u201d; multi-generation video drops also patch `registry.duration` using `getdroppedgenerationduration()`, while `useshotfinalvideos()` in `src/tools/travel-between-images/hooks/video/useshotfinalvideos.ts:19-37` currently fetches no duration metadata. that means final-video replacement is broader than badge wiring alone if the new clip is expected to behave like other video assets in timing ui and resize logic.",
+      "flag_ids": [
+        "scope-1"
+      ],
+      "plan_ids": [
+        "add-a-final-video-available-20260406-0801"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T06:25:48Z",
+      "updated_at": "2026-04-06T06:25:48Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-079",
+      "subsystem": "final-video-reminder-state",
+      "concern": "final-video reminder state: dismissing by `shotid` instead of final-video id still suppresses later final outputs for the same shot during the same session.",
+      "flag_ids": [
+        "FLAG-004"
+      ],
+      "plan_ids": [
+        "add-a-final-video-available-20260406-0801"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T06:25:48Z",
+      "updated_at": "2026-04-06T06:25:48Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-080",
+      "subsystem": "timeline-media-duration",
+      "concern": "timeline media duration: the revised plan still sizes the final-video clip to the shot-group span without any duration source, so shorter final videos can still overrun their real media length.",
+      "flag_ids": [
+        "correctness-3"
+      ],
+      "plan_ids": [
+        "add-a-final-video-available-20260406-0801"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T06:25:48Z",
+      "updated_at": "2026-04-06T06:25:48Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-081",
+      "subsystem": "search-for-related-code-that-handles-the-same-concept-is-the-reported-issue-a-symptom-of-something-broader",
+      "concern": "search for related code that handles the same concept. is the reported issue a symptom of something broader?: checked related asset-insertion code in `src/tools/video-editor/hooks/useassetmanagement.ts:150-271` and `src/tools/video-editor/lib/coordinate-utils.ts:24-33`. the broader repository pattern for adding timeline media is centralized there, including track compatibility, manual-track defaults, selection updates, and `cliporder` maintenance, so the revised plan is still broader than a pure menu/ui change and needs either shared helper extraction or a more explicit statement that those invariants are being replicated on purpose.",
+      "flag_ids": [
+        "scope"
+      ],
+      "plan_ids": [
+        "add-a-final-video-available-20260406-0801"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T06:25:48Z",
+      "updated_at": "2026-04-06T06:25:48Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-082",
+      "subsystem": "did-the-work-fully-address-the-issue-hints-user-notes-and-approved-plan-requirements",
+      "concern": "did the work fully address the issue hints, user notes, and approved plan requirements?: checked the revised dismissal model against `src/tools/video-editor/hooks/usestalevariants.ts:160-166` and `src/tools/travel-between-images/hooks/video/useshotfinalvideos.ts:39-60`. the plan still dismisses by `shotid`, not by final-video generation id, so if a shot gets a newer final output later in the same session the badge would remain suppressed even though `useshotfinalvideos()` would surface a different `id`; that earlier concern is still open.",
+      "flag_ids": [
+        "issue_hints"
+      ],
+      "plan_ids": [
+        "add-a-final-video-available-20260406-0801"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-06T06:25:48Z",
+      "updated_at": "2026-04-06T06:25:48Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
     }
   ]
 }

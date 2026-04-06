@@ -11,13 +11,16 @@ import React, {
   type ReactNode,
   type UIEvent,
 } from 'react';
-import { createPortal } from 'react-dom';
 import { DndContext, closestCenter, type DragEndEvent, useSensors } from '@dnd-kit/core';
 import { SortableContext, useSortable, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { ArrowRight, Clapperboard, Layers } from 'lucide-react';
+import { Layers, Video } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { usePortalMousedownGuard } from '@/shared/hooks/usePortalMousedownGuard';
+import {
+  ShotGroupContextMenu,
+  type ShotGroupMenuState,
+} from '@/tools/video-editor/components/TimelineEditor/ShotGroupContextMenu';
 import { TrackLabelContent } from '@/tools/video-editor/components/TimelineEditor/TrackLabel';
 import type { ShotGroup } from '@/tools/video-editor/hooks/useShotGroups';
 import { useTimelineEditorData } from '@/tools/video-editor/contexts/TimelineEditorContext';
@@ -59,7 +62,9 @@ interface PositionedShotGroup {
   shotId: string;
   shotName: string;
   clipIds: string[];
+  rowId: string;
   color: string;
+  hasFinalVideo: boolean;
   left: number;
   top: number;
   width: number;
@@ -89,8 +94,11 @@ export interface TimelineCanvasProps {
   onActionResizing?: (params: { action: TimelineAction; row: TimelineRow; start: number; end: number; dir: ResizeDir }) => void;
   onActionResizeEnd?: (params: { action: TimelineAction; row: TimelineRow; start: number; end: number; dir: ResizeDir }) => void;
   shotGroups?: ShotGroup[];
+  finalVideoShotIds?: Set<string>;
   onShotGroupNavigate?: (shotId: string) => void;
   onShotGroupGenerateVideo?: (shotId: string) => void;
+  onShotGroupSwitchToFinalVideo?: (group: { shotId: string; clipIds: string[]; rowId: string }) => void;
+  onShotGroupDismissFinalVideo?: (shotId: string) => void;
   onSelectClips?: (clipIds: string[]) => void;
   dragSessionRef?: MutableRefObject<DragSession | null>;
   onScroll?: (metrics: ScrollMetrics) => void;
@@ -316,8 +324,11 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
   onActionResizing,
   onActionResizeEnd,
   shotGroups = [],
+  finalVideoShotIds,
   onShotGroupNavigate,
   onShotGroupGenerateVideo,
+  onShotGroupSwitchToFinalVideo,
+  onShotGroupDismissFinalVideo,
   onSelectClips,
   dragSessionRef,
   onScroll,
@@ -340,7 +351,7 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
   const [scrollLeft, setScrollLeft] = useState(0);
   const [resizeClampedActionId, setResizeClampedActionId] = useState<string | null>(null);
   const [resizeOverrides, setResizeOverrides] = useState<Record<string, ResizeOverride>>({});
-  const [shotGroupMenu, setShotGroupMenu] = useState<{ x: number; y: number; shotId: string; shotName: string } | null>(null);
+  const [shotGroupMenu, setShotGroupMenu] = useState<ShotGroupMenuState>(null);
   const shotGroupMenuRef = useRef<HTMLDivElement>(null);
 
   usePortalMousedownGuard(shotGroupMenuRef, Boolean(shotGroupMenu));
@@ -439,15 +450,20 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
         shotId: group.shotId,
         shotName: group.shotName,
         clipIds: group.clipIds,
+        rowId: group.rowId,
         color: group.color,
+        hasFinalVideo: finalVideoShotIds?.has(group.shotId) ?? false,
         left: startLeft + first.start * pixelsPerSecond,
         top: group.rowIndex * rowHeight + ACTION_VERTICAL_MARGIN,
         width: Math.max((last.end - first.start) * pixelsPerSecond, 1),
         height: actionHeight,
       }];
     });
-  }, [actionHeight, pixelsPerSecond, resizeOverrides, rowActionMaps, rowHeight, rows, shotGroups, startLeft]);
+  }, [actionHeight, finalVideoShotIds, pixelsPerSecond, resizeOverrides, rowActionMaps, rowHeight, rows, shotGroups, startLeft]);
   const hideShotGroups = dragSessionRef?.current !== null || hasResizeOverrides;
+  const openShotGroupMenu = useCallback((x: number, y: number, group: Pick<PositionedShotGroup, 'shotId' | 'shotName' | 'clipIds' | 'rowId' | 'hasFinalVideo'>) => {
+    setShotGroupMenu({ x, y, ...group });
+  }, []);
 
   const syncCursor = useCallback((time = timeRef.current) => {
     const cursor = cursorRef.current;
@@ -757,7 +773,7 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
                 onContextMenu={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  setShotGroupMenu({ x: e.clientX, y: e.clientY, shotId: group.shotId, shotName: group.shotName });
+                  openShotGroupMenu(e.clientX, e.clientY, group);
                 }}
                 style={{
                   left: group.left,
@@ -769,38 +785,37 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
                   background: `color-mix(in srgb, ${group.color} 78%, transparent)`,
                 }}
               />
+              {group.hasFinalVideo && (
+                <button
+                  type="button"
+                  className="absolute flex h-5 w-5 items-center justify-center rounded-full bg-sky-500 text-white shadow-sm transition-transform hover:scale-105 hover:bg-sky-400"
+                  title="Final video available"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    openShotGroupMenu(event.clientX, event.clientY, { ...group, hasFinalVideo: true });
+                  }}
+                  style={{
+                    left: group.left + group.width - 10,
+                    top: group.top + group.height / 2 - 10,
+                    zIndex: 9,
+                    pointerEvents: 'auto',
+                  }}
+                >
+                  <Video className="h-3 w-3" />
+                </button>
+              )}
             </React.Fragment>
           ))}
-          {shotGroupMenu && createPortal(
-            <div
-              ref={shotGroupMenuRef}
-              className="fixed z-50 min-w-[10rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95"
-              style={{ left: shotGroupMenu.x, top: shotGroupMenu.y }}
-            >
-              <div className="px-2 py-1 text-xs font-medium text-muted-foreground">{shotGroupMenu.shotName}</div>
-              {onShotGroupNavigate && (
-                <button
-                  type="button"
-                  className="relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
-                  onClick={() => { onShotGroupNavigate(shotGroupMenu.shotId); setShotGroupMenu(null); }}
-                >
-                  <ArrowRight className="h-4 w-4" />
-                  Jump to Shot
-                </button>
-              )}
-              {onShotGroupGenerateVideo && (
-                <button
-                  type="button"
-                  className="relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground"
-                  onClick={() => { onShotGroupGenerateVideo(shotGroupMenu.shotId); setShotGroupMenu(null); }}
-                >
-                  <Clapperboard className="h-4 w-4" />
-                  Generate Video
-                </button>
-              )}
-            </div>,
-            document.body,
-          )}
+          <ShotGroupContextMenu
+            menu={shotGroupMenu}
+            menuRef={shotGroupMenuRef}
+            closeMenu={() => setShotGroupMenu(null)}
+            onNavigate={onShotGroupNavigate}
+            onGenerateVideo={onShotGroupGenerateVideo}
+            onSwitchToFinalVideo={onShotGroupSwitchToFinalVideo}
+            onDismissFinalVideo={onShotGroupDismissFinalVideo}
+          />
           <DndContext
             sensors={trackSensors}
             collisionDetection={closestCenter}

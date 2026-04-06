@@ -167,7 +167,13 @@ export function useMarqueeSelect({
           selectClips(clipIds);
         }
       } else if (!session.hasMoved && !session.additive && !dragSessionRef.current) {
-        clearSelection();
+        // Only clear selection if the pointer-up landed inside the edit area.
+        // Portal menus (context menus, lightboxes) live outside the edit area DOM,
+        // so a pointer-up there should not be treated as "click on empty timeline".
+        const upTarget = upEvent.target;
+        if (upTarget instanceof Node && editArea.contains(upTarget)) {
+          clearSelection();
+        }
       }
 
       clearSession(session);

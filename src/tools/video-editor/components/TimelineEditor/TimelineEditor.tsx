@@ -24,9 +24,11 @@ import {
   useTimelineEditorOps,
 } from '@/tools/video-editor/contexts/TimelineEditorContext';
 import { useClipDrag } from '@/tools/video-editor/hooks/useClipDrag';
+import { useFinalVideoAvailable } from '@/tools/video-editor/hooks/useFinalVideoAvailable';
 import { useMarqueeSelect } from '@/tools/video-editor/hooks/useMarqueeSelect';
 import { useShotGroups } from '@/tools/video-editor/hooks/useShotGroups';
 import { useStaleVariants } from '@/tools/video-editor/hooks/useStaleVariants';
+import { useSwitchToFinalVideo } from '@/tools/video-editor/hooks/useSwitchToFinalVideo';
 import type { AssetRegistry, ResolvedTimelineClip, TrackDefinition } from '@/tools/video-editor/types';
 import type { TimelineAction, TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 
@@ -212,6 +214,7 @@ function TimelineEditorComponent() {
     patchRegistry,
     registerAsset,
   });
+  const { finalVideoMap, dismissedShotIds, dismissShot } = useFinalVideoAvailable();
 
   useLayoutEffect(() => {
     const wrapper = timelineWrapperRef.current;
@@ -267,6 +270,15 @@ function TimelineEditorComponent() {
     data?.registry ?? EMPTY_ASSET_REGISTRY,
     shots,
   );
+  const finalVideoShotIds = useMemo(() => {
+    const shotIds = new Set<string>();
+    for (const shotId of finalVideoMap.keys()) {
+      if (!dismissedShotIds.has(shotId)) {
+        shotIds.add(shotId);
+      }
+    }
+    return shotIds;
+  }, [dismissedShotIds, finalVideoMap]);
   const assetGenerationMap = useMemo<Record<string, string>>(() => {
     const assets = data?.registry?.assets;
     if (!assets) {
@@ -370,6 +382,13 @@ function TimelineEditorComponent() {
     const shot = shots?.find((s) => s.id === shotId);
     if (shot) setVideoModalShot(shot);
   }, [shots]);
+  const handleSwitchToFinalVideo = useSwitchToFinalVideo({
+    applyEdit,
+    dataRef,
+    finalVideoMap,
+    patchRegistry,
+    registerAsset,
+  });
 
   const clientXToTime = useCallback((clientX: number): number => {
     const wrapper = timelineWrapperRef.current;
@@ -517,8 +536,11 @@ function TimelineEditorComponent() {
           onActionResizeStart={onActionResizeStart}
           onActionResizeEnd={onActionResizeEnd}
           shotGroups={shotGroups}
+          finalVideoShotIds={finalVideoShotIds}
           onShotGroupNavigate={handleShotGroupNavigate}
           onShotGroupGenerateVideo={handleShotGroupGenerateVideo}
+          onShotGroupSwitchToFinalVideo={handleSwitchToFinalVideo}
+          onShotGroupDismissFinalVideo={dismissShot}
           onSelectClips={selectClips}
           dragSessionRef={dragSessionRef}
           marqueeRect={marqueeRect}
