@@ -155,7 +155,7 @@ export async function executeCommand(
     return await createGenerationTask({
       project_id: state.projectId,
       prompt: parsed.prompt,
-      count: parsed.count,
+      count: 1,
     });
   }
 

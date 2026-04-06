@@ -129,6 +129,7 @@ run(command="duplicate clip-0 5")
 run(command="repeat 50 add-text V8 0.1 hello --start 2.74 --gap 0.1")
 
 Use create_task({...}) for generation tasks. Copy selected clip URLs exactly into reference_image_urls or video_url.
+When the user asks for multiple images, call create_task once per image with a distinct prompt for each. Vary the scene, composition, or details across prompts.
 Use get_tasks({}) to check on recent task status, errors, or results. Use get_tasks({"task_id":"..."}) for a specific task.
 Use duplicate_generation({"generation_id":"..."}) to copy an existing generation instantly when the user wants a non-destructive derivative or alternate edit path.
 For style, subject, style-character, or scene transfer with multiple selections, choose the strongest matching reference instead of guessing.
@@ -158,7 +159,7 @@ ${activeLorasSection ? `${activeLorasSection}
 ` : ""}
 
 Task guide:
-- text-to-image: prompt required, optional model, optional count
+- text-to-image: prompt required, optional model
 - style-transfer | subject-transfer | style-character-transfer | scene-transfer: prompt required, reference_image_urls required
 - image-to-video: prompt required, exactly two or more reference_image_urls, optional model
 - image-to-image: prompt required, one reference_image_url, optional strength from 0 to 1
@@ -167,12 +168,12 @@ Task guide:
 - video-enhance: video_url required, prompt not needed
 - character-animate: one reference_image_url for the character image plus video_url for motion, prompt optional
 
-create_task({"task_type":"style-transfer","prompt":"apply this look to a new fashion portrait","reference_image_urls":["https://example.com/style.png"],"count":1,"shot_name":"Style anchors"})
-create_task({"task_type":"subject-transfer","prompt":"place this subject in a neon alley at night","reference_image_urls":["https://example.com/subject.png"],"count":1,"shot_name":"Subject anchors"})
-create_task({"task_type":"style-character-transfer","prompt":"keep this character identity but restyle as polished sci-fi concept art","reference_image_urls":["https://example.com/character-style.png"],"count":1,"shot_name":"Character anchors"})
-create_task({"task_type":"scene-transfer","prompt":"rebuild this scene at golden hour with subtle fog","reference_image_urls":["https://example.com/scene.png"],"count":1,"shot_name":"Scene anchors"})
+create_task({"task_type":"style-transfer","prompt":"apply this look to a new fashion portrait","reference_image_urls":["https://example.com/style.png"],"shot_name":"Style anchors"})
+create_task({"task_type":"subject-transfer","prompt":"place this subject in a neon alley at night","reference_image_urls":["https://example.com/subject.png"],"shot_name":"Subject anchors"})
+create_task({"task_type":"style-character-transfer","prompt":"keep this character identity but restyle as polished sci-fi concept art","reference_image_urls":["https://example.com/character-style.png"],"shot_name":"Character anchors"})
+create_task({"task_type":"scene-transfer","prompt":"rebuild this scene at golden hour with subtle fog","reference_image_urls":["https://example.com/scene.png"],"shot_name":"Scene anchors"})
 create_task({"task_type":"image-to-video","prompt":"travel between these frames with gentle camera motion","reference_image_urls":["https://example.com/frame-a.png","https://example.com/frame-b.png"],"model":"ltx-2.3","shot_name":"Travel anchors"})
-create_task({"task_type":"text-to-image","prompt":"wide cinematic desert at blue hour","model":"z-image","count":4})
+create_task({"task_type":"text-to-image","prompt":"wide cinematic desert at blue hour","model":"z-image"})
 create_task({"task_type":"image-to-image","prompt":"turn this portrait into glossy editorial lighting","reference_image_urls":["https://example.com/source-image.png"],"strength":0.55})
 create_task({"task_type":"magic-edit","prompt":"replace the background with a moody rain-soaked alley","reference_image_urls":["https://example.com/edit-source.png"]})
 create_task({"task_type":"image-upscale","reference_image_urls":["https://example.com/upscale-source.png"]})

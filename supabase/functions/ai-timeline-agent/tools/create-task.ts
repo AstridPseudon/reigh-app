@@ -154,7 +154,9 @@ export async function executeCreateTask(
         : {}),
     }
     : undefined;
-  const effectiveModel = asTrimmedString(args.model) ?? defaultModelName ?? undefined;
+  const effectiveModel = referenceMode
+    ? "qwen-image"
+    : (asTrimmedString(args.model) ?? defaultModelName ?? undefined);
   const loraCategory = TASK_TYPE_TO_REFERENCE_MODE[taskType]
     ? "qwen"
     : (effectiveModel?.startsWith("z-") ? "z-image" : "qwen");
@@ -190,7 +192,7 @@ export async function executeCreateTask(
   const result = await createGenerationTask({
     project_id: timelineState.projectId,
     prompt: prompt ?? undefined,
-    count: asPositiveNumber(args.count) ?? 1,
+    count: 1,
     task_type: taskType,
     reference_mode: referenceMode,
     reference_image_url: referenceImageUrls[0],
