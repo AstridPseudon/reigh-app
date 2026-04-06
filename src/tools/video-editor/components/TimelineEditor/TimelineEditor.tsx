@@ -415,6 +415,12 @@ function TimelineEditorComponent() {
       return;
     }
 
+    // If exactly one existing shot already contains the selected generations, use it directly
+    if (existingShotsForSelection.length === 1) {
+      setVideoModalShot(existingShotsForSelection[0]);
+      return;
+    }
+
     const result = await createShot({ generationIds: selectionShotCreationState.generationIds });
     if (!result?.shotId) {
       return;
@@ -424,7 +430,7 @@ function TimelineEditorComponent() {
     if (createdShot) {
       setVideoModalShot(createdShot);
     }
-  }, [createShot, selectionShotCreationState, shots]);
+  }, [createShot, existingShotsForSelection, selectionShotCreationState, shots]);
 
   const handleNavigateToShot = useCallback((shot: Shot) => {
     navigateToShot(shot, { isNewlyCreated: true });
