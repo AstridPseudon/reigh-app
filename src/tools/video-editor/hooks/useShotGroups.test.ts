@@ -18,6 +18,8 @@ function buildShot(id: string, name: string, generationIds: string[]): Shot {
     images: generationIds.map((generationId, index) => ({
       id: `${id}-image-${index}`,
       generation_id: generationId,
+      type: 'image',
+      timeline_frame: index * 50,
     })),
   } as Shot;
 }

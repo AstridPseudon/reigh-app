@@ -104,9 +104,12 @@ export function useShotGroups(
       const imageIndexByGenerationId = new Map<string, number>();
       for (const [imageIndex, image] of (shot.images ?? []).entries()) {
         const generationId = image.generation_id;
-        if (typeof generationId === 'string' && generationId.length > 0 && !imageIndexByGenerationId.has(generationId)) {
-          imageIndexByGenerationId.set(generationId, imageIndex);
-        }
+        if (typeof generationId !== 'string' || generationId.length === 0) continue;
+        if (imageIndexByGenerationId.has(generationId)) continue;
+        // Only include positioned image-type generations (not videos, not unpositioned)
+        if (image.type?.startsWith('video')) continue;
+        if (image.timeline_frame == null) continue;
+        imageIndexByGenerationId.set(generationId, imageIndex);
       }
 
       const hasFinalVideo = finalVideoShotIds?.has(shot.id) ?? false;
