@@ -4,7 +4,6 @@ import { Button } from '@/shared/components/ui/button';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { Label } from '@/shared/components/ui/primitives/label';
 import { ShotFilter } from '@/shared/components/selectors/ShotFilter';
-import { MediaTypeFilter } from '@/shared/components/selectors/MediaTypeFilter';
 import { SHOT_FILTER } from '@/shared/constants/filterConstants';
 import { ChevronLeft, ChevronRight, Search, Star, X } from 'lucide-react';
 import {
@@ -174,20 +173,32 @@ export function GenerationsPaneControls({
             interaction.isInteractionDisabled && 'pointer-events-none opacity-70',
           )}
         >
-          <MediaTypeFilter
-            value={filters.mediaTypeFilter}
-            onChange={filters.onMediaTypeFilterChange}
-            darkSurface
-            open={filters.mediaTypeFilterOpen}
-            onOpenChange={(open) => {
-              if (interaction.isInteractionDisabled && open) {
-                filters.onMediaTypeFilterOpenChange(false);
-                return;
-              }
-              filters.onMediaTypeFilterOpenChange(open);
-            }}
-            contentRef={filters.mediaTypeFilterContentRef}
-          />
+          <div className="flex h-6 items-center overflow-hidden rounded-md border border-zinc-700 text-[10px] font-medium">
+            <button
+              type="button"
+              className={cn(
+                'h-full px-2.5 transition-colors',
+                filters.mediaTypeFilter !== 'video'
+                  ? 'bg-zinc-600 text-zinc-100'
+                  : 'text-zinc-400 hover:text-zinc-200',
+              )}
+              onClick={() => filters.onMediaTypeFilterChange('image')}
+            >
+              Images
+            </button>
+            <button
+              type="button"
+              className={cn(
+                'h-full px-2.5 transition-colors',
+                filters.mediaTypeFilter === 'video'
+                  ? 'bg-zinc-600 text-zinc-100'
+                  : 'text-zinc-400 hover:text-zinc-200',
+              )}
+              onClick={() => filters.onMediaTypeFilterChange('video')}
+            >
+              Videos
+            </button>
+          </div>
         </div>
       </div>
 
