@@ -146,42 +146,45 @@ export const wrapWithClipEffects = (
   let wrapped = content;
   const registry = getEffectRegistry();
 
-  const continuous = clip.continuous ? lookupEffect(continuousEffects, clip.continuous.type) : null;
-  if (clip.continuous && !continuous) {
-    console.warn('[EffectWrap] continuous effect NOT FOUND for clip=%s type=%s', clip.id, clip.continuous.type);
+  const continuousEffect = clip.continuous;
+  const continuous = continuousEffect ? lookupEffect(continuousEffects, continuousEffect.type) : null;
+  if (continuousEffect && !continuous) {
+    console.warn('[EffectWrap] continuous effect NOT FOUND for clip=%s type=%s', clip.id, continuousEffect.type);
   }
   if (continuous) {
     wrapped = wrapWithEffect(wrapped, continuous, {
-      effectName: clip.continuous.type,
+      effectName: continuousEffect!.type,
       durationInFrames,
       effectFrames: durationInFrames,
-      intensity: clip.continuous.intensity ?? 0.5,
-      params: clip.continuous.params,
-      schema: registry.getSchema(clip.continuous.type),
+      intensity: continuousEffect!.intensity ?? 0.5,
+      params: continuousEffect!.params,
+      schema: registry.getSchema(continuousEffect!.type),
     });
   }
 
-  const entrance = clip.entrance ? lookupEffect(entranceEffects, clip.entrance.type) : null;
+  const entranceEffect = clip.entrance;
+  const entrance = entranceEffect ? lookupEffect(entranceEffects, entranceEffect.type) : null;
   if (entrance) {
     wrapped = wrapWithEffect(wrapped, entrance, {
-      effectName: clip.entrance.type,
+      effectName: entranceEffect!.type,
       durationInFrames,
-      effectFrames: secondsToFrames(clip.entrance.duration ?? 0.4, fps),
-      intensity: clip.entrance.intensity,
-      params: clip.entrance.params,
-      schema: registry.getSchema(clip.entrance.type),
+      effectFrames: secondsToFrames(entranceEffect!.duration ?? 0.4, fps),
+      intensity: entranceEffect!.intensity,
+      params: entranceEffect!.params,
+      schema: registry.getSchema(entranceEffect!.type),
     });
   }
 
-  const exit = clip.exit ? lookupEffect(exitEffects, clip.exit.type) : null;
+  const exitEffect = clip.exit;
+  const exit = exitEffect ? lookupEffect(exitEffects, exitEffect.type) : null;
   if (exit) {
     wrapped = wrapWithEffect(wrapped, exit, {
-      effectName: clip.exit.type,
+      effectName: exitEffect!.type,
       durationInFrames,
-      effectFrames: secondsToFrames(clip.exit.duration ?? 0.4, fps),
-      intensity: clip.exit.intensity,
-      params: clip.exit.params,
-      schema: registry.getSchema(clip.exit.type),
+      effectFrames: secondsToFrames(exitEffect!.duration ?? 0.4, fps),
+      intensity: exitEffect!.intensity,
+      params: exitEffect!.params,
+      schema: registry.getSchema(exitEffect!.type),
     });
   }
 

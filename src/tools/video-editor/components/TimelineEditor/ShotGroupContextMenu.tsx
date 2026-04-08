@@ -1,5 +1,8 @@
+import { useLayoutEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowRight, Clapperboard, RefreshCw, Video, X } from 'lucide-react';
+import { ArrowRight, Clapperboard, RefreshCw, Scissors, Trash2, Video } from 'lucide-react';
+
+const VIEWPORT_MARGIN = 8;
 
 export type ShotGroupMenuState = {
   x: number;
@@ -16,7 +19,7 @@ export type ShotGroupMenuState = {
 
 interface ShotGroupContextMenuProps {
   menu: ShotGroupMenuState;
-  menuRef: React.RefObject<HTMLDivElement | null>;
+  menuRef: React.RefObject<HTMLDivElement>;
   closeMenu: () => void;
   onNavigate?: (shotId: string) => void;
   onGenerateVideo?: (shotId: string) => void;
@@ -24,6 +27,7 @@ interface ShotGroupContextMenuProps {
   onSwitchToImages?: (group: { shotId: string; rowId: string }) => void;
   onUpdateToLatestVideo?: (group: { shotId: string; rowId: string }) => void;
   onUnpinGroup?: (group: { shotId: string; trackId: string }) => void;
+  onDeleteShot?: (group: { shotId: string; trackId: string; clipIds: string[] }) => void;
 }
 
 export function ShotGroupContextMenu({
@@ -36,7 +40,37 @@ export function ShotGroupContextMenu({
   onSwitchToImages,
   onUpdateToLatestVideo,
   onUnpinGroup,
+  onDeleteShot,
 }: ShotGroupContextMenuProps) {
+  const [adjustedPosition, setAdjustedPosition] = useState<{ left: number; top: number } | null>(null);
+
+  useLayoutEffect(() => {
+    if (!menu) {
+      setAdjustedPosition(null);
+      return;
+    }
+    const node = menuRef.current;
+    if (!node) {
+      return;
+    }
+    const rect = node.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    let left = menu.x;
+    let top = menu.y;
+    if (left + rect.width + VIEWPORT_MARGIN > viewportWidth) {
+      left = Math.max(VIEWPORT_MARGIN, viewportWidth - rect.width - VIEWPORT_MARGIN);
+    }
+    if (top + rect.height + VIEWPORT_MARGIN > viewportHeight) {
+      // Flip above the click point if there's room, otherwise clamp to viewport.
+      const flipped = menu.y - rect.height;
+      top = flipped >= VIEWPORT_MARGIN
+        ? flipped
+        : Math.max(VIEWPORT_MARGIN, viewportHeight - rect.height - VIEWPORT_MARGIN);
+    }
+    setAdjustedPosition({ left, top });
+  }, [menu, menuRef]);
+
   if (!menu) {
     return null;
   }
@@ -44,10 +78,18 @@ export function ShotGroupContextMenu({
   const pinActions = [
     onUnpinGroup
       ? {
-          key: 'unpin-shot-group',
-          label: 'Remove from timeline',
-          icon: X,
+          key: 'deconstruct-shot-group',
+          label: 'Deconstruct shot',
+          icon: Scissors,
           onClick: () => onUnpinGroup({ shotId: menu.shotId, trackId: menu.trackId }),
+        }
+      : null,
+    onDeleteShot
+      ? {
+          key: 'delete-shot-group',
+          label: 'Delete shot',
+          icon: Trash2,
+          onClick: () => onDeleteShot({ shotId: menu.shotId, trackId: menu.trackId, clipIds: menu.clipIds }),
         }
       : null,
   ].filter((action): action is { key: string; label: string; icon: typeof Video; onClick: () => void } => Boolean(action));
@@ -100,7 +142,11 @@ export function ShotGroupContextMenu({
     <div
       ref={menuRef}
       className="fixed z-50 min-w-[10rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95"
-      style={{ left: menu.x, top: menu.y }}
+      style={{
+        left: adjustedPosition?.left ?? menu.x,
+        top: adjustedPosition?.top ?? menu.y,
+        visibility: adjustedPosition ? 'visible' : 'hidden',
+      }}
     >
       <div className="px-2 py-1 text-xs font-medium text-muted-foreground">{menu.shotName}</div>
       {pinActions.map((action) => {

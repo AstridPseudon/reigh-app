@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { formatTime } from '@/tools/video-editor/lib/coordinate-utils';
+import { useTimelineScale } from '@/tools/video-editor/hooks/useTimelineScale';
 
 const POINTER_DRAG_THRESHOLD_PX = 3;
 const OVERSCAN_STEPS = 4;
@@ -39,9 +40,9 @@ export function TimeRuler({
 
   const safeSplitCount = Math.max(1, scaleSplitCount);
   const contentWidth = Math.max(totalWidth, startLeft + scaleWidth);
-  const pixelsPerSecond = scaleWidth / Math.max(scale, Number.EPSILON);
+  const { pixelsPerSecond, pixelToTime } = useTimelineScale({ scale, scaleWidth, startLeft });
   const minorStepWidth = scaleWidth / safeSplitCount;
-  const maxTime = Math.max(0, (contentWidth - startLeft) / pixelsPerSecond);
+  const maxTime = Math.max(0, pixelToTime(contentWidth));
 
   useEffect(() => {
     const element = containerRef.current;
@@ -124,7 +125,7 @@ export function TimeRuler({
     }
 
     const relativeX = clientX - rect.left + scrollLeft;
-    return clamp((relativeX - startLeft) / pixelsPerSecond, 0, maxTime);
+    return clamp(pixelToTime(relativeX), 0, maxTime);
   };
 
   const handlePointerDown = (event: React.PointerEvent<HTMLDivElement>) => {

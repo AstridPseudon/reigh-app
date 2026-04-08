@@ -99,7 +99,7 @@ export const toolRuntimeManifest: ToolUIDefinition[] = [
     accent: 'wes-mint',
     ornament: '▣',
     badge: 'New',
-    paneSection: 'assistant',
+    paneSection: 'main',
     visibleInToolsPane: true,
     darkIconColor: '#4fd1c5',
   },

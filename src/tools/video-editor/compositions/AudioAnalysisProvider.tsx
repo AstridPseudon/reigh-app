@@ -147,7 +147,7 @@ const analyzeMixedBuffer = (
   const samples = toMonoSamples(buffer);
   const samplesPerFrame = buffer.sampleRate / fps;
   const frames = Math.max(1, totalDurationInFrames);
-  const rawFrames: Array<Omit<AudioAnalysisData, 'isBeat'> & { rawBass: number }> = [];
+  const rawFrames: Array<AudioAnalysisData & { rawBass: number }> = [];
   let maxMagnitude = 0;
 
   for (let frame = 0; frame < frames; frame += 1) {

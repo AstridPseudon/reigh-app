@@ -32,6 +32,7 @@ import {
   isGenerationDragType,
   type TimelineDropPosition,
 } from '@/tools/video-editor/lib/external-drop-utils';
+import { orderClipIdsByAt } from '@/tools/video-editor/lib/pinned-group-projection';
 import { RafLoopDetector } from '@/tools/video-editor/lib/perf-diagnostics';
 import type { TrackKind } from '@/tools/video-editor/types';
 import { createAutoScroller } from '@/tools/video-editor/lib/auto-scroll';
@@ -109,7 +110,7 @@ async function dispatchTimelineDrop({
     const shot = shots?.find((candidate) => candidate.id === shotData.shotId);
     const shotImages = shotData.imageGenerationIds
       .map((generationId) => shot?.images?.find((image) => image.generation_id === generationId))
-      .filter((image): image is NonNullable<typeof shot>['images'][number] => {
+      .filter((image): image is NonNullable<NonNullable<typeof shot>['images']>[number] => {
         return Boolean(image?.generation_id && (image.imageUrl || image.location));
       });
     const resolvedTarget = resolveAssetDropTarget({
@@ -132,11 +133,12 @@ async function dispatchTimelineDrop({
     let timeOffset = 0;
 
     for (const shotImage of shotImages) {
+      if (!shotImage.generation_id) continue;
       const assetKey = registerGenerationAsset({
         generationId: shotImage.generation_id,
         variantType: 'image',
         imageUrl: shotImage.imageUrl ?? shotImage.location ?? '',
-        thumbUrl: shotImage.thumbUrl ?? shotImage.thumbnail_url ?? shotImage.imageUrl ?? shotImage.location ?? '',
+        thumbUrl: shotImage.thumbUrl ?? (shotImage as { thumbnail_url?: string }).thumbnail_url ?? shotImage.imageUrl ?? shotImage.location ?? '',
         metadata: {
           content_type: shotImage.contentType ?? shotImage.type ?? 'image/png',
         },
@@ -173,12 +175,13 @@ async function dispatchTimelineDrop({
       return;
     }
 
-    nextPinnedShotGroups.push({
+    const nextGroup = {
       shotId: shot.id,
       trackId: resolvedTarget.trackId,
-      clipIds: createdClipIds,
+      clipIds: orderClipIdsByAt(createdClipIds, { rows: workingData.rows }),
       mode: 'images',
-    });
+    } as const;
+    nextPinnedShotGroups.push(nextGroup);
 
     applyEdit({
       type: 'rows',

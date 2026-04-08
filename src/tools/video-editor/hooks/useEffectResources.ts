@@ -1,10 +1,12 @@
 import { useMemo } from 'react';
 import type { UseMutationOptions, UseMutationResult } from '@tanstack/react-query';
 import {
+  type CreateResourceArgs,
   useCreateResource,
   useDeleteResource,
   useListPublicResources,
   useListResources,
+  type UpdateResourceArgs,
   useUpdateResource,
   type EffectMetadata,
   type Resource,
@@ -34,15 +36,15 @@ const EMPTY_EFFECT_GROUPS: EffectResourcesByCategory = {
 function toEffectResource(resource: Resource): EffectResource {
   const metadata = resource.metadata as EffectMetadata;
   return {
+    ...metadata,
     id: resource.id,
     type: 'effect',
     userId: resource.userId,
     user_id: resource.user_id,
     isPublic: resource.isPublic,
-    is_public: resource.is_public,
+    is_public: resource.is_public ?? metadata.is_public,
     createdAt: resource.createdAt,
     created_at: resource.created_at,
-    ...metadata,
   };
 }
 
@@ -111,11 +113,21 @@ export function useCreateEffectResource(): Omit<
   mutateAsync: (variables: { metadata: EffectMetadata }, options?: UseMutationOptions<Resource, Error, { metadata: EffectMetadata }, unknown>) => Promise<Resource>;
 } {
   const mutation = useCreateResource();
+  const base = mutation as unknown as Omit<
+    UseMutationResult<Resource, Error, { metadata: EffectMetadata }, unknown>,
+    'mutate' | 'mutateAsync'
+  >;
 
   return {
-    ...mutation,
-    mutate: (variables, options) => mutation.mutate({ type: 'effect', metadata: variables.metadata }, options),
-    mutateAsync: (variables, options) => mutation.mutateAsync({ type: 'effect', metadata: variables.metadata }, options),
+    ...base,
+    mutate: ((variables, options) => mutation.mutate(
+      { type: 'effect', metadata: variables.metadata } as CreateResourceArgs,
+      options as Parameters<typeof mutation.mutate>[1],
+    )) as UseMutationResult<Resource, Error, { metadata: EffectMetadata }, unknown>['mutate'],
+    mutateAsync: ((variables, options) => mutation.mutateAsync(
+      { type: 'effect', metadata: variables.metadata } as CreateResourceArgs,
+      options as Parameters<typeof mutation.mutateAsync>[1],
+    )) as (variables: { metadata: EffectMetadata }, options?: UseMutationOptions<Resource, Error, { metadata: EffectMetadata }, unknown>) => Promise<Resource>,
   };
 }
 
@@ -127,11 +139,21 @@ export function useUpdateEffectResource(): Omit<
   mutateAsync: (variables: { id: string; metadata: EffectMetadata }, options?: UseMutationOptions<Resource, Error, { id: string; metadata: EffectMetadata }, unknown>) => Promise<Resource>;
 } {
   const mutation = useUpdateResource();
+  const base = mutation as unknown as Omit<
+    UseMutationResult<Resource, Error, { id: string; metadata: EffectMetadata }, unknown>,
+    'mutate' | 'mutateAsync'
+  >;
 
   return {
-    ...mutation,
-    mutate: (variables, options) => mutation.mutate({ id: variables.id, type: 'effect', metadata: variables.metadata }, options),
-    mutateAsync: (variables, options) => mutation.mutateAsync({ id: variables.id, type: 'effect', metadata: variables.metadata }, options),
+    ...base,
+    mutate: ((variables, options) => mutation.mutate(
+      { id: variables.id, type: 'effect', metadata: variables.metadata } as UpdateResourceArgs,
+      options as Parameters<typeof mutation.mutate>[1],
+    )) as UseMutationResult<Resource, Error, { id: string; metadata: EffectMetadata }, unknown>['mutate'],
+    mutateAsync: ((variables, options) => mutation.mutateAsync(
+      { id: variables.id, type: 'effect', metadata: variables.metadata } as UpdateResourceArgs,
+      options as Parameters<typeof mutation.mutateAsync>[1],
+    )) as (variables: { id: string; metadata: EffectMetadata }, options?: UseMutationOptions<Resource, Error, { id: string; metadata: EffectMetadata }, unknown>) => Promise<Resource>,
   };
 }
 

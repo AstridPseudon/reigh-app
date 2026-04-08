@@ -46,8 +46,6 @@ export const BLEND_OPTIONS: { value: TrackBlendMode; label: string }[] = [
   { value: 'overlay', label: 'Overlay' },
   { value: 'darken', label: 'Darken' },
   { value: 'lighten', label: 'Lighten' },
-  { value: 'color-dodge', label: 'Color Dodge' },
-  { value: 'color-burn', label: 'Color Burn' },
   { value: 'soft-light', label: 'Soft Light' },
   { value: 'hard-light', label: 'Hard Light' },
 ];

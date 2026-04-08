@@ -6,6 +6,7 @@ import React, {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type MutableRefObject,
   type PointerEvent as ReactPointerEvent,
   type ReactNode,
@@ -26,12 +27,22 @@ import type { ShotGroup } from '@/tools/video-editor/hooks/useShotGroups';
 import { useTimelineEditorData } from '@/tools/video-editor/contexts/TimelineEditorContext';
 import { TimeRuler } from '@/tools/video-editor/components/TimelineEditor/TimeRuler';
 import { LABEL_WIDTH } from '@/tools/video-editor/lib/coordinate-utils';
-import { snapResize } from '@/tools/video-editor/lib/snap-edges';
+import { notifyInteractionEndIfIdle } from '@/tools/video-editor/lib/interaction-state';
+import {
+  applyClipEdgeMove,
+  snapBoundaryToSiblings,
+  type ClipEdgeResizeContext,
+  type ClipEdgeResizeUpdate,
+  type FreeClipEdgeResizeContext,
+  type ResizeDir,
+} from '@/tools/video-editor/lib/resize-math';
 import { getSourceTime, type TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import { useRenderDiagnostic } from '@/tools/video-editor/hooks/usePerfDiagnostics';
+import { useTimelineScale } from '@/tools/video-editor/hooks/useTimelineScale';
 import type { TrackDefinition } from '@/tools/video-editor/types';
 import type { TimelineAction, TimelineCanvasHandle, TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 import type { DragSession } from '@/tools/video-editor/hooks/useClipDrag';
+import type { ClipEdgeResizeEndTarget, ClipEdgeResizeSession } from '@/tools/video-editor/hooks/useClipResize';
 import type { MarqueeRect } from '@/tools/video-editor/hooks/useMarqueeSelect';
 
 interface ScrollMetrics {
@@ -39,23 +50,9 @@ interface ScrollMetrics {
   scrollTop: number;
 }
 
-type ResizeDir = 'left' | 'right';
-
 interface ResizeOverride {
   start: number;
   end: number;
-}
-
-interface ResizeSession {
-  pointerId: number;
-  actionId: string;
-  rowId: string;
-  dir: ResizeDir;
-  initialStart: number;
-  initialEnd: number;
-  initialClientX: number;
-  minStart?: number;
-  maxEnd?: number;
 }
 
 interface PositionedShotGroup {
@@ -63,6 +60,8 @@ interface PositionedShotGroup {
   shotId: string;
   shotName: string;
   clipIds: string[];
+  start: number;
+  end: number;
   rowId: string;
   color: string;
   mode?: 'images' | 'video';
@@ -94,9 +93,13 @@ export interface TimelineCanvasProps {
   trackSensors: ReturnType<typeof useSensors>;
   onCursorDrag: (time: number) => void;
   onClickTimeArea: (time: number) => void;
-  onActionResizeStart?: (params: { action: TimelineAction; row: TimelineRow; dir: ResizeDir }) => void;
+  onActionResizeStart?: (params: {
+    action: TimelineAction;
+    row: TimelineRow;
+    dir: ResizeDir;
+  }) => void;
   onActionResizing?: (params: { action: TimelineAction; row: TimelineRow; start: number; end: number; dir: ResizeDir }) => void;
-  onActionResizeEnd?: (params: { action: TimelineAction; row: TimelineRow; start: number; end: number; dir: ResizeDir }) => void;
+  onClipEdgeResizeEnd?: (params: ClipEdgeResizeEndTarget) => void;
   shotGroups?: ShotGroup[];
   finalVideoMap?: Map<string, unknown>;
   staleShotGroupIds?: Set<string>;
@@ -107,8 +110,10 @@ export interface TimelineCanvasProps {
   onShotGroupSwitchToImages?: (group: { shotId: string; rowId: string }) => void;
   onShotGroupUpdateToLatestVideo?: (group: { shotId: string; rowId: string }) => void;
   onShotGroupUnpin?: (group: { shotId: string; trackId: string }) => void;
+  onShotGroupDelete?: (group: { shotId: string; trackId: string; clipIds: string[] }) => void;
   onSelectClips?: (clipIds: string[]) => void;
   dragSessionRef?: MutableRefObject<DragSession | null>;
+  interactionStateRef?: import('@/tools/video-editor/lib/interaction-state').InteractionStateRef;
   onScroll?: (metrics: ScrollMetrics) => void;
   marqueeRect?: MarqueeRect | null;
   onEditAreaPointerDown?: (event: ReactPointerEvent<HTMLDivElement>) => void;
@@ -141,8 +146,8 @@ const getAudioResizeLimits = (
   action: TimelineAction,
   row: TimelineRow,
   dir: ResizeDir,
-): Pick<ResizeSession, 'minStart' | 'maxEnd'> => {
-  if (!data) {
+): Pick<FreeClipEdgeResizeContext, 'minStart' | 'maxEnd'> => {
+  if (!data?.meta || !data?.tracks) {
     return {};
   }
 
@@ -183,6 +188,125 @@ const getAudioResizeLimits = (
   };
 };
 
+const collectSiblingTimes = (
+  actions: TimelineAction[],
+  excludedClipIds: readonly string[],
+): number[] => {
+  const excluded = new Set(excludedClipIds);
+  const siblingTimes = [0];
+  for (const action of actions) {
+    if (excluded.has(action.id)) {
+      continue;
+    }
+    siblingTimes.push(action.start, action.end);
+  }
+  return siblingTimes;
+};
+
+const getGroupPreviewKey = (shotId: string, trackId: string): string => `${shotId}:${trackId}`;
+
+const getUpdateForClip = (
+  updates: ClipEdgeResizeUpdate[],
+  clipId: string,
+): ClipEdgeResizeUpdate | null => updates.find((update) => update.clipId === clipId) ?? null;
+
+const getOverrideMapForUpdates = (
+  session: ClipEdgeResizeSession,
+  updates: ClipEdgeResizeUpdate[],
+): Record<string, ResizeOverride> => {
+  const overrides: Record<string, ResizeOverride> = Object.fromEntries(
+    updates.map((update) => [update.clipId, { start: update.start, end: update.end }]),
+  );
+
+  if (session.context.kind === 'outer' && updates.length > 0) {
+    const start = Math.min(...updates.map((update) => update.start));
+    const end = Math.max(...updates.map((update) => update.end));
+    overrides[getGroupPreviewKey(session.context.shotId, session.context.trackId)] = { start, end };
+  }
+
+  return overrides;
+};
+
+const getResizePreviewIds = (session: ClipEdgeResizeSession): string[] => {
+  switch (session.context.kind) {
+    case 'free':
+      return [session.clipId];
+    case 'interior':
+      return [session.clipId, session.context.adjacentClipId];
+    case 'outer':
+      return [
+        getGroupPreviewKey(session.context.shotId, session.context.trackId),
+        ...session.context.groupClipIds,
+      ];
+  }
+};
+
+const getPreviewUpdatesFromSnapshot = (
+  session: ClipEdgeResizeSession,
+  snapshot: Readonly<Record<string, ResizeOverride>>,
+): ClipEdgeResizeUpdate[] => {
+  switch (session.context.kind) {
+    case 'free': {
+      const override = snapshot[session.clipId];
+      return [{
+        clipId: session.clipId,
+        start: override?.start ?? session.context.initialStart,
+        end: override?.end ?? session.context.initialEnd,
+      }];
+    }
+    case 'interior': {
+      const draggedOverride = snapshot[session.clipId];
+      const adjacentOverride = snapshot[session.context.adjacentClipId];
+      return [
+        {
+          clipId: session.clipId,
+          start: draggedOverride?.start ?? session.context.draggedInitialStart,
+          end: draggedOverride?.end ?? session.context.draggedInitialEnd,
+        },
+        {
+          clipId: session.context.adjacentClipId,
+          start: adjacentOverride?.start ?? session.context.adjacentInitialStart,
+          end: adjacentOverride?.end ?? session.context.adjacentInitialEnd,
+        },
+      ];
+    }
+    case 'outer':
+      return session.context.groupChildrenSnapshot.map((child) => {
+        const override = snapshot[child.clipId];
+        return {
+          clipId: child.clipId,
+          start: override?.start ?? child.start,
+          end: override?.end ?? child.end,
+        };
+      });
+  }
+};
+
+const clampFreeBoundaryTime = (
+  context: FreeClipEdgeResizeContext,
+  edge: ResizeDir,
+  boundaryTime: number,
+  minimumDuration: number,
+): { boundaryTime: number; limitClamped: boolean } => {
+  if (edge === 'left') {
+    let nextBoundaryTime = clamp(boundaryTime, 0, context.initialEnd - minimumDuration);
+    let limitClamped = false;
+    if (typeof context.minStart === 'number' && nextBoundaryTime < context.minStart) {
+      nextBoundaryTime = context.minStart;
+      limitClamped = true;
+    }
+    return { boundaryTime: nextBoundaryTime, limitClamped };
+  }
+
+  let nextBoundaryTime = Math.max(context.initialStart + minimumDuration, boundaryTime);
+  let limitClamped = false;
+  if (typeof context.maxEnd === 'number' && nextBoundaryTime > context.maxEnd) {
+    nextBoundaryTime = context.maxEnd;
+    limitClamped = true;
+  }
+  return { boundaryTime: nextBoundaryTime, limitClamped };
+};
+
 interface SortableRowProps {
   row: TimelineRow;
   track: TrackDefinition;
@@ -191,7 +315,7 @@ interface SortableRowProps {
   pixelsPerSecond: number;
   selectedTrackId: string | null;
   resizeClampedActionId: string | null;
-  resizeOverrides: Readonly<Record<string, ResizeOverride>>;
+  resizePreviewSnapshot: Readonly<Record<string, ResizeOverride>>;
   getActionRender?: (action: TimelineAction, row: TimelineRow, width: number) => ReactNode;
   onSelectTrack: (trackId: string) => void;
   onTrackChange: (trackId: string, patch: Partial<TrackDefinition>) => void;
@@ -206,7 +330,75 @@ interface SortableRowProps {
   onResizeEnd: (event: ReactPointerEvent<HTMLDivElement>, cancelled: boolean) => void;
 }
 
-const EMPTY_RESIZE_OVERRIDES: Readonly<Record<string, ResizeOverride>> = Object.freeze({});
+const EMPTY_RESIZE_PREVIEW_SNAPSHOT: Readonly<Record<string, ResizeOverride>> = Object.freeze({});
+
+interface ResizePreviewStore {
+  subscribe: (listener: () => void) => () => void;
+  getSnapshot: () => Readonly<Record<string, ResizeOverride>>;
+  merge: (updates: Record<string, ResizeOverride>) => void;
+  clear: (overrideIds: string[]) => void;
+}
+
+const createResizePreviewStore = (): ResizePreviewStore => {
+  let snapshot: Readonly<Record<string, ResizeOverride>> = EMPTY_RESIZE_PREVIEW_SNAPSHOT;
+  const listeners = new Set<() => void>();
+
+  const emit = () => {
+    for (const listener of listeners) {
+      listener();
+    }
+  };
+
+  const commit = (next: Record<string, ResizeOverride>) => {
+    snapshot = Object.keys(next).length === 0 ? EMPTY_RESIZE_PREVIEW_SNAPSHOT : next;
+    emit();
+  };
+
+  return {
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    getSnapshot() {
+      return snapshot;
+    },
+    merge(updates) {
+      let next: Record<string, ResizeOverride> | null = null;
+      for (const [key, value] of Object.entries(updates)) {
+        const current = snapshot[key];
+        if (current?.start === value.start && current?.end === value.end) {
+          continue;
+        }
+
+        if (!next) {
+          next = snapshot === EMPTY_RESIZE_PREVIEW_SNAPSHOT ? {} : { ...snapshot };
+        }
+        next[key] = value;
+      }
+
+      if (next) {
+        commit(next);
+      }
+    },
+    clear(overrideIds) {
+      let next: Record<string, ResizeOverride> | null = null;
+      for (const overrideId of overrideIds) {
+        if (!(overrideId in snapshot)) {
+          continue;
+        }
+
+        if (!next) {
+          next = { ...snapshot };
+        }
+        delete next[overrideId];
+      }
+
+      if (next) {
+        commit(next);
+      }
+    },
+  };
+};
 
 const SortableRow = React.memo(function SortableRow({
   row,
@@ -216,7 +408,7 @@ const SortableRow = React.memo(function SortableRow({
   pixelsPerSecond,
   selectedTrackId,
   resizeClampedActionId,
-  resizeOverrides,
+  resizePreviewSnapshot,
   getActionRender,
   onSelectTrack,
   onTrackChange,
@@ -262,7 +454,12 @@ const SortableRow = React.memo(function SortableRow({
         />
       </div>
       {row.actions.map((action) => {
-        const override = resizeOverrides[action.id];
+        // Render both handles on every clip — including grouped children.
+        // Routing in handleResizePointerDown distinguishes interior child
+        // boundaries (auto-shift between two children) from outer group
+        // edges (delegated to the group edge resize) and starts the right
+        // kind of resize session.
+        const override = resizePreviewSnapshot[action.id];
         const renderedAction = override ? { ...action, ...override } : action;
         const left = startLeft + renderedAction.start * pixelsPerSecond;
         const width = Math.max((renderedAction.end - renderedAction.start) * pixelsPerSecond, 1);
@@ -291,6 +488,7 @@ const SortableRow = React.memo(function SortableRow({
               onPointerMove={onResizePointerMove}
               onPointerUp={(event) => onResizeEnd(event, false)}
               onPointerCancel={(event) => onResizeEnd(event, true)}
+              onLostPointerCapture={(event) => onResizeEnd(event, false)}
             />
             <div
               className="absolute inset-y-0 right-0 z-10 cursor-ew-resize rounded-r-sm border-r border-sky-300/10 bg-sky-300/0 transition-colors group-hover:bg-sky-300/10"
@@ -299,6 +497,7 @@ const SortableRow = React.memo(function SortableRow({
               onPointerMove={onResizePointerMove}
               onPointerUp={(event) => onResizeEnd(event, false)}
               onPointerCancel={(event) => onResizeEnd(event, true)}
+              onLostPointerCapture={(event) => onResizeEnd(event, false)}
             />
           </div>
         );
@@ -330,7 +529,7 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
   onClickTimeArea,
   onActionResizeStart,
   onActionResizing,
-  onActionResizeEnd,
+  onClipEdgeResizeEnd,
   shotGroups = [],
   finalVideoMap,
   staleShotGroupIds,
@@ -341,8 +540,10 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
   onShotGroupSwitchToImages,
   onShotGroupUpdateToLatestVideo,
   onShotGroupUnpin,
+  onShotGroupDelete,
   onSelectClips,
   dragSessionRef,
+  interactionStateRef,
   onScroll,
   marqueeRect,
   onEditAreaPointerDown,
@@ -355,14 +556,22 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
   const { pendingOpsRef, dataRef } = useTimelineEditorData();
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const cursorRef = useRef<HTMLDivElement>(null);
-  const resizeSessionRef = useRef<ResizeSession | null>(null);
-  const resizePreviewRef = useRef<Record<string, ResizeOverride>>({});
+  const resizeSessionRef = useRef<ClipEdgeResizeSession | null>(null);
+  const resizePreviewStoreRef = useRef<ResizePreviewStore>();
+  if (!resizePreviewStoreRef.current) {
+    resizePreviewStoreRef.current = createResizePreviewStore();
+  }
+  const resizePreviewStore = resizePreviewStoreRef.current;
+  const resizePreviewSnapshot = useSyncExternalStore(
+    resizePreviewStore.subscribe,
+    resizePreviewStore.getSnapshot,
+    resizePreviewStore.getSnapshot,
+  );
   const timeRef = useRef(0);
   const playRateRef = useRef(1);
   const scrollMetricsRef = useRef<ScrollMetrics>({ scrollLeft: 0, scrollTop: 0 });
   const [scrollLeft, setScrollLeft] = useState(0);
   const [resizeClampedActionId, setResizeClampedActionId] = useState<string | null>(null);
-  const [resizeOverrides, setResizeOverrides] = useState<Record<string, ResizeOverride>>({});
   const [shotGroupMenu, setShotGroupMenu] = useState<ShotGroupMenuState>(null);
   const shotGroupMenuRef = useRef<HTMLDivElement>(null);
   useRenderDiagnostic('TimelineCanvas');
@@ -387,7 +596,7 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
     };
   }, [shotGroupMenu]);
 
-  const pixelsPerSecond = scaleWidth / Math.max(scale, Number.EPSILON);
+  const { pixelsPerSecond, pixelToTime, timeToPixel } = useTimelineScale({ scale, scaleWidth, startLeft });
   const minDuration = MIN_ACTION_WIDTH_PX / pixelsPerSecond;
   const actionHeight = Math.max(12, rowHeight - ACTION_VERTICAL_MARGIN * 2);
   const maxEnd = useMemo(() => rows.reduce(
@@ -397,86 +606,63 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
   const derivedScaleCount = Math.ceil(maxEnd / Math.max(scale, Number.EPSILON)) + 1;
   const scaleCount = clamp(derivedScaleCount, minScaleCount, maxScaleCount);
   const totalWidth = startLeft + scaleCount * scaleWidth;
-  const totalHeight = Math.max(rows.length * rowHeight, rowHeight);
-  const rowActionMaps = useMemo(
-    () => rows.map((row) => new Map(row.actions.map((action) => [action.id, action] as const))),
-    [rows],
-  );
-  const hasResizeOverrides = Object.keys(resizeOverrides).length > 0;
-  const rowResizeOverrides = useMemo(
+  const rowResizePreview = useMemo(
     () => rows.map<Readonly<Record<string, ResizeOverride>>>((row) => {
-      let overridesForRow: Record<string, ResizeOverride> | null = null;
+      let previewForRow: Record<string, ResizeOverride> | null = null;
       for (const action of row.actions) {
-        const override = resizeOverrides[action.id];
+        const override = resizePreviewSnapshot[action.id];
         if (!override) {
           continue;
         }
 
-        if (!overridesForRow) {
-          overridesForRow = {};
+        if (!previewForRow) {
+          previewForRow = {};
         }
-        overridesForRow[action.id] = override;
+        previewForRow[action.id] = override;
       }
 
-      return overridesForRow ?? EMPTY_RESIZE_OVERRIDES;
+      return previewForRow ?? EMPTY_RESIZE_PREVIEW_SNAPSHOT;
     }),
-    [resizeOverrides, rows],
+    [resizePreviewSnapshot, rows],
   );
   const positionedShotGroups = useMemo(() => {
-    const snapThresholdSeconds = SNAP_THRESHOLD_PX / pixelsPerSecond;
-
     return shotGroups.flatMap<PositionedShotGroup>((group) => {
       const row = rows[group.rowIndex];
       if (!row || row.id !== group.rowId) {
         return [];
       }
 
-      const actionMap = rowActionMaps[group.rowIndex];
-      const actions: TimelineAction[] = [];
-      for (const clipId of group.clipIds) {
-        const action = actionMap.get(clipId);
-        if (!action) {
-          return [];
-        }
-
-        const override = resizeOverrides[clipId];
-        actions.push(override ? { ...action, ...override } : action);
-      }
-
-      if (actions.length === 0) {
+      const lastChild = group.children[group.children.length - 1];
+      if (!lastChild) {
         return [];
       }
 
-      for (let index = 1; index < actions.length; index += 1) {
-        const previous = actions[index - 1];
-        const current = actions[index];
-        if (current.start < previous.start || current.start - previous.end > snapThresholdSeconds) {
-          return [];
-        }
-      }
-
-      const first = actions[0];
-      const last = actions[actions.length - 1];
+      const groupKey = `${group.shotId}:${group.rowId}`;
+      const preview = resizePreviewSnapshot[groupKey];
+      const start = preview?.start ?? group.start;
+      const end = preview?.end ?? (group.start + lastChild.offset + lastChild.duration);
 
       return [{
         key: `${group.shotId}:${group.rowId}:${group.clipIds.join(',')}`,
         shotId: group.shotId,
         shotName: group.shotName,
         clipIds: group.clipIds,
+        start,
+        end,
         rowId: group.rowId,
         color: group.color,
         mode: group.mode,
         hasFinalVideo: finalVideoMap?.has(group.shotId) ?? false,
         hasStaleVideo: staleShotGroupIds?.has(`${group.shotId}:${group.rowId}`) ?? false,
         hasActiveTask: activeTaskClipIds ? group.clipIds.some((id) => activeTaskClipIds.has(id)) : false,
-        left: startLeft + first.start * pixelsPerSecond,
+        left: timeToPixel(start),
         top: group.rowIndex * rowHeight + ACTION_VERTICAL_MARGIN,
-        width: Math.max((last.end - first.start) * pixelsPerSecond, 1),
+        width: Math.max((end - start) * pixelsPerSecond, 1),
         height: actionHeight,
       }];
     });
-  }, [actionHeight, activeTaskClipIds, finalVideoMap, pixelsPerSecond, resizeOverrides, rowActionMaps, rowHeight, rows, shotGroups, staleShotGroupIds, startLeft]);
-  const hideShotGroups = dragSessionRef?.current !== null || hasResizeOverrides;
+  }, [actionHeight, activeTaskClipIds, finalVideoMap, pixelsPerSecond, resizePreviewSnapshot, rowHeight, rows, shotGroups, staleShotGroupIds, timeToPixel]);
+  const hideShotGroups = dragSessionRef?.current !== null;
   const openShotGroupMenu = useCallback((
     x: number,
     y: number,
@@ -491,9 +677,9 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
       return;
     }
 
-    const left = startLeft + time * pixelsPerSecond;
+    const left = timeToPixel(time);
     cursor.style.transform = `translateX(${left}px)`;
-  }, [pixelsPerSecond, startLeft]);
+  }, [timeToPixel]);
 
   const handleSetTime = useCallback((time: number) => {
     timeRef.current = Math.max(0, time);
@@ -546,175 +732,258 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
     onScroll?.(nextMetrics);
   };
 
-  const clearResizeOverride = useCallback((actionId: string) => {
-    delete resizePreviewRef.current[actionId];
-    setResizeOverrides((current) => {
-      if (!(actionId in current)) {
-        return current;
-      }
+  const clearResizePreview = useCallback((overrideIds: string[]) => {
+    resizePreviewStore.clear(overrideIds);
+  }, [resizePreviewStore]);
 
-      const next = { ...current };
-      delete next[actionId];
-      return next;
-    });
-  }, []);
-
-  const getResizeContext = useCallback((actionId: string, rowId: string) => {
-    const row = rows.find((candidate) => candidate.id === rowId);
-    const action = row?.actions.find((candidate) => candidate.id === actionId);
+  const resolveClipEdgeResizeContext = useCallback((
+    inputRows: TimelineRow[],
+    inputShotGroups: ShotGroup[],
+    inputPositionedShotGroups: PositionedShotGroup[],
+    rowId: string,
+    clipId: string,
+    edge: ResizeDir,
+  ): {
+    initialBoundaryTime: number;
+    context: ClipEdgeResizeContext;
+    siblingTimes: number[];
+  } | null => {
+    const row = inputRows.find((candidate) => candidate.id === rowId);
+    const action = row?.actions.find((candidate) => candidate.id === clipId);
     if (!row || !action) {
       return null;
     }
 
-    const override = resizePreviewRef.current[actionId] ?? resizeOverrides[actionId];
-    return {
-      row,
-      action: override ? { ...action, ...override } : action,
-    };
-  }, [resizeOverrides, rows]);
+    const groupForAction = inputShotGroups.find((candidate) => (
+      candidate.rowId === rowId && candidate.clipIds.includes(clipId)
+    ));
+    if (groupForAction) {
+      const childIndex = groupForAction.clipIds.indexOf(clipId);
+      const adjacentIndex = edge === 'left' ? childIndex - 1 : childIndex + 1;
+      const adjacentClipId = groupForAction.clipIds[adjacentIndex];
+      const adjacentAction = adjacentClipId
+        ? row.actions.find((candidate) => candidate.id === adjacentClipId)
+        : undefined;
+      if (adjacentClipId && adjacentAction) {
+        return {
+          initialBoundaryTime: edge === 'left' ? action.start : action.end,
+          siblingTimes: [],
+          context: {
+            kind: 'interior',
+            pairStart: edge === 'left' ? adjacentAction.start : action.start,
+            pairEnd: edge === 'left' ? action.end : adjacentAction.end,
+            draggedClipId: action.id,
+            adjacentClipId,
+            draggedInitialStart: action.start,
+            draggedInitialEnd: action.end,
+            adjacentInitialStart: adjacentAction.start,
+            adjacentInitialEnd: adjacentAction.end,
+          },
+        };
+      }
 
-  const updateResize = useCallback((session: ResizeSession, clientX: number) => {
-    const deltaSeconds = (clientX - session.initialClientX) / pixelsPerSecond;
-    let start = session.dir === 'left'
-      ? clamp(session.initialStart + deltaSeconds, 0, session.initialEnd - minDuration)
-      : session.initialStart;
-    let end = session.dir === 'right'
-      ? Math.max(session.initialStart + minDuration, session.initialEnd + deltaSeconds)
-      : session.initialEnd;
-
-    // Snap the resizing edge to sibling clip edges
-    const row = rows.find((r) => r.id === session.rowId);
-    if (row) {
-      const snapThresholdS = SNAP_THRESHOLD_PX / pixelsPerSecond;
-      const snapped = snapResize(start, end, session.dir, row.actions, session.actionId, snapThresholdS);
-      start = snapped.start;
-      end = snapped.end;
-    }
-
-    // Re-enforce min duration after snap
-    if (end - start < minDuration) {
-      if (session.dir === 'left') {
-        start = end - minDuration;
-      } else {
-        end = start + minDuration;
+      const positioned = inputPositionedShotGroups.find((candidate) => (
+        candidate.shotId === groupForAction.shotId && candidate.rowId === rowId
+      ));
+      if (positioned) {
+        const groupChildrenSnapshot = positioned.clipIds
+          .map((candidateClipId) => row.actions.find((candidate) => candidate.id === candidateClipId))
+          .filter((candidate): candidate is TimelineAction => !!candidate)
+          .map((candidate) => ({ clipId: candidate.id, start: candidate.start, end: candidate.end }));
+        if (groupChildrenSnapshot.length > 0) {
+          return {
+            initialBoundaryTime: edge === 'left' ? positioned.start : positioned.end,
+            siblingTimes: collectSiblingTimes(row.actions, positioned.clipIds),
+            context: {
+              kind: 'outer',
+              shotId: positioned.shotId,
+              trackId: positioned.rowId,
+              groupInitialStart: positioned.start,
+              groupInitialEnd: positioned.end,
+              groupClipIds: [...positioned.clipIds],
+              groupChildrenSnapshot,
+            },
+          };
+        }
       }
     }
 
-    let resizeClamped = false;
-    if (typeof session.minStart === 'number' && start < session.minStart) {
-      start = session.minStart;
-      resizeClamped = true;
-    }
-    if (typeof session.maxEnd === 'number' && end > session.maxEnd) {
-      end = session.maxEnd;
-      resizeClamped = true;
+    return {
+      initialBoundaryTime: edge === 'left' ? action.start : action.end,
+      siblingTimes: collectSiblingTimes(row.actions, [action.id]),
+      context: {
+        kind: 'free',
+        clipId: action.id,
+        initialStart: action.start,
+        initialEnd: action.end,
+        ...getAudioResizeLimits(dataRef.current, action, row, edge),
+      },
+    };
+  }, [dataRef]);
+
+  const getResolvedResizeAction = useCallback((
+    rowId: string,
+    clipId: string,
+    updates: ClipEdgeResizeUpdate[],
+  ) => {
+    const row = rows.find((candidate) => candidate.id === rowId);
+    const action = row?.actions.find((candidate) => candidate.id === clipId);
+    const update = getUpdateForClip(updates, clipId);
+    if (!row || !action || !update) {
+      return null;
     }
 
-    const context = getResizeContext(session.actionId, session.rowId);
+    return {
+      row,
+      action: { ...action, start: update.start, end: update.end },
+    };
+  }, [rows]);
+
+  const computeResizePreview = useCallback((session: ClipEdgeResizeSession, clientX: number) => {
+    const rawBoundaryTime = pixelToTime(clientX - session.cursorOffsetPx);
+    const snapThresholdSeconds = SNAP_THRESHOLD_PX / pixelsPerSecond;
+    let boundaryTime = rawBoundaryTime;
+    let limitClamped = false;
+
+    if (session.context.kind === 'free') {
+      const initialClamp = clampFreeBoundaryTime(session.context, session.edge, boundaryTime, minDuration);
+      boundaryTime = initialClamp.boundaryTime;
+      limitClamped = initialClamp.limitClamped;
+    }
+
+    if (session.siblingTimes.length > 0) {
+      boundaryTime = snapBoundaryToSiblings(boundaryTime, session.siblingTimes, snapThresholdSeconds);
+    }
+
+    if (session.context.kind === 'free') {
+      const snappedClamp = clampFreeBoundaryTime(session.context, session.edge, boundaryTime, minDuration);
+      boundaryTime = snappedClamp.boundaryTime;
+      limitClamped = limitClamped || snappedClamp.limitClamped;
+    }
+
+    const resizeResult = applyClipEdgeMove(session.context, session.edge, boundaryTime);
+    const clampedHighlight = session.context.kind === 'interior'
+      ? resizeResult.wasClamped
+      : session.context.kind === 'free'
+        ? limitClamped
+        : false;
+
+    return {
+      updates: resizeResult.updates,
+      overrides: getOverrideMapForUpdates(session, resizeResult.updates),
+      clampedHighlight,
+    };
+  }, [minDuration, pixelToTime, pixelsPerSecond]);
+
+  const updateResize = useCallback((session: ClipEdgeResizeSession, clientX: number) => {
+    const preview = computeResizePreview(session, clientX);
+    resizePreviewStore.merge(preview.overrides);
+    setResizeClampedActionId((current) => (
+      preview.clampedHighlight ? session.clipId : current === session.clipId ? null : current
+    ));
+
+    if (session.context.kind !== 'free') {
+      return;
+    }
+
+    const context = getResolvedResizeAction(session.rowId, session.clipId, preview.updates);
     if (!context) {
       return;
     }
 
-    const nextAction = {
-      ...context.action,
-      start,
-      end,
-    };
-
-    resizePreviewRef.current[session.actionId] = { start, end };
-    setResizeOverrides((current) => ({
-      ...current,
-      [session.actionId]: { start, end },
-    }));
-    setResizeClampedActionId((current) => (
-      resizeClamped
-        ? session.actionId
-        : current === session.actionId
-          ? null
-          : current
-    ));
     onActionResizing?.({
-      action: nextAction,
+      action: context.action,
       row: context.row,
-      start,
-      end,
-      dir: session.dir,
+      start: context.action.start,
+      end: context.action.end,
+      dir: session.edge,
     });
-  }, [getResizeContext, minDuration, onActionResizing, pixelsPerSecond, rows]);
+  }, [computeResizePreview, getResolvedResizeAction, onActionResizing, resizePreviewStore]);
 
   const endResize = useCallback((event: ReactPointerEvent<HTMLDivElement>, cancelled: boolean) => {
     const session = resizeSessionRef.current;
-    if (!session || session.pointerId !== event.pointerId) {
-      return;
-    }
+    if (!session || session.pointerId !== event.pointerId) return;
 
     resizeSessionRef.current = null;
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
       event.currentTarget.releasePointerCapture(event.pointerId);
     }
-
     pendingOpsRef.current -= 1;
-    setResizeClampedActionId((current) => (current === session.actionId ? null : current));
-    const context = getResizeContext(session.actionId, session.rowId);
-    if (!cancelled && context) {
-      onActionResizeEnd?.({
-        action: context.action,
-        row: context.row,
-        start: context.action.start,
-        end: context.action.end,
-        dir: session.dir,
-      });
+    if (interactionStateRef) {
+      interactionStateRef.current.resize = false;
+      notifyInteractionEndIfIdle(interactionStateRef);
     }
+    setResizeClampedActionId((current) => (current === session.clipId ? null : current));
 
-    clearResizeOverride(session.actionId);
-  }, [clearResizeOverride, getResizeContext, onActionResizeEnd]);
+    const previewIds = getResizePreviewIds(session);
+    const preview = !cancelled && Number.isFinite(event.clientX)
+      ? computeResizePreview(session, event.clientX)
+      : {
+        updates: getPreviewUpdatesFromSnapshot(session, resizePreviewStore.getSnapshot()),
+        overrides: EMPTY_RESIZE_PREVIEW_SNAPSHOT,
+        clampedHighlight: false,
+      };
+    onClipEdgeResizeEnd?.({
+      session,
+      updates: preview.updates,
+      cancelled,
+    });
+    clearResizePreview(previewIds);
+  }, [clearResizePreview, computeResizePreview, interactionStateRef, onClipEdgeResizeEnd, pendingOpsRef, resizePreviewStore]);
 
   const handleResizePointerDown = useCallback((
     event: ReactPointerEvent<HTMLDivElement>,
     action: TimelineAction,
     row: TimelineRow,
-    dir: ResizeDir,
+    edge: ResizeDir,
   ) => {
-    if (event.button !== 0) {
+    if (event.button !== 0) return;
+
+    const resolved = resolveClipEdgeResizeContext(
+      rows,
+      shotGroups,
+      positionedShotGroups,
+      row.id,
+      action.id,
+      edge,
+    );
+    if (!resolved) {
       return;
     }
 
-    const resizeLimits = getAudioResizeLimits(dataRef.current, action, row, dir);
-    resizeSessionRef.current = {
+    const nextSession: ClipEdgeResizeSession = {
       pointerId: event.pointerId,
-      actionId: action.id,
       rowId: row.id,
-      dir,
-      initialStart: action.start,
-      initialEnd: action.end,
-      initialClientX: event.clientX,
-      ...resizeLimits,
+      clipId: action.id,
+      edge,
+      cursorOffsetPx: event.clientX - timeToPixel(resolved.initialBoundaryTime),
+      initialBoundaryTime: resolved.initialBoundaryTime,
+      context: resolved.context,
+      siblingTimes: resolved.siblingTimes,
     };
-    resizePreviewRef.current[action.id] = {
-      start: action.start,
-      end: action.end,
-    };
+
+    resizeSessionRef.current = nextSession;
+    resizePreviewStore.merge(getOverrideMapForUpdates(
+      nextSession,
+      applyClipEdgeMove(resolved.context, edge, resolved.initialBoundaryTime).updates,
+    ));
     setResizeClampedActionId(null);
-    setResizeOverrides((current) => ({
-      ...current,
-      [action.id]: {
-        start: action.start,
-        end: action.end,
-      },
-    }));
-    onActionResizeStart?.({ action, row, dir });
+
+    if (nextSession.context.kind !== 'outer') {
+      onActionResizeStart?.({ action, row, dir: edge });
+    }
+    if (interactionStateRef) {
+      interactionStateRef.current.resize = true;
+    }
     pendingOpsRef.current += 1;
     event.currentTarget.setPointerCapture(event.pointerId);
     event.preventDefault();
     event.stopPropagation();
-  }, [dataRef, onActionResizeStart]);
+  }, [interactionStateRef, onActionResizeStart, pendingOpsRef, positionedShotGroups, resolveClipEdgeResizeContext, resizePreviewStore, rows, shotGroups, timeToPixel]);
 
   const handleResizePointerMove = useCallback((event: ReactPointerEvent<HTMLDivElement>) => {
     const session = resizeSessionRef.current;
-    if (!session || session.pointerId !== event.pointerId) {
-      return;
-    }
-
+    if (!session || session.pointerId !== event.pointerId) return;
     updateResize(session, event.clientX);
   }, [updateResize]);
 
@@ -782,10 +1051,21 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
                   borderColor: `color-mix(in srgb, ${group.color} 60%, transparent)`,
                 }}
               />
+              {/*
+                The dedicated round overlay edge handles were removed: they
+                visually overlapped (and z-index-blocked) the first/last
+                child clip's outer-edge resize handles, intercepting pointer
+                events. The clip handles now route those gestures through
+                `handleResizePointerDown`, providing a single unified
+                affordance.
+              */}
               <div
-                className="absolute rounded-t-sm opacity-0 transition-opacity hover:opacity-100 cursor-pointer"
+                className="absolute rounded-t-sm opacity-0 transition-opacity hover:opacity-100 cursor-pointer select-none"
                 title={group.shotName}
-                onPointerDown={(e) => e.stopPropagation()}
+                data-action-id="shot-group-label"
+                onPointerDown={(e) => {
+                  e.stopPropagation();
+                }}
                 onClick={(e) => {
                   e.stopPropagation();
                   openShotGroupMenu(e.clientX, e.clientY, group);
@@ -815,61 +1095,53 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
                 >
                   {group.shotName}
                 </span>
-              </div>
-              {group.hasFinalVideo && (
-                <button
-                  type="button"
-                  className="absolute flex h-5 w-5 items-center justify-center rounded-full bg-sky-500 text-white shadow-sm transition-transform hover:scale-105 hover:bg-sky-400"
-                  title="Final video available"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    openShotGroupMenu(event.clientX, event.clientY, { ...group, hasFinalVideo: true });
-                  }}
-                  style={{
-                    left: group.left + group.width - 10,
-                    top: group.top + group.height / 2 - 10,
-                    zIndex: 9,
-                    pointerEvents: 'auto',
-                  }}
-                >
-                  <Video className="h-3 w-3" />
-                </button>
-              )}
-              {group.hasStaleVideo && !group.hasActiveTask && (
-                <button
-                  type="button"
-                  className="absolute flex h-5 w-5 items-center justify-center rounded-full bg-amber-500 text-white shadow-sm transition-transform hover:scale-105 hover:bg-amber-400"
-                  title="New video available"
-                  onClick={(event) => {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    openShotGroupMenu(event.clientX, event.clientY, group);
-                  }}
-                  style={{
-                    left: group.left + group.width - (group.hasFinalVideo ? 34 : 10),
-                    top: group.top + group.height / 2 - 10,
-                    zIndex: 9,
-                    pointerEvents: 'auto',
-                  }}
-                >
-                  <RefreshCw className="h-3 w-3" />
-                </button>
-              )}
-              {group.hasActiveTask && (
-                <div
-                  className="pointer-events-none absolute flex h-5 w-5 items-center justify-center rounded-full shadow-sm"
-                  title="Task in progress"
-                  style={{
-                    left: group.left + group.width - 10,
-                    top: group.top + group.height / 2 - 10,
-                    zIndex: 9,
-                    backgroundColor: 'rgba(255,255,255,0.9)',
-                  }}
-                >
-                  <Loader2 className="h-3 w-3 animate-spin" style={{ color: group.color }} />
+                {/*
+                  Status badges live INSIDE the label strip (above the clip
+                  area) so they don't intercept pointer events on the clip's
+                  outer-edge resize handles. Previously they sat at
+                  `top: group.top + group.height/2 - 10` (vertically over
+                  the clip body) at z-9, blocking the resize hit area.
+                */}
+                <div className="pointer-events-none absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-1">
+                  {group.hasFinalVideo && (
+                    <button
+                      type="button"
+                      className="pointer-events-auto flex h-4 w-4 items-center justify-center rounded-full bg-sky-500 text-white shadow-sm transition-transform hover:scale-110 hover:bg-sky-400"
+                      title="Final video available"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        openShotGroupMenu(event.clientX, event.clientY, { ...group, hasFinalVideo: true });
+                      }}
+                    >
+                      <Video className="h-2.5 w-2.5" />
+                    </button>
+                  )}
+                  {group.hasStaleVideo && !group.hasActiveTask && (
+                    <button
+                      type="button"
+                      className="pointer-events-auto flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-white shadow-sm transition-transform hover:scale-110 hover:bg-amber-400"
+                      title="New video available"
+                      onClick={(event) => {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        openShotGroupMenu(event.clientX, event.clientY, group);
+                      }}
+                    >
+                      <RefreshCw className="h-2.5 w-2.5" />
+                    </button>
+                  )}
+                  {group.hasActiveTask && (
+                    <div
+                      className="flex h-4 w-4 items-center justify-center rounded-full shadow-sm"
+                      title="Task in progress"
+                      style={{ backgroundColor: 'rgba(255,255,255,0.9)' }}
+                    >
+                      <Loader2 className="h-2.5 w-2.5 animate-spin" style={{ color: group.color }} />
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
             </React.Fragment>
           ))}
           <ShotGroupContextMenu
@@ -882,6 +1154,7 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
             onSwitchToImages={onShotGroupSwitchToImages}
             onUpdateToLatestVideo={onShotGroupUpdateToLatestVideo}
             onUnpinGroup={onShotGroupUnpin}
+            onDeleteShot={onShotGroupDelete}
           />
           <DndContext
             sensors={trackSensors}
@@ -908,7 +1181,7 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
                     pixelsPerSecond={pixelsPerSecond}
                     selectedTrackId={selectedTrackId}
                     resizeClampedActionId={resizeClampedActionId}
-                    resizeOverrides={rowResizeOverrides[index] ?? EMPTY_RESIZE_OVERRIDES}
+                    resizePreviewSnapshot={rowResizePreview[index] ?? EMPTY_RESIZE_PREVIEW_SNAPSHOT}
                     getActionRender={getActionRender}
                     onSelectTrack={onSelectTrack}
                     onTrackChange={onTrackChange}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyMultiDragMoves } from '@/tools/video-editor/lib/multi-drag-utils';
-import { resolveGroupOverlaps, resolveOverlaps } from '@/tools/video-editor/lib/resolve-overlaps';
+import { findBestGroupStart, resolveOverlaps } from '@/tools/video-editor/lib/resolve-overlaps';
 import type { ClipMeta, TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { TrackDefinition } from '@/tools/video-editor/types';
 import type { TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
@@ -47,37 +47,14 @@ describe('resolve-overlaps utilities', () => {
     ]);
   });
 
-  it('returns timed meta patches when a moved clip group is gap-fit to a later start', () => {
-    const rows: TimelineRow[] = [{
-      id: 'V1',
-      actions: [
-        makeAction('sibling', 0, 2),
-        makeAction('clip-a', 4, 6),
-        makeAction('clip-b', 6, 8),
-      ],
-    }];
-    const meta: Record<string, ClipMeta> = {
-      'clip-a': { track: 'V1', clipType: 'media', from: 0, to: 2, speed: 1 },
-      'clip-b': { track: 'V1', clipType: 'media', from: 0, to: 2, speed: 1 },
-    };
+  it('finds the nearest valid start for a moved clip extent', () => {
+    const siblings = [
+      makeAction('sibling-a', 0, 2),
+      makeAction('sibling-b', 8, 10),
+    ];
 
-    const result = resolveGroupOverlaps(rows, [
-      { rowId: 'V1', clipId: 'clip-a', newStart: 1, newEnd: 3 },
-      { rowId: 'V1', clipId: 'clip-b', newStart: 3, newEnd: 5 },
-    ], meta);
-
-    expect(result.rows[0]?.actions.find((action) => action.id === 'clip-a')).toMatchObject({
-      start: 2,
-      end: 4,
-    });
-    expect(result.rows[0]?.actions.find((action) => action.id === 'clip-b')).toMatchObject({
-      start: 4,
-      end: 6,
-    });
-    expect(result.metaPatches).toEqual({
-      'clip-a': { from: 1, to: 3 },
-      'clip-b': { from: 1, to: 3 },
-    });
+    expect(findBestGroupStart({ start: 1, end: 5 }, siblings)).toBe(2);
+    expect(findBestGroupStart({ start: -3, end: 1 }, siblings)).toBe(2);
   });
 
   it('accumulates cross-track and overlap meta patches across multiple target rows', () => {
@@ -121,8 +98,8 @@ describe('resolve-overlaps utilities', () => {
     };
 
     const result = applyMultiDragMoves(data, [
-      { clipId: 'clip-a', sourceRowId: 'V1', targetRowId: 'V2', newStart: 0 },
-      { clipId: 'clip-b', sourceRowId: 'V3', targetRowId: 'V4', newStart: 0 },
+      { kind: 'clip', clipId: 'clip-a', sourceRowId: 'V1', targetRowId: 'V2', newStart: 0 },
+      { kind: 'clip', clipId: 'clip-b', sourceRowId: 'V3', targetRowId: 'V4', newStart: 0 },
     ]);
 
     expect(result.metaUpdates).toEqual({

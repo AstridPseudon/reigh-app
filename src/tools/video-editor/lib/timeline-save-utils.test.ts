@@ -21,6 +21,16 @@ const makeTrack = (id: string, kind: TrackDefinition['kind'] = 'visual'): TrackD
   blendMode: 'normal',
 });
 
+const makePinnedGroup = (args: {
+  shotId: string;
+  trackId: string;
+  clipIds: string[];
+  mode?: 'images' | 'video';
+}) => ({
+  ...args,
+  ...(args.mode ? { mode: args.mode } : {}),
+});
+
 const makeAssetMap = (registry: AssetRegistry): Record<string, string> => {
   return Object.fromEntries(
     Object.entries(registry.assets).map(([assetId, entry]) => [assetId, entry.file]),
@@ -237,6 +247,158 @@ describe('timeline save utils regression coverage', () => {
     expect(data.tracks.map((track) => track.id)).toEqual(['V1', 'V3']);
     expect(data.rows.map((row) => row.id)).toEqual(['V1', 'V3']);
     expect(Object.keys(data.clipOrder)).toEqual(['V1', 'V3']);
+  });
+
+  it('preserves soft-tag pinned shot groups without rewriting resolved clip geometry', () => {
+    const currentConfig: TimelineConfig = {
+      output: { resolution: '1920x1080', fps: 30, file: 'current.mp4' },
+      tracks: [makeTrack('V1'), makeTrack('V2')],
+      clips: [{ id: 'clip-current', at: 0, track: 'V1', clipType: 'hold', asset: 'asset-1', hold: 2 }],
+    };
+    const currentRegistry: AssetRegistry = {
+      assets: {
+        'asset-1': { file: 'current.png' },
+      },
+    };
+    const current = assembleTimelineData({
+      config: currentConfig,
+      configVersion: 5,
+      registry: currentRegistry,
+      resolvedConfig: buildResolvedConfig(currentConfig, buildResolvedRegistry(currentRegistry)),
+      output: { ...currentConfig.output },
+      assetMap: makeAssetMap(currentRegistry),
+    });
+    const pinnedGroup = makePinnedGroup({
+      shotId: 'shot-1',
+      trackId: 'V2',
+      clipIds: ['clip-1', 'clip-2'],
+      mode: 'images',
+    });
+
+    const nextConfig: TimelineConfig = {
+      output: { resolution: '1920x1080', fps: 30, file: 'next.mp4' },
+      tracks: [makeTrack('V1'), makeTrack('V2')],
+      clips: [
+        { id: 'clip-1', at: 0, track: 'V1', clipType: 'hold', hold: 99 },
+        { id: 'clip-2', at: 0, track: 'V1', clipType: 'hold', hold: 99 },
+      ],
+      pinnedShotGroups: [pinnedGroup],
+    };
+
+    const data = buildDataFromCurrentRegistry(nextConfig, current);
+
+    expect(data.config.pinnedShotGroups).toEqual([pinnedGroup]);
+    expect(data.resolvedConfig.clips).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'clip-1', at: 0, track: 'V1', hold: 99 }),
+      expect.objectContaining({ id: 'clip-2', at: 0, track: 'V1', hold: 99 }),
+    ]));
+    expect(data.signature).toBe(getConfigSignature(data.resolvedConfig));
+    expect(data.signature).toBe(getConfigSignature(buildResolvedConfig(nextConfig, current.resolvedConfig.registry)));
+  });
+
+  it('buildDataFromCurrentRegistry materializes rows from clip geometry while keeping soft-tag groups unchanged', () => {
+    const currentConfig: TimelineConfig = {
+      output: { resolution: '1920x1080', fps: 30, file: 'current.mp4' },
+      tracks: [makeTrack('V1')],
+      clips: [{ id: 'clip-current', at: 0, track: 'V1', clipType: 'hold', asset: 'asset-1', hold: 2 }],
+    };
+    const currentRegistry: AssetRegistry = {
+      assets: {
+        'asset-1': { file: 'current.png' },
+        'asset-2': { file: 'next.png' },
+      },
+    };
+    const current = assembleTimelineData({
+      config: currentConfig,
+      configVersion: 5,
+      registry: currentRegistry,
+      resolvedConfig: buildResolvedConfig(currentConfig, buildResolvedRegistry(currentRegistry)),
+      output: { ...currentConfig.output },
+      assetMap: makeAssetMap(currentRegistry),
+    });
+
+    const nextConfig: TimelineConfig = {
+      output: { resolution: '1920x1080', fps: 30, file: 'next.mp4' },
+      tracks: [makeTrack('V1')],
+      clips: [
+        { id: 'clip-1', at: 7, track: 'V1', clipType: 'hold', asset: 'asset-2', hold: 2 },
+        { id: 'clip-2', at: 9, track: 'V1', clipType: 'hold', asset: 'asset-2', hold: 3 },
+      ],
+      pinnedShotGroups: [makePinnedGroup({
+        shotId: 'shot-1',
+        trackId: 'V1',
+        clipIds: ['clip-1', 'clip-2'],
+        mode: 'images',
+      })],
+    };
+
+    const data = buildDataFromCurrentRegistry(nextConfig, current);
+    const unprojectedResolvedConfig = buildResolvedConfig(nextConfig, buildResolvedRegistry(currentRegistry));
+
+    expect(data.config.pinnedShotGroups).toEqual(nextConfig.pinnedShotGroups);
+    expect(data.config.clips).toEqual(nextConfig.clips);
+    expect(data.rows).toEqual([
+      {
+        id: 'V1',
+        actions: [
+          { id: 'clip-1', start: 7, end: 9, effectId: 'effect-clip-1' },
+          { id: 'clip-2', start: 9, end: 12, effectId: 'effect-clip-2' },
+        ],
+      },
+    ]);
+    expect(data.signature).toBe(getConfigSignature(data.resolvedConfig));
+    expect(data.signature).toBe(getConfigSignature(unprojectedResolvedConfig));
+  });
+
+  it('repairs legacy pinned groups to soft-tag `clipIds` without re-projecting clip geometry', () => {
+    const currentConfig: TimelineConfig = {
+      output: { resolution: '1920x1080', fps: 30, file: 'current.mp4' },
+      tracks: [makeTrack('V1')],
+      clips: [{ id: 'clip-current', at: 0, track: 'V1', clipType: 'hold', asset: 'asset-1', hold: 2 }],
+    };
+    const currentRegistry: AssetRegistry = {
+      assets: {
+        'asset-1': { file: 'current.png' },
+        'asset-2': { file: 'next.png' },
+      },
+    };
+    const current = assembleTimelineData({
+      config: currentConfig,
+      configVersion: 7,
+      registry: currentRegistry,
+      resolvedConfig: buildResolvedConfig(currentConfig, buildResolvedRegistry(currentRegistry)),
+      output: { ...currentConfig.output },
+      assetMap: makeAssetMap(currentRegistry),
+    });
+
+    const data = buildDataFromCurrentRegistry({
+      output: { resolution: '1920x1080', fps: 30, file: 'next.mp4' },
+      tracks: [makeTrack('V1')],
+      clips: [
+        { id: 'clip-1', at: 9, track: 'V1', clipType: 'hold', asset: 'asset-2', hold: 2 },
+        { id: 'clip-2', at: 4, track: 'V1', clipType: 'hold', asset: 'asset-2', hold: 3 },
+      ],
+      pinnedShotGroups: [{
+        shotId: 'shot-1',
+        trackId: 'V1',
+        clipIds: ['clip-1', 'clip-2'],
+        start: 4,
+        children: [
+          { clipId: 'clip-2', offset: 0, duration: 3 },
+          { clipId: 'clip-1', offset: 3, duration: 2 },
+        ],
+        mode: 'images',
+      }] as unknown as TimelineConfig['pinnedShotGroups'],
+    }, current);
+
+    expect(data.config.pinnedShotGroups?.[0]).toEqual(expect.objectContaining({
+      clipIds: ['clip-2', 'clip-1'],
+    }));
+    expect(data.resolvedConfig.clips).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'clip-2', at: 4, hold: 3 }),
+      expect.objectContaining({ id: 'clip-1', at: 9, hold: 2 }),
+    ]));
+    expect(data.signature).toBe(getConfigSignature(data.resolvedConfig));
   });
 
   it('keeps the stable signature unchanged when only resolved asset URLs change', () => {

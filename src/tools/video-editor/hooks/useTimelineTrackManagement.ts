@@ -2,12 +2,18 @@ import { useCallback, useMemo } from 'react';
 import { arrayMove } from '@dnd-kit/sortable';
 import { addTrack } from '@/tools/video-editor/lib/editor-utils';
 import { DEFAULT_VIDEO_TRACKS } from '@/tools/video-editor/lib/defaults';
-import type { TrackDefinition, TrackKind } from '@/tools/video-editor/types';
+import type { PinnedShotGroup, TrackDefinition, TrackKind } from '@/tools/video-editor/types';
 import { moveClipBetweenTracks } from '@/tools/video-editor/lib/coordinate-utils';
-import type { TimelineData } from '@/tools/video-editor/lib/timeline-data';
-import { updatePinnedShotGroupTrackIdsFromClipTrackMap } from '@/tools/video-editor/lib/multi-drag-utils';
+import type { ClipMeta, TimelineData } from '@/tools/video-editor/lib/timeline-data';
+import {
+  categorizeSelection,
+  findEnclosingPinnedGroup,
+  orderClipIdsByAt,
+  type PinnedGroupKey,
+} from '@/tools/video-editor/lib/pinned-group-projection';
 import { resolveOverlaps } from '@/tools/video-editor/lib/resolve-overlaps';
 import type { TimelineApplyEdit } from '@/tools/video-editor/hooks/timeline-state-types';
+import type { TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 
 export interface UseTimelineTrackManagementArgs {
   dataRef: React.MutableRefObject<TimelineData | null>;
@@ -73,6 +79,102 @@ export function moveTrackWithinKind(
   return arrayMove(tracks, activeIndex, overIndex);
 }
 
+/**
+ * Compute the effect of translating every member of a pinned shot group by
+ * (deltaTime, targetRowId). Returns next rows + per-clip metaUpdates (including
+ * track patches) + clipOrderOverride + a soft-tag override for the dragged
+ * group. Shared by moveClipToRow, createTrackAndMoveClip, and the batch move
+ * path in moveSelectedClipsToTrack. Pure; does not touch dataRef.
+ */
+function translateGroupMembers({
+  current,
+  group,
+  targetRowId,
+  deltaTime,
+}: {
+  current: TimelineData;
+  group: PinnedShotGroup;
+  targetRowId: string;
+  deltaTime: number;
+}): {
+  nextRows: TimelineRow[];
+  metaUpdates: Record<string, Partial<TimelineData['meta'][string]>>;
+  nextClipOrder: TimelineData['clipOrder'];
+  pinnedShotGroupsOverride: PinnedShotGroup[];
+} {
+  const memberSet = new Set(group.clipIds);
+  const sourceTrackId = group.trackId;
+
+  // Capture each member's current action so we can translate it.
+  const memberActions = new Map<string, { start: number; end: number; effectId: string }>();
+  for (const row of current.rows) {
+    for (const action of row.actions) {
+      if (memberSet.has(action.id)) {
+        memberActions.set(action.id, { start: action.start, end: action.end, effectId: action.effectId });
+      }
+    }
+  }
+
+  // Remove members from their current rows, then add them (translated) to the target row.
+  let nextRows = current.rows.map((row) => ({
+    ...row,
+    actions: row.actions.filter((a) => !memberSet.has(a.id)),
+  }));
+  const translatedActions = group.clipIds
+    .map((clipId) => {
+      const original = memberActions.get(clipId);
+      if (!original) return null;
+      return {
+        id: clipId,
+        start: original.start + deltaTime,
+        end: original.end + deltaTime,
+        effectId: original.effectId,
+      };
+    })
+    .filter((a): a is NonNullable<typeof a> => a !== null);
+
+  nextRows = nextRows.map((row) => (
+    row.id === targetRowId
+      ? { ...row, actions: [...row.actions, ...translatedActions] }
+      : row
+  ));
+
+  // Cross-track move: update each member's `track` meta patch and clip order.
+  const metaUpdates: Record<string, Partial<TimelineData['meta'][string]>> = {};
+  let nextClipOrder = current.clipOrder;
+  if (sourceTrackId !== targetRowId) {
+    for (const clipId of group.clipIds) {
+      metaUpdates[clipId] = { track: targetRowId };
+      nextClipOrder = moveClipBetweenTracks(nextClipOrder, clipId, sourceTrackId, targetRowId);
+    }
+  }
+
+  // Soft-tag override: trackId updated, clipIds re-derived from the translated
+  // positions (order preserved for the trivial same-delta case, but reads from
+  // nextRows so any future resolveOverlaps shuffles are honored).
+  const orderedClipIds = orderClipIdsByAt(group.clipIds, { rows: nextRows });
+  const pinnedShotGroupsOverride = (current.config.pinnedShotGroups ?? []).map((g) => (
+    g.shotId === group.shotId && g.trackId === group.trackId
+      ? { ...g, trackId: targetRowId, clipIds: orderedClipIds }
+      : g
+  ));
+
+  return { nextRows, metaUpdates, nextClipOrder, pinnedShotGroupsOverride };
+}
+
+function getLiveGroupStart(current: Pick<TimelineData, 'rows'>, group: PinnedShotGroup): number | null {
+  const actionStarts = current.rows
+    .flatMap((row) => row.actions)
+    .filter((action) => group.clipIds.includes(action.id))
+    .map((action) => action.start);
+
+  if (actionStarts.length === 0) {
+    return null;
+  }
+
+  return Math.min(...actionStarts);
+}
+
 export function useTimelineTrackManagement({
   dataRef,
   resolvedConfig,
@@ -88,6 +190,35 @@ export function useTimelineTrackManagement({
   ) => {
     const current = dataRef.current;
     if (!current) {
+      return;
+    }
+
+    const enclosingGroup = findEnclosingPinnedGroup(current.config, clipId);
+    if (enclosingGroup) {
+      const sourceTrack = current.tracks.find((track) => track.id === enclosingGroup.group.trackId);
+      const targetTrack = current.tracks.find((track) => track.id === targetRowId);
+      if (!sourceTrack || !targetTrack || sourceTrack.kind !== targetTrack.kind) {
+        return;
+      }
+
+      const groupStart = getLiveGroupStart(current, enclosingGroup.group);
+      if (groupStart == null) {
+        return;
+      }
+      const nextStart = typeof newStartTime === 'number' ? Math.max(0, newStartTime) : groupStart;
+      const translatedGroup = translateGroupMembers({
+        current,
+        group: enclosingGroup.group,
+        targetRowId,
+        deltaTime: nextStart - groupStart,
+      });
+      applyEdit({
+        type: 'rows',
+        rows: translatedGroup.nextRows,
+        metaUpdates: Object.keys(translatedGroup.metaUpdates).length > 0 ? translatedGroup.metaUpdates : undefined,
+        clipOrderOverride: translatedGroup.nextClipOrder,
+        pinnedShotGroupsOverride: translatedGroup.pinnedShotGroupsOverride,
+      }, { transactionId });
       return;
     }
 
@@ -137,23 +268,12 @@ export function useTimelineTrackManagement({
         ...metaPatches[clipId],
       },
     };
-    const clipTrackMap = {
-      ...Object.fromEntries(Object.entries(current.meta).map(([currentClipId, clipMeta]) => [currentClipId, clipMeta.track])),
-      ...Object.fromEntries(Object.entries(nextMetaUpdates).map(([currentClipId, patch]) => [currentClipId, patch.track])),
-    };
-    const nextPinnedShotGroups = updatePinnedShotGroupTrackIdsFromClipTrackMap(
-      current.config.pinnedShotGroups,
-      clipTrackMap,
-    );
     const nextClipOrder = moveClipBetweenTracks(current.clipOrder, clipId, sourceRow.id, targetRow.id);
     applyEdit({
       type: 'rows',
       rows: resolvedRows,
       metaUpdates: nextMetaUpdates,
       clipOrderOverride: nextClipOrder,
-      pinnedShotGroupsOverride: nextPinnedShotGroups === current.config.pinnedShotGroups
-        ? undefined
-        : nextPinnedShotGroups,
     }, { transactionId });
   }, [applyEdit, dataRef]);
 
@@ -163,9 +283,13 @@ export function useTimelineTrackManagement({
       return;
     }
 
+    const enclosingGroup = findEnclosingPinnedGroup(current.config, clipId);
     const sourceClip = current.resolvedConfig.clips.find((clip) => clip.id === clipId);
-    const sourceTrack = sourceClip ? current.resolvedConfig.tracks.find((track) => track.id === sourceClip.track) : null;
-    if (!sourceClip || !sourceTrack || sourceTrack.kind !== kind) {
+    const sourceTrackId = enclosingGroup?.group.trackId ?? sourceClip?.track;
+    const sourceTrack = sourceTrackId
+      ? current.resolvedConfig.tracks.find((track) => track.id === sourceTrackId)
+      : null;
+    if ((!sourceClip && !enclosingGroup) || !sourceTrack || sourceTrack.kind !== kind) {
       return;
     }
 
@@ -174,6 +298,54 @@ export function useTimelineTrackManagement({
       return !current.resolvedConfig.tracks.some((existingTrack) => existingTrack.id === track.id);
     }) ?? nextResolvedConfigBase.tracks[nextResolvedConfigBase.tracks.length - 1];
     if (!newTrack) {
+      return;
+    }
+
+    if (enclosingGroup) {
+      const previewCurrent: TimelineData = {
+        ...current,
+        tracks: nextResolvedConfigBase.tracks.map((track) => ({ ...track })),
+        rows: nextResolvedConfigBase.tracks.map((track) => (
+          current.rows.find((row) => row.id === track.id) ?? { id: track.id, actions: [] }
+        )),
+        config: {
+          ...current.config,
+          tracks: nextResolvedConfigBase.tracks.map((track) => ({ ...track })),
+        },
+      };
+      const groupStart = getLiveGroupStart(current, enclosingGroup.group);
+      if (groupStart == null) {
+        return;
+      }
+      const nextStart = typeof newStartTime === 'number' ? Math.max(0, newStartTime) : groupStart;
+      const deltaTime = nextStart - groupStart;
+      const translatedGroup = translateGroupMembers({
+        current: previewCurrent,
+        group: enclosingGroup.group,
+        targetRowId: newTrack.id,
+        deltaTime,
+      });
+      const nextResolvedConfig = {
+        ...nextResolvedConfigBase,
+        clips: nextResolvedConfigBase.clips.map((clip) => (
+          enclosingGroup.group.clipIds.includes(clip.id)
+            ? {
+                ...clip,
+                at: clip.at + deltaTime,
+                track: newTrack.id,
+              }
+            : clip
+        )),
+      };
+
+      applyEdit({
+        type: 'config',
+        resolvedConfig: nextResolvedConfig,
+        pinnedShotGroupsOverride: translatedGroup.pinnedShotGroupsOverride,
+      }, {
+        selectedClipId: clipId,
+        selectedTrackId: newTrack.id,
+      });
       return;
     }
 
@@ -191,18 +363,10 @@ export function useTimelineTrackManagement({
         };
       }),
     };
-    const clipTrackMap = Object.fromEntries(nextResolvedConfig.clips.map((clip) => [clip.id, clip.track]));
-    const nextPinnedShotGroups = updatePinnedShotGroupTrackIdsFromClipTrackMap(
-      current.config.pinnedShotGroups,
-      clipTrackMap,
-    );
 
     applyEdit({
       type: 'config',
       resolvedConfig: nextResolvedConfig,
-      pinnedShotGroupsOverride: nextPinnedShotGroups === current.config.pinnedShotGroups
-        ? undefined
-        : nextPinnedShotGroups,
     }, {
       selectedClipId: clipId,
       selectedTrackId: newTrack.id,
@@ -251,7 +415,32 @@ export function useTimelineTrackManagement({
     }
 
     const trackById = new Map(current.tracks.map((track) => [track.id, track]));
+    const selection = categorizeSelection([...selectedClipIds], current.config);
+    const freeClipIdSet = new Set(selection.freeClipIds);
     const groupsByRow = new Map<string, { clipIds: string[]; rowIndex: number; kind: TrackKind }>();
+    const groupedUnits = selection.groups.flatMap((groupEntry) => {
+      const group = current.config.pinnedShotGroups?.find((candidate) => (
+        candidate.shotId === groupEntry.groupKey.shotId
+        && candidate.trackId === groupEntry.groupKey.trackId
+      ));
+      if (!group) {
+        return [];
+      }
+
+      const rowIndex = current.rows.findIndex((row) => row.id === group.trackId);
+      const track = trackById.get(group.trackId);
+      if (rowIndex < 0 || !track) {
+        return [];
+      }
+
+      return [{
+        kind: 'group' as const,
+        groupKey: groupEntry.groupKey,
+        rowIndex,
+        rowId: group.trackId,
+        trackKind: track.kind,
+      }];
+    });
 
     current.rows.forEach((row, rowIndex) => {
       const sourceTrack = trackById.get(row.id);
@@ -261,7 +450,7 @@ export function useTimelineTrackManagement({
 
       const rowClipIds = row.actions
         .map((action) => action.id)
-        .filter((clipId) => selectedClipIds.has(clipId));
+        .filter((clipId) => freeClipIdSet.has(clipId));
       if (rowClipIds.length === 0) {
         return;
       }
@@ -273,23 +462,35 @@ export function useTimelineTrackManagement({
       });
     });
 
-    if (groupsByRow.size === 0) {
+    if (groupsByRow.size === 0 && groupedUnits.length === 0) {
       return;
     }
 
-    const plannedMoves: Array<{ clipId: string; targetRowId: string }> = [];
+    const freeUnits = [...groupsByRow.entries()].map(([rowId, group]) => ({
+      kind: 'free' as const,
+      rowId,
+      rowIndex: group.rowIndex,
+      trackKind: group.kind,
+      clipIds: group.clipIds,
+    }));
+    const plannedClipMoves: Array<{ clipId: string; targetRowId: string }> = [];
+    const plannedGroupMoves: Array<{ groupKey: PinnedGroupKey; targetRowId: string }> = [];
 
     for (const kind of ['visual', 'audio'] as const) {
-      const kindGroups = [...groupsByRow.values()].filter((group) => group.kind === kind);
-      if (kindGroups.length === 0) {
+      const kindUnits = [
+        ...freeUnits.filter((unit) => unit.trackKind === kind),
+        ...groupedUnits.filter((unit) => unit.trackKind === kind),
+      ];
+      if (kindUnits.length === 0) {
         continue;
       }
 
-      const kindMoves: Array<{ clipId: string; targetRowId: string }> = [];
+      const kindClipMoves: Array<{ clipId: string; targetRowId: string }> = [];
+      const kindGroupMoves: Array<{ groupKey: PinnedGroupKey; targetRowId: string }> = [];
       let isBlocked = false;
 
-      for (const group of kindGroups) {
-        let targetRowIndex = group.rowIndex;
+      for (const unit of kindUnits) {
+        let targetRowIndex = unit.rowIndex;
         let targetRowId: string | null = null;
 
         while (true) {
@@ -311,33 +512,97 @@ export function useTimelineTrackManagement({
           break;
         }
 
-        for (const clipId of group.clipIds) {
-          kindMoves.push({ clipId, targetRowId });
+        if (unit.kind === 'group') {
+          kindGroupMoves.push({ groupKey: unit.groupKey, targetRowId });
+          continue;
+        }
+
+        for (const clipId of unit.clipIds) {
+          kindClipMoves.push({ clipId, targetRowId });
         }
       }
 
       if (!isBlocked) {
-        plannedMoves.push(...kindMoves);
+        plannedClipMoves.push(...kindClipMoves);
+        plannedGroupMoves.push(...kindGroupMoves);
       }
     }
 
-    if (plannedMoves.length === 0) {
+    if (plannedClipMoves.length === 0 && plannedGroupMoves.length === 0) {
       return;
     }
 
     const transactionId = crypto.randomUUID();
+    if (plannedGroupMoves.length > 0) {
+      let workingState: TimelineData = current;
+      const accumulatedMetaUpdates: Record<string, Partial<TimelineData['meta'][string]>> = {};
+      let appliedGroupMove = false;
 
-    for (const move of plannedMoves) {
+      for (const move of plannedGroupMoves) {
+        const existingGroup = workingState.config.pinnedShotGroups?.find((group) => (
+          group.shotId === move.groupKey.shotId
+          && group.trackId === move.groupKey.trackId
+        ));
+        if (!existingGroup) {
+          continue;
+        }
+
+        const translatedGroup = translateGroupMembers({
+          current: workingState,
+          group: existingGroup,
+          targetRowId: move.targetRowId,
+          deltaTime: 0,
+        });
+        Object.assign(accumulatedMetaUpdates, translatedGroup.metaUpdates);
+        const nextMeta: Record<string, ClipMeta> = {
+          ...workingState.meta,
+          ...translatedGroup.metaUpdates,
+        } as Record<string, ClipMeta>;
+        workingState = {
+          ...workingState,
+          rows: translatedGroup.nextRows,
+          meta: nextMeta,
+          clipOrder: translatedGroup.nextClipOrder,
+          config: {
+            ...workingState.config,
+            pinnedShotGroups: translatedGroup.pinnedShotGroupsOverride,
+          },
+        };
+        appliedGroupMove = true;
+      }
+
+      if (appliedGroupMove) {
+        applyEdit({
+          type: 'rows',
+          rows: workingState.rows,
+          metaUpdates: Object.keys(accumulatedMetaUpdates).length > 0 ? accumulatedMetaUpdates : undefined,
+          clipOrderOverride: workingState.clipOrder,
+          pinnedShotGroupsOverride: workingState.config.pinnedShotGroups,
+        }, { transactionId });
+      }
+    }
+
+    for (const move of plannedClipMoves) {
       moveClipToRow(move.clipId, move.targetRowId, undefined, transactionId);
     }
 
-    const primaryMove = selectedClipId
-      ? plannedMoves.find((move) => move.clipId === selectedClipId)
-      : plannedMoves[0];
+    const primaryGroupMove = selectedClipId
+      ? findEnclosingPinnedGroup(current.config, selectedClipId)
+      : null;
+    const primaryMove = primaryGroupMove
+      ? plannedGroupMoves.find((move) => (
+          move.groupKey.shotId === primaryGroupMove.groupKey.shotId
+          && move.groupKey.trackId === primaryGroupMove.groupKey.trackId
+        ))
+      : (selectedClipId
+          ? plannedClipMoves.find((move) => move.clipId === selectedClipId)
+          : undefined)
+        ?? plannedGroupMoves[0]
+        ?? plannedClipMoves[0];
     if (primaryMove) {
       setSelectedTrackId(primaryMove.targetRowId);
     }
-  }, [dataRef, moveClipToRow, selectedClipId, setSelectedTrackId]);
+  }, [applyEdit, dataRef, moveClipToRow, selectedClipId, setSelectedTrackId]);
 
   const handleAddTrack = useCallback((kind: TrackKind) => {
     if (!resolvedConfig) {

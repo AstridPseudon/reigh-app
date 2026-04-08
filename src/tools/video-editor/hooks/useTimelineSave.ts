@@ -2,6 +2,7 @@ import {
   useEffect,
   useRef,
 } from 'react';
+import type { InteractionStateRef } from '@/tools/video-editor/lib/interaction-state';
 import { useTimelineCommit } from '@/tools/video-editor/hooks/useTimelineCommit';
 import { TimelineEventBus } from '@/tools/video-editor/hooks/useTimelineEventBus';
 import { useTimelinePersistence } from '@/tools/video-editor/hooks/useTimelinePersistence';
@@ -13,9 +14,12 @@ export type { SaveStatus } from '@/tools/video-editor/hooks/useTimelinePersisten
 
 type UseTimelineSaveQueries = UsePollSyncQueries;
 
+export type { InteractionStateRef } from '@/tools/video-editor/lib/interaction-state';
+
 export function useTimelineSave(
   queries: UseTimelineSaveQueries,
   provider: DataProvider,
+  interactionStateRef: InteractionStateRef,
 ) {
   const { timelineId } = useVideoEditorRuntime();
   const lastSavedSignatureRef = useRef('');
@@ -38,6 +42,7 @@ export function useTimelineSave(
     savedSeqRef,
     configVersionRef,
     lastSavedSignatureRef,
+    interactionStateRef,
   });
 
   useEffect(() => {
@@ -57,6 +62,7 @@ export function useTimelineSave(
     configVersionRef,
     lastSavedSignatureRef,
     isSavingRef: persistence.isSavingRef,
+    interactionStateRef,
   });
 
   return {

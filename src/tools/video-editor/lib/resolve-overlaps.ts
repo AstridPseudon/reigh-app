@@ -13,16 +13,9 @@ export interface OverlapResult {
   adjustments: Array<{ clipId: string; requestedStart: number; actualStart: number }>;
 }
 
-export interface GroupOverlapResult {
-  rows: TimelineRow[];
-  metaPatches: Record<string, Partial<ClipMeta>>;
-}
-
-export interface GroupMovedClip {
-  rowId: string;
-  clipId: string;
-  newStart: number;
-  newEnd: number;
+export interface GroupExtent {
+  start: number;
+  end: number;
 }
 
 /**
@@ -78,11 +71,12 @@ function findBestGap(
   return bestGap;
 }
 
-function findBestGroupStart(
-  preferred: number,
-  duration: number,
+export function findBestGroupStart(
+  preferredExtent: GroupExtent,
   siblings: TimelineAction[],
 ): number | null {
+  const preferred = preferredExtent.start;
+  const duration = preferredExtent.end - preferredExtent.start;
   const occupied = siblings
     .map((sibling) => ({ start: sibling.start, end: sibling.end }))
     .sort((left, right) => left.start - right.start);
@@ -211,107 +205,4 @@ export function resolveOverlaps(
   });
 
   return { rows: nextRows, metaPatches, adjustments };
-}
-
-export function resolveGroupOverlaps(
-  rows: TimelineRow[],
-  movedClips: GroupMovedClip[],
-  meta: Record<string, ClipMeta>,
-): GroupOverlapResult {
-  if (movedClips.length === 0) {
-    return { rows, metaPatches: {} };
-  }
-
-  const metaPatches: Record<string, Partial<ClipMeta>> = {};
-  const movedClipsByRow = new Map<string, GroupMovedClip[]>();
-  for (const movedClip of movedClips) {
-    const existing = movedClipsByRow.get(movedClip.rowId);
-    if (existing) {
-      existing.push(movedClip);
-    } else {
-      movedClipsByRow.set(movedClip.rowId, [movedClip]);
-    }
-  }
-
-  const nextRowsById = new Map<string, TimelineRow>();
-
-  for (const [rowId, rowMovedClips] of movedClipsByRow) {
-    const row = rows.find((candidate) => candidate.id === rowId);
-    if (!row) {
-      return { rows, metaPatches: {} };
-    }
-
-    const movedClipIds = new Set(rowMovedClips.map((clip) => clip.clipId));
-    const movedActionsById = new Map(
-      row.actions
-        .filter((action) => movedClipIds.has(action.id))
-        .map((action) => [action.id, action]),
-    );
-
-    if (movedActionsById.size !== rowMovedClips.length) {
-      return { rows, metaPatches: {} };
-    }
-
-    const preferredStart = Math.min(...rowMovedClips.map((clip) => clip.newStart));
-    const preferredEnd = Math.max(...rowMovedClips.map((clip) => clip.newEnd));
-    const groupDuration = preferredEnd - preferredStart;
-    const siblings = row.actions.filter((action) => !movedClipIds.has(action.id));
-    const groupStart = findBestGroupStart(preferredStart, groupDuration, siblings);
-
-    if (groupStart === null) {
-      return { rows, metaPatches: {} };
-    }
-
-    const delta = groupStart - preferredStart;
-    const movedUpdates = new Map(
-      rowMovedClips.map((clip) => {
-        const currentAction = movedActionsById.get(clip.clipId);
-        if (!currentAction) {
-          return [clip.clipId, null] as const;
-        }
-
-        return [
-          clip.clipId,
-          {
-            ...currentAction,
-            start: clip.newStart + delta,
-            end: clip.newEnd + delta,
-          },
-        ] as const;
-      }),
-    );
-
-    if ([...movedUpdates.values()].some((value) => value === null)) {
-      return { rows, metaPatches: {} };
-    }
-
-    for (const clip of rowMovedClips) {
-      if (delta === 0) {
-        continue;
-      }
-
-      const clipMeta = meta[clip.clipId];
-      if (!clipMeta || typeof clipMeta.hold === 'number') {
-        continue;
-      }
-
-      const speed = clipMeta.speed ?? 1;
-      const from = (clipMeta.from ?? 0) + delta * speed;
-      metaPatches[clip.clipId] = {
-        ...metaPatches[clip.clipId],
-        from,
-        to: from + (clip.newEnd - clip.newStart) * speed,
-      };
-    }
-
-    nextRowsById.set(rowId, {
-      ...row,
-      actions: row.actions.map((action) => movedUpdates.get(action.id) ?? action),
-    });
-  }
-
-  return {
-    rows: rows.map((row) => nextRowsById.get(row.id) ?? row),
-    metaPatches,
-  };
 }

@@ -1,7 +1,9 @@
 // @vitest-environment jsdom
+import React, { useMemo, useState } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { TimelineCanvas } from '@/tools/video-editor/components/TimelineEditor/TimelineCanvas';
+import { createInteractionState, onInteractionEnd } from '@/tools/video-editor/lib/interaction-state';
 import type { TrackDefinition } from '@/tools/video-editor/types';
 import type { TimelineAction, TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 
@@ -33,20 +35,215 @@ function getPointerCaptures(element: HTMLElement) {
 const track: TrackDefinition = { id: 'V1', kind: 'visual', label: 'V1' };
 const action: TimelineAction = { id: 'clip-1', start: 0, end: 2, effectId: 'effect-clip-1' };
 const row: TimelineRow = { id: 'V1', actions: [action] };
+const pinnedGroupRow: TimelineRow = {
+  id: 'V1',
+  actions: [
+    { id: 'clip-1', start: 0, end: 1, effectId: 'effect-clip-1' },
+    { id: 'clip-2', start: 1, end: 2, effectId: 'effect-clip-2' },
+    { id: 'clip-3', start: 2, end: 3, effectId: 'effect-clip-3' },
+  ],
+};
+const shiftedPinnedGroupRow: TimelineRow = {
+  id: 'V1',
+  actions: [
+    { id: 'clip-1', start: 1, end: 2, effectId: 'effect-clip-1' },
+    { id: 'clip-2', start: 2, end: 3, effectId: 'effect-clip-2' },
+    { id: 'clip-3', start: 3, end: 4, effectId: 'effect-clip-3' },
+  ],
+};
+const pinnedShotGroup: NonNullable<React.ComponentProps<typeof TimelineCanvas>['shotGroups']>[number] = {
+  shotId: 'shot-1',
+  shotName: 'Pinned Shot',
+  rowId: 'V1',
+  rowIndex: 0,
+  start: 0,
+  clipIds: ['clip-1', 'clip-2', 'clip-3'],
+  children: [
+    { clipId: 'clip-1', offset: 0, duration: 1 },
+    { clipId: 'clip-2', offset: 1, duration: 1 },
+    { clipId: 'clip-3', offset: 2, duration: 1 },
+  ],
+  color: '#22c55e',
+};
+const MIN_GROUP_RESIZE_DURATION = 0.05;
+
+function cloneRowState(source: TimelineRow): TimelineRow {
+  return {
+    ...source,
+    actions: source.actions.map((timelineAction) => ({ ...timelineAction })),
+  };
+}
+
+function materializeShotGroup(
+  template: NonNullable<React.ComponentProps<typeof TimelineCanvas>['shotGroups']>[number],
+  rows: TimelineRow[],
+): NonNullable<React.ComponentProps<typeof TimelineCanvas>['shotGroups']>[number] {
+  const targetRow = rows.find((candidate) => candidate.id === template.rowId);
+  if (!targetRow) {
+    throw new Error(`expected row ${template.rowId}`);
+  }
+
+  const groupActions = template.clipIds.map((clipId) => {
+    const timelineAction = targetRow.actions.find((candidate) => candidate.id === clipId);
+    if (!timelineAction) {
+      throw new Error(`expected action ${clipId}`);
+    }
+    return timelineAction;
+  });
+  const start = Math.min(...groupActions.map((timelineAction) => timelineAction.start));
+
+  return {
+    ...template,
+    start,
+    children: template.clipIds.map((clipId) => {
+      const timelineAction = groupActions.find((candidate) => candidate.id === clipId);
+      if (!timelineAction) {
+        throw new Error(`expected action ${clipId}`);
+      }
+
+      return {
+        clipId,
+        offset: timelineAction.start - start,
+        duration: timelineAction.end - timelineAction.start,
+      };
+    }),
+  };
+}
+
+function applyRowUpdates(
+  rows: TimelineRow[],
+  rowId: string,
+  updates: Record<string, { start: number; end: number }>,
+): TimelineRow[] {
+  return rows.map((candidate) => {
+    if (candidate.id !== rowId) {
+      return candidate;
+    }
+
+    return {
+      ...candidate,
+      actions: candidate.actions.map((timelineAction) => {
+        const update = updates[timelineAction.id];
+        return update ? { ...timelineAction, ...update } : timelineAction;
+      }),
+    };
+  });
+}
+
+function renderStatefulPinnedGroupCanvas(params: {
+  initialRow?: TimelineRow;
+  initialShotGroup?: NonNullable<React.ComponentProps<typeof TimelineCanvas>['shotGroups']>[number];
+  actionId: string;
+  startLeft?: number;
+  scale?: number;
+  scaleWidth?: number;
+}) {
+  const pendingOpsRef = { current: 0 };
+  const dataRef = { current: null };
+  const onClipEdgeResizeEndSpy = vi.fn();
+  const initialRow = params.initialRow ?? pinnedGroupRow;
+  const initialShotGroup = params.initialShotGroup ?? pinnedShotGroup;
+
+  useTimelineEditorDataMock.mockReturnValue({ pendingOpsRef, dataRef });
+
+  function Harness() {
+    const [rows, setRows] = useState<TimelineRow[]>([cloneRowState(initialRow)]);
+    const shotGroups = useMemo(
+      () => [materializeShotGroup(initialShotGroup, rows)],
+      [rows],
+    );
+
+    return (
+      <TimelineCanvas
+        rows={rows}
+        tracks={[track]}
+        scale={params.scale ?? 1}
+        scaleWidth={params.scaleWidth ?? 100}
+        scaleSplitCount={1}
+        startLeft={params.startLeft ?? 0}
+        rowHeight={48}
+        minScaleCount={1}
+        maxScaleCount={10}
+        selectedTrackId={null}
+        getActionRender={() => <div>clip</div>}
+        onSelectTrack={vi.fn()}
+        onTrackChange={vi.fn()}
+        onRemoveTrack={vi.fn()}
+        onTrackDragEnd={vi.fn()}
+        trackSensors={[] as never}
+        onCursorDrag={vi.fn()}
+        onClickTimeArea={vi.fn()}
+        onActionResizeStart={vi.fn()}
+        onClipEdgeResizeEnd={(resizeParams) => {
+          onClipEdgeResizeEndSpy(resizeParams);
+          if (resizeParams.cancelled) {
+            return;
+          }
+          setRows((currentRows) => applyRowUpdates(
+            currentRows,
+            resizeParams.session.rowId,
+            Object.fromEntries(
+              resizeParams.updates.map((update) => [
+                update.clipId,
+                { start: update.start, end: update.end },
+              ]),
+            ),
+          ));
+        }}
+        shotGroups={shotGroups}
+        dragSessionRef={{ current: null }}
+      />
+    );
+  }
+
+  const renderResult = render(<Harness />);
+
+  const getActionElement = (actionId: string) => {
+    const element = renderResult.container.querySelector(`[data-action-id="${actionId}"]`);
+    if (!(element instanceof HTMLElement)) {
+      throw new Error(`expected action element for ${actionId}`);
+    }
+    return element;
+  };
+
+  return {
+    ...renderResult,
+    pendingOpsRef,
+    onClipEdgeResizeEndSpy,
+    getActionElement,
+    getHandle: (actionId: string, side: 'left' | 'right') => {
+      const selector = side === 'left'
+        ? '.cursor-ew-resize.rounded-l-sm'
+        : '.cursor-ew-resize.rounded-r-sm';
+      const handle = getActionElement(actionId).querySelector(selector);
+      if (!(handle instanceof HTMLElement)) {
+        throw new Error(`expected ${side} handle for ${actionId}`);
+      }
+      return handle;
+    },
+  };
+}
 
 function renderCanvas(params?: {
   pendingOpsRef?: React.MutableRefObject<number>;
+  interactionStateRef?: React.MutableRefObject<{ drag: boolean; resize: boolean }>;
   dataRef?: { current: any };
   onActionResizeStart?: ReturnType<typeof vi.fn>;
-  onActionResizeEnd?: ReturnType<typeof vi.fn>;
+  onClipEdgeResizeEnd?: ReturnType<typeof vi.fn>;
   getActionRender?: ReturnType<typeof vi.fn>;
   track?: TrackDefinition;
   row?: TimelineRow;
+  actionId?: string;
   shotGroups?: React.ComponentProps<typeof TimelineCanvas>['shotGroups'];
   finalVideoMap?: React.ComponentProps<typeof TimelineCanvas>['finalVideoMap'];
   onShotGroupUnpin?: React.ComponentProps<typeof TimelineCanvas>['onShotGroupUnpin'];
+  onShotGroupDelete?: React.ComponentProps<typeof TimelineCanvas>['onShotGroupDelete'];
   onShotGroupSwitchToFinalVideo?: React.ComponentProps<typeof TimelineCanvas>['onShotGroupSwitchToFinalVideo'];
   onShotGroupSwitchToImages?: React.ComponentProps<typeof TimelineCanvas>['onShotGroupSwitchToImages'];
+  allowMissingHandles?: boolean;
+  startLeft?: number;
+  scale?: number;
+  scaleWidth?: number;
 }) {
   const pendingOpsRef = params?.pendingOpsRef ?? { current: 0 };
   const dataRef = params?.dataRef ?? { current: null };
@@ -55,17 +252,17 @@ function renderCanvas(params?: {
   useTimelineEditorDataMock.mockReturnValue({ pendingOpsRef, dataRef });
 
   const onActionResizeStart = params?.onActionResizeStart ?? vi.fn();
-  const onActionResizeEnd = params?.onActionResizeEnd ?? vi.fn();
+  const onClipEdgeResizeEnd = params?.onClipEdgeResizeEnd ?? vi.fn();
   const getActionRender = params?.getActionRender ?? vi.fn(() => <div>clip</div>);
 
   const renderResult = render(
     <TimelineCanvas
       rows={[timelineRow]}
       tracks={[trackDefinition]}
-      scale={1}
-      scaleWidth={100}
+      scale={params?.scale ?? 1}
+      scaleWidth={params?.scaleWidth ?? 100}
       scaleSplitCount={1}
-      startLeft={0}
+      startLeft={params?.startLeft ?? 0}
       rowHeight={48}
       minScaleCount={1}
       maxScaleCount={10}
@@ -79,36 +276,48 @@ function renderCanvas(params?: {
       onCursorDrag={vi.fn()}
       onClickTimeArea={vi.fn()}
       onActionResizeStart={onActionResizeStart}
-      onActionResizeEnd={onActionResizeEnd}
+      onClipEdgeResizeEnd={onClipEdgeResizeEnd}
       shotGroups={params?.shotGroups}
       finalVideoMap={params?.finalVideoMap}
       onShotGroupUnpin={params?.onShotGroupUnpin}
+      onShotGroupDelete={params?.onShotGroupDelete}
       onShotGroupSwitchToFinalVideo={params?.onShotGroupSwitchToFinalVideo}
       onShotGroupSwitchToImages={params?.onShotGroupSwitchToImages}
+      interactionStateRef={params?.interactionStateRef}
       dragSessionRef={{ current: null }}
     />,
   );
 
-  const actionElement = renderResult.container.querySelector(`[data-action-id="${timelineRow.actions[0]?.id ?? 'clip-1'}"]`);
+  const targetActionId = params?.actionId ?? timelineRow.actions[0]?.id ?? 'clip-1';
+  const actionElement = renderResult.container.querySelector(`[data-action-id="${targetActionId}"]`);
   if (!(actionElement instanceof HTMLElement)) {
     throw new Error('expected action element');
   }
 
-  const handles = actionElement.querySelectorAll('.cursor-ew-resize');
-  const leftHandle = handles[0];
-  const rightHandle = handles[1];
-  if (!(leftHandle instanceof HTMLElement) || !(rightHandle instanceof HTMLElement)) {
+  // Identify handles by their rounding class so we don't mis-label when
+  // only one of the two is rendered (e.g. for first/last children of a
+  // pinned shot group, where only one interior boundary exists).
+  const leftHandle = actionElement.querySelector('.cursor-ew-resize.rounded-l-sm');
+  const rightHandle = actionElement.querySelector('.cursor-ew-resize.rounded-r-sm');
+  if (!params?.allowMissingHandles && (!(leftHandle instanceof HTMLElement) || !(rightHandle instanceof HTMLElement))) {
     throw new Error('expected resize handles');
   }
 
   return {
     ...renderResult,
     actionElement,
-    leftHandle,
-    rightHandle,
+    leftHandle: leftHandle instanceof HTMLElement ? leftHandle : null,
+    rightHandle: rightHandle instanceof HTMLElement ? rightHandle : null,
+    getShotGroupHandle: (side: 'left' | 'right') => {
+      const handle = renderResult.container.querySelector(`[data-shot-group-resize-handle="${side}"]`);
+      if (!(handle instanceof HTMLElement)) {
+        throw new Error(`expected ${side} shot group handle`);
+      }
+      return handle;
+    },
     pendingOpsRef,
     onActionResizeStart,
-    onActionResizeEnd,
+    onClipEdgeResizeEnd,
     getActionRender,
   };
 }
@@ -141,9 +350,16 @@ afterEach(() => {
   pointerCaptures = new WeakMap<HTMLElement, Set<number>>();
 });
 
+function fireLostPointerCapture(target: HTMLElement, pointerId: number) {
+  const event = new Event('lostpointercapture', { bubbles: true });
+  Object.defineProperty(event, 'pointerId', { configurable: true, value: pointerId });
+  fireEvent(target, event);
+}
+
 describe('TimelineCanvas resize pending ops', () => {
   it('increments on resize start and decrements on resize end', () => {
-    const { leftHandle, pendingOpsRef, onActionResizeStart, onActionResizeEnd } = renderCanvas();
+    const { leftHandle, pendingOpsRef, onActionResizeStart, onClipEdgeResizeEnd } = renderCanvas();
+    if (!leftHandle) throw new Error('expected left handle');
 
     fireEvent.pointerDown(leftHandle, {
       button: 0,
@@ -160,11 +376,12 @@ describe('TimelineCanvas resize pending ops', () => {
     });
 
     expect(pendingOpsRef.current).toBe(0);
-    expect(onActionResizeEnd).toHaveBeenCalledTimes(1);
+    expect(onClipEdgeResizeEnd).toHaveBeenCalledTimes(1);
   });
 
-  it('decrements on pointercancel without firing resize end', () => {
-    const { leftHandle, pendingOpsRef, onActionResizeEnd } = renderCanvas();
+  it('decrements on pointercancel and reports a cancelled resize end', () => {
+    const { leftHandle, pendingOpsRef, onClipEdgeResizeEnd } = renderCanvas();
+    if (!leftHandle) throw new Error('expected left handle');
 
     fireEvent.pointerDown(leftHandle, {
       button: 0,
@@ -180,7 +397,73 @@ describe('TimelineCanvas resize pending ops', () => {
     });
 
     expect(pendingOpsRef.current).toBe(0);
-    expect(onActionResizeEnd).not.toHaveBeenCalled();
+    expect(onClipEdgeResizeEnd).toHaveBeenCalledWith(expect.objectContaining({
+      cancelled: true,
+      session: expect.objectContaining({ clipId: 'clip-1', edge: 'left', rowId: 'V1' }),
+      updates: expect.arrayContaining([
+        expect.objectContaining({ clipId: 'clip-1', start: 0, end: 2 }),
+      ]),
+    }));
+  });
+
+  it('toggles interactionStateRef.resize with the resize lifecycle', () => {
+    const interactionStateRef = { current: createInteractionState() };
+    const { leftHandle } = renderCanvas({ interactionStateRef });
+    if (!leftHandle) throw new Error('expected left handle');
+
+    fireEvent.pointerDown(leftHandle, {
+      button: 0,
+      pointerId: 18,
+      clientX: 120,
+    });
+
+    expect(interactionStateRef.current.resize).toBe(true);
+
+    fireEvent.pointerUp(leftHandle, {
+      pointerId: 18,
+      clientX: 120,
+    });
+
+    expect(interactionStateRef.current.resize).toBe(false);
+  });
+
+  it('clears resize preview and completes release when pointer capture is lost', () => {
+    const interactionStateRef = { current: createInteractionState() };
+    const onInteractionEndSpy = vi.fn();
+    onInteractionEnd(interactionStateRef, onInteractionEndSpy);
+    const { actionElement, rightHandle, pendingOpsRef, onClipEdgeResizeEnd } = renderCanvas({ interactionStateRef });
+    if (!rightHandle) throw new Error('expected right handle');
+
+    fireEvent.pointerDown(rightHandle, {
+      button: 0,
+      pointerId: 19,
+      clientX: 200,
+    });
+
+    fireEvent.pointerMove(rightHandle, {
+      pointerId: 19,
+      clientX: 300,
+    });
+
+    expect(actionElement.style.width).toBe('300px');
+    expect(interactionStateRef.current.resize).toBe(true);
+    expect(pendingOpsRef.current).toBe(1);
+    expect(rightHandle.hasPointerCapture(19)).toBe(true);
+
+    fireLostPointerCapture(rightHandle, 19);
+
+    expect(onClipEdgeResizeEnd).toHaveBeenCalledWith(expect.objectContaining({
+      cancelled: false,
+      session: expect.objectContaining({ clipId: 'clip-1', edge: 'right', rowId: 'V1' }),
+      updates: expect.arrayContaining([
+        expect.objectContaining({ clipId: 'clip-1', start: 0, end: 3 }),
+      ]),
+    }));
+    expect(actionElement.style.width).toBe('200px');
+    expect(interactionStateRef.current.resize).toBe(false);
+    expect(pendingOpsRef.current).toBe(0);
+    expect(rightHandle.hasPointerCapture(19)).toBe(false);
+    expect(onInteractionEndSpy).toHaveBeenCalledTimes(1);
   });
 
   it('passes the rendered clip width into getActionRender', () => {
@@ -212,11 +495,12 @@ describe('TimelineCanvas resize pending ops', () => {
         },
       },
     };
-    const { actionElement, rightHandle, onActionResizeEnd } = renderCanvas({
+    const { actionElement, rightHandle, onClipEdgeResizeEnd } = renderCanvas({
       track: audioTrack,
       row: audioRow,
       dataRef,
     });
+    if (!rightHandle) throw new Error('expected right handle');
 
     fireEvent.pointerDown(rightHandle, {
       button: 0,
@@ -236,10 +520,12 @@ describe('TimelineCanvas resize pending ops', () => {
       clientX: 400,
     });
 
-    expect(onActionResizeEnd).toHaveBeenCalledWith(expect.objectContaining({
-      action: expect.objectContaining({ start: 0, end: 2.5 }),
-      dir: 'right',
-      row: audioRow,
+    expect(onClipEdgeResizeEnd).toHaveBeenCalledWith(expect.objectContaining({
+      cancelled: false,
+      session: expect.objectContaining({ clipId: 'clip-1', edge: 'right', rowId: 'A1' }),
+      updates: expect.arrayContaining([
+        expect.objectContaining({ clipId: 'clip-1', start: 0, end: 2.5 }),
+      ]),
     }));
     expect(actionElement.className).not.toContain('ring-amber-400/80');
   });
@@ -266,11 +552,12 @@ describe('TimelineCanvas resize pending ops', () => {
         },
       },
     };
-    const { actionElement, leftHandle, onActionResizeEnd } = renderCanvas({
+    const { actionElement, leftHandle, onClipEdgeResizeEnd } = renderCanvas({
       track: audioTrack,
       row: audioRow,
       dataRef,
     });
+    if (!leftHandle) throw new Error('expected left handle');
 
     fireEvent.pointerDown(leftHandle, {
       button: 0,
@@ -290,23 +577,386 @@ describe('TimelineCanvas resize pending ops', () => {
       clientX: -100,
     });
 
-    expect(onActionResizeEnd).toHaveBeenCalledWith(expect.objectContaining({
-      action: expect.objectContaining({ start: 1, end: 4 }),
-      dir: 'left',
-      row: audioRow,
+    expect(onClipEdgeResizeEnd).toHaveBeenCalledWith(expect.objectContaining({
+      cancelled: false,
+      session: expect.objectContaining({ clipId: 'clip-1', edge: 'left', rowId: 'A1' }),
+      updates: expect.arrayContaining([
+        expect.objectContaining({ clipId: 'clip-1', start: 1, end: 4 }),
+      ]),
     }));
     expect(actionElement.className).not.toContain('ring-amber-400/80');
   });
 
+  it('anchors free clip preview to the real boundary pixel when the handle is grabbed off-center', () => {
+    const { actionElement, rightHandle, onClipEdgeResizeEnd } = renderCanvas({ startLeft: 25 });
+    if (!rightHandle) throw new Error('expected right handle');
+
+    fireEvent.pointerDown(rightHandle, {
+      button: 0,
+      pointerId: 30,
+      clientX: 221,
+    });
+
+    fireEvent.pointerMove(rightHandle, {
+      pointerId: 30,
+      clientX: 271,
+    });
+
+    expect(actionElement.style.width).toBe('250px');
+
+    fireEvent.pointerUp(rightHandle, {
+      pointerId: 30,
+      clientX: 271,
+    });
+
+    expect(onClipEdgeResizeEnd).toHaveBeenCalledWith(expect.objectContaining({
+      cancelled: false,
+      session: expect.objectContaining({ clipId: 'clip-1', edge: 'right', rowId: 'V1' }),
+      updates: expect.arrayContaining([
+        expect.objectContaining({ clipId: 'clip-1', start: 0, end: 2.5 }),
+      ]),
+    }));
+  });
+
+  it('snaps a free clip edge to sibling boundaries on release', () => {
+    const snappingRow: TimelineRow = {
+      id: 'V1',
+      actions: [
+        { id: 'clip-1', start: 0, end: 2, effectId: 'effect-clip-1' },
+        { id: 'clip-2', start: 3, end: 4, effectId: 'effect-clip-2' },
+      ],
+    };
+    const { actionElement, rightHandle, onClipEdgeResizeEnd } = renderCanvas({
+      row: snappingRow,
+      actionId: 'clip-1',
+    });
+    if (!rightHandle) throw new Error('expected right handle');
+
+    fireEvent.pointerDown(rightHandle, {
+      button: 0,
+      pointerId: 34,
+      clientX: 200,
+    });
+
+    fireEvent.pointerMove(rightHandle, {
+      pointerId: 34,
+      clientX: 295,
+    });
+
+    expect(actionElement.style.width).toBe('300px');
+
+    fireEvent.pointerUp(rightHandle, {
+      pointerId: 34,
+      clientX: 295,
+    });
+
+    expect(onClipEdgeResizeEnd).toHaveBeenCalledWith(expect.objectContaining({
+      cancelled: false,
+      session: expect.objectContaining({ clipId: 'clip-1', edge: 'right', rowId: 'V1' }),
+      updates: expect.arrayContaining([
+        expect.objectContaining({ clipId: 'clip-1', start: 0, end: 3 }),
+      ]),
+    }));
+  });
+
+  it('anchors interior pinned-group boundary preview to the real boundary pixel when grabbed off-center', () => {
+    const { container, actionElement, rightHandle, onClipEdgeResizeEnd } = renderCanvas({
+      row: pinnedGroupRow,
+      actionId: 'clip-2',
+      shotGroups: [pinnedShotGroup],
+      allowMissingHandles: true,
+      startLeft: 25,
+    });
+    if (!rightHandle) throw new Error('expected right handle');
+
+    fireEvent.pointerDown(rightHandle, {
+      button: 0,
+      pointerId: 31,
+      clientX: 221,
+    });
+
+    fireEvent.pointerMove(rightHandle, {
+      pointerId: 31,
+      clientX: 251,
+    });
+
+    const adjacentElement = container.querySelector('[data-action-id="clip-3"]');
+    if (!(adjacentElement instanceof HTMLElement)) {
+      throw new Error('expected adjacent action element');
+    }
+
+    expect(Number.parseFloat(actionElement.style.width)).toBeCloseTo(130, 5);
+    expect(Number.parseFloat(adjacentElement.style.left)).toBeCloseTo(255, 5);
+
+    fireEvent.pointerUp(rightHandle, {
+      pointerId: 31,
+      clientX: 251,
+    });
+
+    expect(onClipEdgeResizeEnd).toHaveBeenCalledWith(expect.objectContaining({
+      cancelled: false,
+      session: expect.objectContaining({
+        clipId: 'clip-2',
+        edge: 'right',
+        rowId: 'V1',
+        context: expect.objectContaining({ kind: 'interior' }),
+      }),
+      updates: expect.arrayContaining([
+        expect.objectContaining({ clipId: 'clip-2', start: 1, end: 2.3 }),
+        expect.objectContaining({ clipId: 'clip-3', start: 2.3, end: 3 }),
+      ]),
+    }));
+  });
+
+  it('keeps the interior pinned-group boundary fixed on release after a pointer drag', () => {
+    const { getActionElement, getHandle, onClipEdgeResizeEndSpy } = renderStatefulPinnedGroupCanvas({
+      actionId: 'clip-2',
+      startLeft: 25,
+    });
+    const rightHandle = getHandle('clip-2', 'right');
+
+    fireEvent.pointerDown(rightHandle, {
+      button: 0,
+      pointerId: 32,
+      clientX: 221,
+    });
+
+    fireEvent.pointerMove(rightHandle, {
+      pointerId: 32,
+      clientX: 251,
+    });
+
+    const previewBoundaryLeft = Number.parseFloat(getActionElement('clip-3').style.left);
+    const previewDraggedWidth = Number.parseFloat(getActionElement('clip-2').style.width);
+    expect(previewBoundaryLeft).toBeCloseTo(255, 5);
+    expect(previewDraggedWidth).toBeCloseTo(130, 5);
+
+    fireEvent.pointerUp(rightHandle, {
+      pointerId: 32,
+      clientX: 251,
+    });
+
+    expect(Number.parseFloat(getActionElement('clip-3').style.left)).toBeCloseTo(previewBoundaryLeft, 5);
+    expect(Number.parseFloat(getActionElement('clip-2').style.width)).toBeCloseTo(previewDraggedWidth, 5);
+    expect(onClipEdgeResizeEndSpy).toHaveBeenCalledWith(expect.objectContaining({
+      cancelled: false,
+      session: expect.objectContaining({
+        clipId: 'clip-2',
+        edge: 'right',
+        context: expect.objectContaining({ kind: 'interior' }),
+      }),
+      updates: expect.arrayContaining([
+        expect.objectContaining({ clipId: 'clip-2', start: 1, end: 2.3 }),
+        expect.objectContaining({ clipId: 'clip-3', start: 2.3, end: 3 }),
+      ]),
+    }));
+  });
+
+  it('renders interior boundary resize handles for middle pinned-group children', () => {
+    // The middle child has both interior boundaries (between clip-1/clip-2
+    // on the left and clip-2/clip-3 on the right), so both handles render.
+    const { leftHandle, rightHandle } = renderCanvas({
+      row: pinnedGroupRow,
+      actionId: 'clip-2',
+      shotGroups: [pinnedShotGroup],
+      allowMissingHandles: true,
+    });
+
+    expect(leftHandle).not.toBeNull();
+    expect(rightHandle).not.toBeNull();
+  });
+
+  it('renders outer-edge resize handles on first/last pinned-group children (delegated to group edge resize)', () => {
+    // First and last children render BOTH handles. Their outer edge handle
+    // (left for first, right for last) is routed to the shot-group edge
+    // resize so the user can grab the group's outer edge directly from the
+    // clip handle in addition to the dedicated round overlay handle.
+    const first = renderCanvas({
+      row: pinnedGroupRow,
+      actionId: 'clip-1',
+      shotGroups: [pinnedShotGroup],
+      allowMissingHandles: true,
+    });
+    expect(first.leftHandle).not.toBeNull();
+    expect(first.rightHandle).not.toBeNull();
+
+    const last = renderCanvas({
+      row: pinnedGroupRow,
+      actionId: 'clip-3',
+      shotGroups: [pinnedShotGroup],
+      allowMissingHandles: true,
+    });
+    expect(last.leftHandle).not.toBeNull();
+    expect(last.rightHandle).not.toBeNull();
+  });
+
+  it('renders pinned shot groups from group.start and children rather than clip array order', () => {
+    const unorderedRow: TimelineRow = {
+      id: 'V1',
+      actions: [
+        { id: 'clip-3', start: 3, end: 4, effectId: 'effect-clip-3' },
+        { id: 'clip-1', start: 1, end: 2, effectId: 'effect-clip-1' },
+        { id: 'clip-2', start: 2, end: 3, effectId: 'effect-clip-2' },
+      ],
+    };
+    const unorderedGroup: NonNullable<React.ComponentProps<typeof TimelineCanvas>['shotGroups']>[number] = {
+      ...pinnedShotGroup,
+      start: 1,
+      clipIds: ['clip-3', 'clip-1', 'clip-2'],
+      children: [
+        { clipId: 'clip-1', offset: 0, duration: 1 },
+        { clipId: 'clip-2', offset: 1, duration: 1 },
+        { clipId: 'clip-3', offset: 2, duration: 1 },
+      ],
+    };
+
+    const { getByText, getByTitle } = renderCanvas({
+      row: unorderedRow,
+      shotGroups: [unorderedGroup],
+      allowMissingHandles: true,
+    });
+
+    expect(getByText('Pinned Shot')).toBeTruthy();
+    const label = getByTitle('Pinned Shot') as HTMLElement;
+    expect(label).toBeTruthy();
+    expect(label.style.left).toBe('100px');
+    expect(label.style.width).toBe('300px');
+  });
+
+  it('resizes pinned groups when grabbing the first child clip\'s outer-left handle', () => {
+    const onClipEdgeResizeEnd = vi.fn();
+    const { actionElement, leftHandle, onActionResizeStart } = renderCanvas({
+      row: shiftedPinnedGroupRow,
+      actionId: 'clip-1',
+      shotGroups: [{
+        ...pinnedShotGroup,
+        start: 1,
+      }],
+      dataRef: {
+        current: {
+          config: {
+            output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
+            tracks: [track],
+            clips: [
+              { id: 'clip-1', at: 1, track: 'V1', clipType: 'hold', hold: 1 },
+              { id: 'clip-2', at: 2, track: 'V1', clipType: 'hold', hold: 1 },
+              { id: 'clip-3', at: 3, track: 'V1', clipType: 'hold', hold: 1 },
+            ],
+            pinnedShotGroups: [{
+              shotId: 'shot-1',
+              trackId: 'V1',
+              start: 1,
+              clipIds: ['clip-1', 'clip-2', 'clip-3'],
+              children: [
+                { clipId: 'clip-1', offset: 0, duration: 1 },
+                { clipId: 'clip-2', offset: 1, duration: 1 },
+                { clipId: 'clip-3', offset: 2, duration: 1 },
+              ],
+              mode: 'images',
+            }],
+          },
+        },
+      },
+      onClipEdgeResizeEnd,
+      allowMissingHandles: true,
+      startLeft: 25,
+    });
+
+    if (!leftHandle) throw new Error('expected outer-left clip handle on first child');
+
+    fireEvent.pointerDown(leftHandle, {
+      button: 0,
+      pointerId: 12,
+      clientX: 121,
+    });
+
+    fireEvent.pointerMove(leftHandle, {
+      pointerId: 12,
+      clientX: 71,
+    });
+
+    expect(actionElement.style.left).toBe('75px');
+
+    fireEvent.pointerUp(leftHandle, {
+      pointerId: 12,
+      clientX: 71,
+    });
+
+    expect(onActionResizeStart).not.toHaveBeenCalled();
+    expect(onClipEdgeResizeEnd).toHaveBeenCalledWith(expect.objectContaining({
+      cancelled: false,
+      session: expect.objectContaining({
+        clipId: 'clip-1',
+        edge: 'left',
+        rowId: 'V1',
+        context: expect.objectContaining({ kind: 'outer', shotId: 'shot-1', trackId: 'V1' }),
+      }),
+      updates: expect.arrayContaining([
+        expect.objectContaining({ clipId: 'clip-1', start: 0.5, end: expect.closeTo(5 / 3, 5) }),
+        expect.objectContaining({ clipId: 'clip-2', start: expect.closeTo(5 / 3, 5), end: expect.closeTo(17 / 6, 5) }),
+        expect.objectContaining({ clipId: 'clip-3', start: expect.closeTo(17 / 6, 5), end: 4 }),
+      ]),
+    }));
+  });
+
+  it('keeps the group outer-left boundary fixed on release after a pointer drag', () => {
+    const { getActionElement, getHandle, onClipEdgeResizeEndSpy } = renderStatefulPinnedGroupCanvas({
+      initialRow: shiftedPinnedGroupRow,
+      initialShotGroup: {
+        ...pinnedShotGroup,
+        start: 1,
+      },
+      actionId: 'clip-1',
+      startLeft: 25,
+    });
+    const leftHandle = getHandle('clip-1', 'left');
+
+    fireEvent.pointerDown(leftHandle, {
+      button: 0,
+      pointerId: 33,
+      clientX: 121,
+    });
+
+    fireEvent.pointerMove(leftHandle, {
+      pointerId: 33,
+      clientX: 71,
+    });
+
+    const previewLeft = Number.parseFloat(getActionElement('clip-1').style.left);
+    expect(previewLeft).toBeCloseTo(75, 5);
+
+    fireEvent.pointerUp(leftHandle, {
+      pointerId: 33,
+      clientX: 71,
+    });
+
+    expect(Number.parseFloat(getActionElement('clip-1').style.left)).toBeCloseTo(previewLeft, 5);
+    expect(onClipEdgeResizeEndSpy).toHaveBeenCalledWith(expect.objectContaining({
+      cancelled: false,
+      session: expect.objectContaining({
+        clipId: 'clip-1',
+        edge: 'left',
+        context: expect.objectContaining({ kind: 'outer', shotId: 'shot-1', trackId: 'V1' }),
+      }),
+      updates: expect.arrayContaining([
+        expect.objectContaining({ clipId: 'clip-1', start: 0.5, end: expect.closeTo(5 / 3, 5) }),
+        expect.objectContaining({ clipId: 'clip-2', start: expect.closeTo(5 / 3, 5), end: expect.closeTo(17 / 6, 5) }),
+        expect.objectContaining({ clipId: 'clip-3', start: expect.closeTo(17 / 6, 5), end: 4 }),
+      ]),
+    }));
+  });
+
   it('renders all shot groups with solid borders and always shows the shot name label', () => {
-    const { container, getByText } = renderCanvas({
+    const { container, getByText, getAllByTitle } = renderCanvas({
       shotGroups: [
         {
           shotId: 'shot-a',
           shotName: 'Shot A',
           rowId: 'V1',
           rowIndex: 0,
+          start: 0,
           clipIds: ['clip-1'],
+          children: [{ clipId: 'clip-1', offset: 0, duration: 2 }],
           color: '#3b82f6',
         },
         {
@@ -314,41 +964,50 @@ describe('TimelineCanvas resize pending ops', () => {
           shotName: 'Shot B',
           rowId: 'V1',
           rowIndex: 0,
+          start: 0,
           clipIds: ['clip-1'],
+          children: [{ clipId: 'clip-1', offset: 0, duration: 2 }],
           color: '#22c55e',
           mode: 'images',
         },
       ],
+      allowMissingHandles: true,
     });
 
     expect(container.innerHTML).not.toContain('border-dashed');
     expect(container.innerHTML).toContain('border-solid');
-    expect(container.querySelectorAll('[data-shot-group-kind="pinned"]')).toHaveLength(2);
+    expect(getAllByTitle(/Shot [AB]/)).toHaveLength(2);
     expect(getByText('Shot A')).toBeTruthy();
     expect(getByText('Shot B')).toBeTruthy();
   });
 
-  it('shows unpin and switch-to-video actions for pinned groups with a final video', () => {
+  it('shows deconstruct/delete and switch-to-video actions for pinned groups with a final video', () => {
     const onShotGroupSwitchToFinalVideo = vi.fn();
     const onShotGroupUnpin = vi.fn();
+    const onShotGroupDelete = vi.fn();
     const { getByTitle } = renderCanvas({
       shotGroups: [{
         shotId: 'shot-1',
         shotName: 'Pinned Shot',
         rowId: 'V1',
         rowIndex: 0,
+        start: 0,
         clipIds: ['clip-1'],
+        children: [{ clipId: 'clip-1', offset: 0, duration: 2 }],
         color: '#22c55e',
         mode: 'images',
       }],
       finalVideoMap: new Map([['shot-1', {}]]),
       onShotGroupUnpin,
+      onShotGroupDelete,
       onShotGroupSwitchToFinalVideo,
+      allowMissingHandles: true,
     });
 
     fireEvent.contextMenu(getByTitle('Pinned Shot'));
 
-    expect(screen.getByText('Unpin')).toBeTruthy();
+    expect(screen.getByText('Deconstruct shot')).toBeTruthy();
+    expect(screen.getByText('Delete shot')).toBeTruthy();
     expect(screen.getByText('Switch to Final Video')).toBeTruthy();
     expect(screen.queryByText('Pin as Shot Group')).toBeNull();
     expect(screen.queryByText('Switch to Images')).toBeNull();
@@ -362,8 +1021,9 @@ describe('TimelineCanvas resize pending ops', () => {
     });
   });
 
-  it('shows unpin and switch-to-images actions for pinned video groups', () => {
+  it('shows deconstruct/delete and switch-to-images actions for pinned video groups', () => {
     const onShotGroupUnpin = vi.fn();
+    const onShotGroupDelete = vi.fn();
     const onShotGroupSwitchToImages = vi.fn();
     const { getByTitle } = renderCanvas({
       shotGroups: [{
@@ -371,18 +1031,23 @@ describe('TimelineCanvas resize pending ops', () => {
         shotName: 'Pinned Shot',
         rowId: 'V1',
         rowIndex: 0,
+        start: 0,
         clipIds: ['clip-1'],
+        children: [{ clipId: 'clip-1', offset: 0, duration: 2 }],
         color: '#3b82f6',
         mode: 'video',
       }],
       finalVideoMap: new Map([['shot-1', {}]]),
       onShotGroupUnpin,
+      onShotGroupDelete,
       onShotGroupSwitchToImages,
+      allowMissingHandles: true,
     });
 
     fireEvent.contextMenu(getByTitle('Pinned Shot'));
 
-    expect(screen.getByText('Unpin')).toBeTruthy();
+    expect(screen.getByText('Deconstruct shot')).toBeTruthy();
+    expect(screen.getByText('Delete shot')).toBeTruthy();
     expect(screen.getByText('Switch to Images')).toBeTruthy();
     expect(screen.queryByText('Pin as Shot Group')).toBeNull();
     expect(screen.queryByText('Switch to Final Video')).toBeNull();
@@ -391,7 +1056,11 @@ describe('TimelineCanvas resize pending ops', () => {
     expect(onShotGroupSwitchToImages).toHaveBeenCalledWith({ shotId: 'shot-1', rowId: 'V1' });
 
     fireEvent.contextMenu(getByTitle('Pinned Shot'));
-    fireEvent.click(screen.getByText('Unpin'));
+    fireEvent.click(screen.getByText('Deconstruct shot'));
     expect(onShotGroupUnpin).toHaveBeenCalledWith({ shotId: 'shot-1', trackId: 'V1' });
+
+    fireEvent.contextMenu(getByTitle('Pinned Shot'));
+    fireEvent.click(screen.getByText('Delete shot'));
+    expect(onShotGroupDelete).toHaveBeenCalledWith({ shotId: 'shot-1', trackId: 'V1', clipIds: ['clip-1'] });
   });
 });

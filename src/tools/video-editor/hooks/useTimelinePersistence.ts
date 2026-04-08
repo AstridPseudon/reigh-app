@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { isInteractionActive, onInteractionEnd, type InteractionStateRef } from '@/tools/video-editor/lib/interaction-state';
 import { TimelineEventBus } from '@/tools/video-editor/hooks/useTimelineEventBus';
 import {
   isTimelineNotFoundError,
@@ -29,6 +30,7 @@ interface UseTimelinePersistenceOptions {
   savedSeqRef: MutableRefObject<number>;
   configVersionRef: MutableRefObject<number>;
   lastSavedSignatureRef: MutableRefObject<string>;
+  interactionStateRef: InteractionStateRef;
 }
 
 export interface UseTimelinePersistenceResult {
@@ -52,10 +54,14 @@ export function useTimelinePersistence({
   savedSeqRef,
   configVersionRef,
   lastSavedSignatureRef,
+  interactionStateRef,
 }: UseTimelinePersistenceOptions): UseTimelinePersistenceResult {
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const conflictRetryRef = useRef(0);
   const pendingSaveRef = useRef<{ data: TimelineData; seq: number } | null>(null);
+  // Stash for scheduleSave() calls that arrive while a drag/resize is active.
+  // Flushed on gesture end by the onInteractionEnd listener below.
+  const deferredSaveRef = useRef<{ data: TimelineData; preserveStatus?: boolean } | null>(null);
   const isSavingRef = useRef(false);
 
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('saved');
@@ -277,6 +283,19 @@ export function useTimelinePersistence({
       setSaveStatus('dirty');
     }
 
+    // Gate on the shared interaction ref. If a drag or resize gesture is in
+    // flight, stash the newest payload and defer scheduling the save timer
+    // until the gesture ends. This prevents mid-gesture save round-trips from
+    // triggering re-renders that drop pointer capture.
+    if (isInteractionActive(interactionStateRef)) {
+      deferredSaveRef.current = { data: nextData, preserveStatus: options?.preserveStatus };
+      if (saveTimer.current) {
+        clearTimeout(saveTimer.current);
+        saveTimer.current = null;
+      }
+      return;
+    }
+
     if (saveTimer.current) {
       clearTimeout(saveTimer.current);
     }
@@ -286,7 +305,20 @@ export function useTimelinePersistence({
       conflictRetryRef.current = 0;
       void doSave(nextData, editSeqRef.current);
     }, 500);
-  }, [doSave, editSeqRef]);
+  }, [doSave, editSeqRef, interactionStateRef]);
+
+  // When a gesture ends, flush the latest deferred payload (if any) through
+  // the normal scheduleSave path, which will now proceed past the gate.
+  useEffect(() => {
+    return onInteractionEnd(interactionStateRef, () => {
+      const deferred = deferredSaveRef.current;
+      if (!deferred) {
+        return;
+      }
+      deferredSaveRef.current = null;
+      scheduleSave(deferred.data, { preserveStatus: deferred.preserveStatus });
+    });
+  }, [interactionStateRef, scheduleSave]);
 
   const reloadFromServer = useCallback(async () => {
     const [loadedTimeline, registry] = await Promise.all([

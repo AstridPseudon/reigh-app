@@ -100,7 +100,12 @@ type DropTestData = {
   config: {
     output: { resolution: string; fps: number; file: string };
     clips: [];
-    pinnedShotGroups?: Array<{ shotId: string; trackId: string; clipIds: string[]; mode: 'images' | 'video' }>;
+    pinnedShotGroups?: Array<{
+      shotId: string;
+      trackId: string;
+      clipIds: string[];
+      mode: 'images' | 'video';
+    }>;
   };
   tracks: Array<{ id: string; kind: 'visual'; label: string }>;
   rows: Array<{ id: string; actions: Array<{ id: string; start: number; end: number; effectId: string }> }>;
@@ -472,7 +477,7 @@ describe('useExternalDrop', () => {
     expect(applyEdit).toHaveBeenCalled();
   });
 
-  it('drops a shot as one rows edit with pinnedShotGroupsOverride and never calls handleAssetDrop', async () => {
+  it('drops a shot as one rows edit with group start plus ordered children from loop state and never calls handleAssetDrop', async () => {
     mockUseShots.mockReturnValue({
       shots: [{
         id: 'shot-1',

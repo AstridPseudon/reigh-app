@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { usePanes } from '@/shared/contexts/PanesContext';
+import { useProjectSelectionContext } from '@/shared/contexts/ProjectContext';
+import { resolveVideoEditorPath } from '@/tools/video-editor/lib/video-editor-path';
 
 /**
  * Global keyboard shortcuts for pane management.
@@ -15,6 +18,8 @@ import { usePanes } from '@/shared/contexts/PanesContext';
  * Opt+Shift+D — toggle tasks pane lock (same as Opt+D)
  */
 export function useGlobalPaneShortcuts() {
+  const queryClient = useQueryClient();
+  const { selectedProjectId } = useProjectSelectionContext();
   const {
     isEditorPaneLocked,
     setIsEditorPaneLocked,
@@ -46,7 +51,7 @@ export function useGlobalPaneShortcuts() {
         case 'KeyW':
           event.preventDefault();
           if (event.shiftKey) {
-            navigate('/tools/video-editor');
+            navigate(resolveVideoEditorPath(queryClient, selectedProjectId));
           } else {
             setIsEditorPaneLocked(!isEditorPaneLocked);
           }
@@ -81,6 +86,8 @@ export function useGlobalPaneShortcuts() {
     isShotsPaneLocked,
     isTasksPaneLocked,
     navigate,
+    queryClient,
+    selectedProjectId,
     setIsEditorPaneLocked,
     setIsGenerationsPaneLocked,
     setIsShotsPaneLocked,

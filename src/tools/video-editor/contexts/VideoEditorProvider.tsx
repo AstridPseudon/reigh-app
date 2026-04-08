@@ -14,6 +14,8 @@ import { useEffectRegistry } from '@/tools/video-editor/hooks/useEffectRegistry'
 import { useEffectResources } from '@/tools/video-editor/hooks/useEffectResources';
 import { useTimelineState } from '@/tools/video-editor/hooks/useTimelineState';
 import type {
+  TimelineActionResizeStart,
+  TimelineClipEdgeResizeEnd,
   TimelineEditorDataContextValue,
   TimelineEditorOpsContextValue,
 } from '@/tools/video-editor/hooks/useTimelineState.types';
@@ -82,6 +84,7 @@ function InnerProvider({
     isLoading: editor.isLoading,
     dataRef: editor.dataRef,
     pendingOpsRef: editor.pendingOpsRef,
+    interactionStateRef: editor.interactionStateRef,
     coordinator: editor.coordinator,
     indicatorRef: editor.indicatorRef,
     editAreaRef: editor.editAreaRef,
@@ -89,6 +92,9 @@ function InnerProvider({
     timelineRef: editor.timelineRef,
     timelineWrapperRef: editor.timelineWrapperRef,
   }), [editor]);
+
+  const onActionResizeStart: TimelineActionResizeStart = editor.onActionResizeStart;
+  const onClipEdgeResizeEnd: TimelineClipEdgeResizeEnd = editor.onClipEdgeResizeEnd;
 
   const editorOps = useMemo<TimelineEditorOpsContextValue>(() => ({
     setSelectedClipId: editor.setSelectedClipId,
@@ -103,8 +109,8 @@ function InnerProvider({
     registerGenerationAsset: editor.registerGenerationAsset,
     onCursorDrag: editor.onCursorDrag,
     onClickTimeArea: editor.onClickTimeArea,
-    onActionResizeStart: editor.onActionResizeStart,
-    onActionResizeEnd: editor.onActionResizeEnd,
+    onActionResizeStart,
+    onClipEdgeResizeEnd,
     onOverlayChange: editor.onOverlayChange,
     onTimelineDragOver: editor.onTimelineDragOver,
     onTimelineDragLeave: editor.onTimelineDragLeave,
@@ -136,7 +142,7 @@ function InnerProvider({
     registerAsset: editor.registerAsset,
     onDoubleClickAsset,
     setLightboxAssetKey,
-  }), [editor, onDoubleClickAsset, setLightboxAssetKey]);
+  }), [editor, onActionResizeStart, onClipEdgeResizeEnd, onDoubleClickAsset, setLightboxAssetKey]);
 
   return (
     <TimelineEditorDataContextProvider value={editorData}>

@@ -20,6 +20,8 @@ interface ClipActionProps {
   clipMeta: ClipMeta;
   isSelected: boolean;
   isPrimary?: boolean;
+  /** Group members use the shot-group overlay for resize; clip-level handles stay hidden. */
+  isInPinnedShotGroup?: boolean;
   selectedClipIds?: string[];
   thumbnailSrc?: string;
   audioSrc?: string;
@@ -53,7 +55,7 @@ const menuItemClassName = 'relative flex w-full cursor-default select-none items
 const destructiveMenuItemClassName = `${menuItemClassName} hover:bg-destructive hover:text-destructive-foreground`;
 const disabledMenuItemClassName = 'disabled:cursor-wait disabled:opacity-60';
 
-type ClipContextMenuProps = Pick<ClipActionProps, 'isGenerationAsset' | 'onUpdateVariant' | 'isVariantStale' | 'onDismissStale' | 'onSplitHere' | 'onToggleMuteClips' | 'onSplitClipsAtPlayhead' | 'onCreateShotFromSelection' | 'onGenerateVideoFromSelection' | 'onNavigateToShot' | 'onOpenGenerateVideo' | 'isCreatingShot' | 'onDeleteClip' | 'onDeleteClips'> & { actionId: string; contextMenu: ContextMenuState; menuRef: React.RefObject<HTMLDivElement | null>; closeMenu: () => void; hasBatchSelection: boolean; selectedClipIds: string[]; showShotActions: boolean; hasActionsBeforeShotSection: boolean; existingShots?: Shot[]; };
+type ClipContextMenuProps = Pick<ClipActionProps, 'isGenerationAsset' | 'onUpdateVariant' | 'isVariantStale' | 'onDismissStale' | 'onSplitHere' | 'onToggleMuteClips' | 'onSplitClipsAtPlayhead' | 'onCreateShotFromSelection' | 'onGenerateVideoFromSelection' | 'onNavigateToShot' | 'onOpenGenerateVideo' | 'isCreatingShot' | 'onDeleteClip' | 'onDeleteClips' | 'isInPinnedShotGroup'> & { actionId: string; contextMenu: ContextMenuState; menuRef: React.RefObject<HTMLDivElement>; closeMenu: () => void; hasBatchSelection: boolean; selectedClipIds: string[]; showShotActions: boolean; hasActionsBeforeShotSection: boolean; existingShots?: Shot[]; };
 type ClipContextMenuItemProps = { icon: React.ComponentType<{ className?: string }>; onClick: () => void; children: React.ReactNode; disabled?: boolean; destructive?: boolean; suffix?: React.ReactNode; };
 
 function ClipContextMenuItem({ icon: Icon, onClick, children, disabled = false, destructive = false, suffix }: ClipContextMenuItemProps) {
@@ -77,16 +79,46 @@ function ClipContextMenu(props: ClipContextMenuProps) {
   const [isCreatingLocal, setIsCreatingLocal] = useState(false);
   const { onCreateShotFromSelection } = props;
 
+  // Recompute position whenever the menu's size changes (e.g. async-loaded
+  // shots arrive, or "Create Shot" expands the menu) so it never overflows
+  // the viewport. Falls back to a one-shot measurement if ResizeObserver
+  // isn't available.
   useLayoutEffect(() => {
-    if (!props.menuRef.current) {
+    const node = props.menuRef.current;
+    if (!node) {
       setAdjusted(null);
       return;
     }
-    const rect = props.menuRef.current.getBoundingClientRect();
-    const pad = 8;
-    const x = Math.min(props.contextMenu.x, window.innerWidth - rect.width - pad);
-    const y = Math.min(props.contextMenu.y, window.innerHeight - rect.height - pad);
-    setAdjusted({ x: Math.max(pad, x), y: Math.max(pad, y) });
+
+    const recompute = () => {
+      const rect = node.getBoundingClientRect();
+      const pad = 8;
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
+      let x = props.contextMenu.x;
+      if (x + rect.width + pad > viewportWidth) {
+        x = Math.max(pad, viewportWidth - rect.width - pad);
+      }
+
+      let y = props.contextMenu.y;
+      if (y + rect.height + pad > viewportHeight) {
+        // Try flipping above the click point first; clamp if there's no room.
+        const flipped = props.contextMenu.y - rect.height;
+        y = flipped >= pad ? flipped : Math.max(pad, viewportHeight - rect.height - pad);
+      }
+
+      setAdjusted({ x, y });
+    };
+
+    recompute();
+
+    if (typeof ResizeObserver === 'undefined') {
+      return;
+    }
+    const observer = new ResizeObserver(recompute);
+    observer.observe(node);
+    return () => observer.disconnect();
   }, [props.contextMenu.x, props.contextMenu.y, props.menuRef]);
 
   usePortalMousedownGuard(props.menuRef);
@@ -103,6 +135,10 @@ function ClipContextMenu(props: ClipContextMenuProps) {
 
   const pos = adjusted ?? props.contextMenu;
   const visibleExistingShots = (props.existingShots ?? []).filter((shot) => shot.id !== createdShot?.id);
+  const hasAssetStateActions = !props.hasBatchSelection && Boolean(
+    (props.isGenerationAsset && props.onUpdateVariant)
+    || (props.isVariantStale && props.onDismissStale),
+  );
   const hasLowerShotActions = Boolean(
     (!createdShot && (props.onCreateShotFromSelection || props.onGenerateVideoFromSelection))
     || (createdShot && (props.onNavigateToShot || props.onOpenGenerateVideo)),
@@ -112,7 +148,7 @@ function ClipContextMenu(props: ClipContextMenuProps) {
     <div
       ref={props.menuRef}
       className="fixed z-50 min-w-[10rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95"
-      style={{ left: pos.x, top: pos.y }}
+      style={{ left: pos.x, top: pos.y, visibility: adjusted ? 'visible' : 'hidden' }}
     >
       {!props.hasBatchSelection && props.isGenerationAsset && props.onUpdateVariant && (
         <ClipContextMenuItem icon={RefreshCw} onClick={() => { props.onUpdateVariant?.(); props.closeMenu(); }}>
@@ -124,81 +160,85 @@ function ClipContextMenu(props: ClipContextMenuProps) {
           Dismiss reminder
         </ClipContextMenuItem>
       )}
-      {((props.isGenerationAsset && props.onUpdateVariant) || (props.isVariantStale && props.onDismissStale)) && !props.hasBatchSelection && (
+      {hasAssetStateActions && !props.isInPinnedShotGroup && (
         <div className="my-1 h-px bg-border" />
       )}
-      {!props.hasBatchSelection && props.onSplitHere && (
-        <ClipContextMenuItem icon={Scissors} onClick={() => { props.onSplitHere?.(props.actionId, props.contextMenu.clientX); props.closeMenu(); }}>
-          Split Here
-        </ClipContextMenuItem>
-      )}
-      {props.hasBatchSelection && props.onToggleMuteClips && (
-        <ClipContextMenuItem icon={Music2} onClick={() => { props.onToggleMuteClips?.(props.selectedClipIds); props.closeMenu(); }}>
-          Mute/Unmute {props.selectedClipIds.length} clips
-        </ClipContextMenuItem>
-      )}
-      {props.hasBatchSelection && props.onSplitClipsAtPlayhead && (
-        <ClipContextMenuItem icon={Scissors} onClick={() => { props.onSplitClipsAtPlayhead?.(props.selectedClipIds); props.closeMenu(); }}>
-          Split {props.selectedClipIds.length} clips at playhead
-        </ClipContextMenuItem>
-      )}
-      {props.showShotActions && props.hasActionsBeforeShotSection && <div className="my-1 h-px bg-border" />}
-      {props.showShotActions && visibleExistingShots.map((shot) => (
-        <div key={shot.id} className="flex w-full items-center gap-1 rounded-sm px-2 py-1.5 text-sm">
-          <span className="min-w-0 flex-1 truncate">{shot.name}</span>
-          {props.onOpenGenerateVideo && (
-            <button type="button" className="flex h-5 w-5 shrink-0 items-center justify-center rounded hover:bg-accent hover:text-accent-foreground" onClick={() => { props.onOpenGenerateVideo?.(shot); props.closeMenu(); }} title="Generate Video">
-              <Clapperboard className="h-3.5 w-3.5" />
-            </button>
+      {!props.isInPinnedShotGroup && (
+        <>
+          {!props.hasBatchSelection && props.onSplitHere && (
+            <ClipContextMenuItem icon={Scissors} onClick={() => { props.onSplitHere?.(props.actionId, props.contextMenu.clientX); props.closeMenu(); }}>
+              Split Here
+            </ClipContextMenuItem>
           )}
-          {props.onNavigateToShot && (
-            <button type="button" className="flex h-5 w-5 shrink-0 items-center justify-center rounded hover:bg-accent hover:text-accent-foreground" onClick={() => { props.onNavigateToShot?.(shot); props.closeMenu(); }} title="Jump to shot">
-              <ArrowRight className="h-3.5 w-3.5" />
-            </button>
+          {props.hasBatchSelection && props.onToggleMuteClips && (
+            <ClipContextMenuItem icon={Music2} onClick={() => { props.onToggleMuteClips?.(props.selectedClipIds); props.closeMenu(); }}>
+              Mute/Unmute {props.selectedClipIds.length} clips
+            </ClipContextMenuItem>
           )}
-        </div>
-      ))}
-      {props.showShotActions && visibleExistingShots.length > 0 && hasLowerShotActions && (
-        <div className="my-1 h-px bg-border" />
-      )}
-      {props.showShotActions && !createdShot && props.onCreateShotFromSelection && (
-        <ClipContextMenuItem icon={FolderPlus} onClick={() => void handleCreateShot()} disabled={isCreatingLocal || props.isCreatingShot}>
-          {isCreatingLocal ? 'Creating…' : 'Create Shot'}
-        </ClipContextMenuItem>
-      )}
-      {props.showShotActions && createdShot && props.onNavigateToShot && (
-        <ClipContextMenuItem icon={ArrowRight} onClick={() => { props.onNavigateToShot?.(createdShot); props.closeMenu(); }}>
-          Jump to {createdShot.name}
-        </ClipContextMenuItem>
-      )}
-      {props.showShotActions && createdShot && props.onOpenGenerateVideo && (
-        <ClipContextMenuItem icon={Clapperboard} onClick={() => { props.onOpenGenerateVideo?.(createdShot); props.closeMenu(); }}>
-          Generate Video
-        </ClipContextMenuItem>
-      )}
-      {props.showShotActions && !createdShot && props.onGenerateVideoFromSelection && (
-        <ClipContextMenuItem icon={Clapperboard} onClick={() => { props.closeMenu(); void props.onGenerateVideoFromSelection?.(); }} disabled={props.isCreatingShot}>
-          Generate Video
-        </ClipContextMenuItem>
-      )}
-      {props.hasBatchSelection && props.onDeleteClips ? (
-        <ClipContextMenuItem
-          icon={Trash2}
-          onClick={() => { props.onDeleteClips?.(props.selectedClipIds); props.closeMenu(); }}
-          destructive
-          suffix={<span className="ml-auto text-xs tracking-widest opacity-60">Del</span>}
-        >
-          Delete {props.selectedClipIds.length} clips
-        </ClipContextMenuItem>
-      ) : props.onDeleteClip && (
-        <ClipContextMenuItem
-          icon={Trash2}
-          onClick={() => { props.onDeleteClip?.(props.actionId); props.closeMenu(); }}
-          destructive
-          suffix={<span className="ml-auto text-xs tracking-widest opacity-60">Del</span>}
-        >
-          Delete Clip
-        </ClipContextMenuItem>
+          {props.hasBatchSelection && props.onSplitClipsAtPlayhead && (
+            <ClipContextMenuItem icon={Scissors} onClick={() => { props.onSplitClipsAtPlayhead?.(props.selectedClipIds); props.closeMenu(); }}>
+              Split {props.selectedClipIds.length} clips at playhead
+            </ClipContextMenuItem>
+          )}
+          {props.showShotActions && props.hasActionsBeforeShotSection && <div className="my-1 h-px bg-border" />}
+          {props.showShotActions && visibleExistingShots.map((shot) => (
+            <div key={shot.id} className="flex w-full items-center gap-1 rounded-sm px-2 py-1.5 text-sm">
+              <span className="min-w-0 flex-1 truncate">{shot.name}</span>
+              {props.onOpenGenerateVideo && (
+                <button type="button" className="flex h-5 w-5 shrink-0 items-center justify-center rounded hover:bg-accent hover:text-accent-foreground" onClick={() => { props.onOpenGenerateVideo?.(shot); props.closeMenu(); }} title="Generate Video">
+                  <Clapperboard className="h-3.5 w-3.5" />
+                </button>
+              )}
+              {props.onNavigateToShot && (
+                <button type="button" className="flex h-5 w-5 shrink-0 items-center justify-center rounded hover:bg-accent hover:text-accent-foreground" onClick={() => { props.onNavigateToShot?.(shot); props.closeMenu(); }} title="Jump to shot">
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </button>
+              )}
+            </div>
+          ))}
+          {props.showShotActions && visibleExistingShots.length > 0 && hasLowerShotActions && (
+            <div className="my-1 h-px bg-border" />
+          )}
+          {props.showShotActions && !createdShot && props.onCreateShotFromSelection && (
+            <ClipContextMenuItem icon={FolderPlus} onClick={() => void handleCreateShot()} disabled={isCreatingLocal || props.isCreatingShot}>
+              {isCreatingLocal ? 'Creating…' : 'Create Shot'}
+            </ClipContextMenuItem>
+          )}
+          {props.showShotActions && createdShot && props.onNavigateToShot && (
+            <ClipContextMenuItem icon={ArrowRight} onClick={() => { props.onNavigateToShot?.(createdShot); props.closeMenu(); }}>
+              Jump to {createdShot.name}
+            </ClipContextMenuItem>
+          )}
+          {props.showShotActions && createdShot && props.onOpenGenerateVideo && (
+            <ClipContextMenuItem icon={Clapperboard} onClick={() => { props.onOpenGenerateVideo?.(createdShot); props.closeMenu(); }}>
+              Generate Video
+            </ClipContextMenuItem>
+          )}
+          {props.showShotActions && !createdShot && props.onGenerateVideoFromSelection && (
+            <ClipContextMenuItem icon={Clapperboard} onClick={() => { props.closeMenu(); void props.onGenerateVideoFromSelection?.(); }} disabled={props.isCreatingShot}>
+              Generate Video
+            </ClipContextMenuItem>
+          )}
+          {props.hasBatchSelection && props.onDeleteClips ? (
+            <ClipContextMenuItem
+              icon={Trash2}
+              onClick={() => { props.onDeleteClips?.(props.selectedClipIds); props.closeMenu(); }}
+              destructive
+              suffix={<span className="ml-auto text-xs tracking-widest opacity-60">Del</span>}
+            >
+              Delete {props.selectedClipIds.length} clips
+            </ClipContextMenuItem>
+          ) : props.onDeleteClip && (
+            <ClipContextMenuItem
+              icon={Trash2}
+              onClick={() => { props.onDeleteClip?.(props.actionId); props.closeMenu(); }}
+              destructive
+              suffix={<span className="ml-auto text-xs tracking-widest opacity-60">Del</span>}
+            >
+              Delete Clip
+            </ClipContextMenuItem>
+          )}
+        </>
       )}
     </div>,
     document.body,
@@ -210,6 +250,7 @@ function ClipActionComponent({
   clipMeta,
   isSelected,
   isPrimary: _isPrimary = false,
+  isInPinnedShotGroup = false,
   selectedClipIds = [],
   thumbnailSrc,
   onSelect,
@@ -277,12 +318,6 @@ function ClipActionComponent({
     openMenuAt(clientX, clientY);
   };
 
-  const handleContextMenu = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const { clientX, clientY } = e;
-    openMenuWithSelectionRef.current(clientX, clientY);
-  }, []);
   const isEffectLayer = clipMeta.clipType === 'effect-layer';
   const icon = isEffectLayer
     ? <Layers className="h-3 w-3" />
@@ -294,10 +329,23 @@ function ClipActionComponent({
         ? <Film className="h-3 w-3" />
         : <ImageIcon className="h-3 w-3" />;
   const hasBatchSelection = isSelected && selectedClipIds.length > 1;
-  const showShotActions = canCreateShotFromSelection && (
-    typeof onCreateShotFromSelection === 'function' || typeof onGenerateVideoFromSelection === 'function'
+  const hasPinnedShotGroupAssetActions = !hasBatchSelection && Boolean(
+    (isGenerationAsset && onUpdateVariant)
+    || (isVariantStale && onDismissStale),
   );
-  const hasActionsBeforeShotSection = (
+  const handleContextMenu = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (isInPinnedShotGroup && !hasPinnedShotGroupAssetActions) {
+      return;
+    }
+    const { clientX, clientY } = e;
+    openMenuWithSelectionRef.current(clientX, clientY);
+  }, [hasPinnedShotGroupAssetActions, isInPinnedShotGroup]);
+  const showShotActions = Boolean(canCreateShotFromSelection && (
+    typeof onCreateShotFromSelection === 'function' || typeof onGenerateVideoFromSelection === 'function'
+  ));
+  const hasActionsBeforeShotSection = Boolean(
     (!hasBatchSelection && isGenerationAsset && onUpdateVariant)
     || (!hasBatchSelection && isVariantStale && onDismissStale)
     || (!hasBatchSelection && onSplitHere)
@@ -379,6 +427,9 @@ function ClipActionComponent({
             role="button"
             onClick={(e) => {
               e.stopPropagation();
+              if (isInPinnedShotGroup && !hasPinnedShotGroupAssetActions) {
+                return;
+              }
               const { clientX, clientY } = e;
               openMenuWithSelectionRef.current(clientX, clientY);
             }}
@@ -396,6 +447,7 @@ function ClipActionComponent({
           closeMenu={closeMenu}
           hasBatchSelection={hasBatchSelection}
           selectedClipIds={selectedClipIds}
+          isInPinnedShotGroup={isInPinnedShotGroup}
           isGenerationAsset={isGenerationAsset}
           onUpdateVariant={onUpdateVariant}
           isVariantStale={isVariantStale}
@@ -420,10 +472,13 @@ function ClipActionComponent({
 }
 
 function areClipActionPropsEqual(prev: ClipActionProps, next: ClipActionProps): boolean {
+  const prevSelectedClipIds = prev.selectedClipIds ?? [];
+  const nextSelectedClipIds = next.selectedClipIds ?? [];
   if (prev.action !== next.action) return false;
   if (prev.clipMeta !== next.clipMeta) return false;
   if (prev.isSelected !== next.isSelected) return false;
   if (prev.isPrimary !== next.isPrimary) return false;
+  if (prev.isInPinnedShotGroup !== next.isInPinnedShotGroup) return false;
   if (prev.thumbnailSrc !== next.thumbnailSrc) return false;
   if (prev.audioSrc !== next.audioSrc) return false;
   if (prev.clipWidth !== next.clipWidth) return false;
@@ -433,11 +488,11 @@ function areClipActionPropsEqual(prev: ClipActionProps, next: ClipActionProps): 
   if (prev.isGenerationAsset !== next.isGenerationAsset) return false;
   if (prev.canCreateShotFromSelection !== next.canCreateShotFromSelection) return false;
   if (prev.isCreatingShot !== next.isCreatingShot) return false;
-  if (prev.selectedClipIds.length !== next.selectedClipIds.length) return false;
+  if (prevSelectedClipIds.length !== nextSelectedClipIds.length) return false;
   if ((prev.existingShots?.length ?? 0) !== (next.existingShots?.length ?? 0)) return false;
 
-  for (let index = 0; index < prev.selectedClipIds.length; index += 1) {
-    if (prev.selectedClipIds[index] !== next.selectedClipIds[index]) {
+  for (let index = 0; index < prevSelectedClipIds.length; index += 1) {
+    if (prevSelectedClipIds[index] !== nextSelectedClipIds[index]) {
       return false;
     }
   }

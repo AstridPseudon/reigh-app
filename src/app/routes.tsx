@@ -22,6 +22,7 @@ const BlogPostPage = lazy(() => import('@/pages/Blog/BlogPostPage'));
 import NotFoundPage from '@/pages/NotFoundPage';
 import ShotsPage from "@/pages/ShotsPage";
 import { Layout } from './Layout';
+import { DefaultToolRedirect } from './DefaultToolRedirect';
 import { AppEnv } from '@/types/env';
 import { ReighLoading } from '@/shared/components/ReighLoading';
 import { ToolErrorBoundary } from '@/shared/components/ToolErrorBoundary';
@@ -54,12 +55,12 @@ function authRedirectLoader() {
     return null;
   }
 
-  return storedSessionProbe.value ? redirect('/tools/travel-between-images') : null;
+  return storedSessionProbe.value ? redirect('/tools') : null;
 }
 
 const router = createBrowserRouter([
   // HomePage route without Layout (no header) when in web environment
-  // Redirects logged-in users to /tools/travel-between-images
+  // Redirects logged-in users to /tools
   ...(currentEnv === AppEnv.WEB ? [{
     path: '/',
     element: <Suspense fallback={<LazyLoadingFallback />}><HomePage /></Suspense>,
@@ -122,11 +123,11 @@ const router = createBrowserRouter([
       // Layout handles auth - unauthed users get sent to /home
       ...(currentEnv !== AppEnv.WEB ? [{
         path: '/',
-        loader: () => redirect('/tools/travel-between-images'),
+        element: <DefaultToolRedirect />,
       }] : []),
       {
         path: '/tools',
-        loader: () => redirect('/tools/travel-between-images'),
+        element: <DefaultToolRedirect />,
       },
       {
         path: '/tools/image-generation',

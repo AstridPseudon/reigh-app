@@ -85,14 +85,19 @@ const ASSET_COLORS: Record<string, string> = {
   input: '#61afef',
 };
 
-const round = (value: number): number => Math.round(value * 100) / 100;
+const TIMELINE_TIME_PRECISION = 4;
+const TIMELINE_TIME_FACTOR = 10 ** TIMELINE_TIME_PRECISION;
+const roundTimelineTime = (value: number): number => Math.round(value * TIMELINE_TIME_FACTOR) / TIMELINE_TIME_FACTOR;
 
 const effectIdForClip = (clipId: string): string => `effect-${clipId}`;
 const clonePinnedShotGroups = (
   pinnedShotGroups: TimelineConfig['pinnedShotGroups'],
 ): TimelineConfig['pinnedShotGroups'] => pinnedShotGroups?.map((group) => ({
-  ...group,
+  shotId: group.shotId,
+  trackId: group.trackId,
   clipIds: [...group.clipIds],
+  mode: group.mode,
+  videoAssetKey: group.videoAssetKey,
   imageClipSnapshot: group.imageClipSnapshot?.map((snapshot) => ({
     ...snapshot,
     meta: { ...snapshot.meta },
@@ -236,9 +241,12 @@ export const rowsToConfig = (
         continue;
       }
 
+      const roundedStart = roundTimelineTime(action.start);
+      const roundedEnd = roundTimelineTime(action.end);
+
       const nextClip: Partial<TimelineClip> = {
         id: clipId,
-        at: round(action.start),
+        at: roundedStart,
         track: track.id,
         clipType: clipMeta.clipType,
         asset: clipMeta.asset,
@@ -265,15 +273,15 @@ export const rowsToConfig = (
       };
 
       if (typeof clipMeta.hold === 'number') {
-        nextClip.hold = round(action.end - action.start);
+        nextClip.hold = roundTimelineTime(roundedEnd - roundedStart);
         delete nextClip.from;
         delete nextClip.to;
         delete nextClip.speed;
       } else {
         const speed = clipMeta.speed ?? 1;
-        const from = clipMeta.from ?? 0;
-        nextClip.from = round(from);
-        nextClip.to = round(getSourceTime({ from, start: action.start, speed }, action.end));
+        const from = roundTimelineTime(clipMeta.from ?? 0);
+        nextClip.from = from;
+        nextClip.to = roundTimelineTime(getSourceTime({ from, start: roundedStart, speed }, roundedEnd));
       }
 
       const serializedClip: Partial<TimelineClip> = {

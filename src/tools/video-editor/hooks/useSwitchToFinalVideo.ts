@@ -9,7 +9,7 @@ import type {
   TimelineRegisterAsset,
 } from '@/tools/video-editor/hooks/timeline-state-types';
 import type { ShotFinalVideo } from '@/tools/video-editor/hooks/useFinalVideoAvailable';
-import type { AssetRegistryEntry, PinnedShotGroup, PinnedShotImageClipSnapshot } from '@/tools/video-editor/types';
+import type { AssetRegistryEntry, PinnedShotGroup, PinnedShotImageClipSnapshot, TimelineConfig } from '@/tools/video-editor/types';
 import type { TimelineAction } from '@/tools/video-editor/types/timeline-canvas';
 
 interface UseSwitchToFinalVideoArgs {
@@ -64,15 +64,41 @@ function snapshotClipMeta(meta: ClipMeta): PinnedShotImageClipSnapshot['meta'] {
   };
 }
 
-function replacePinnedGroup(
-  pinnedShotGroups: NonNullable<PinnedShotGroup[]>,
-  nextGroup: PinnedShotGroup,
-  fallbackShotId: string,
-  fallbackTrackId: string,
-) {
+function updatePinnedGroup({
+  config,
+  shotId,
+  trackId,
+  clipIds,
+  mode,
+  videoAssetKey,
+  imageClipSnapshot,
+}: {
+  config: Pick<TimelineConfig, 'pinnedShotGroups'>;
+  shotId: string;
+  trackId: string;
+  clipIds: string[];
+  mode: PinnedShotGroup['mode'];
+  videoAssetKey?: string;
+  imageClipSnapshot?: PinnedShotGroup['imageClipSnapshot'];
+}) {
+  const pinnedShotGroups = config.pinnedShotGroups ?? [];
+  const nextGroup: PinnedShotGroup = {
+    shotId,
+    trackId,
+    clipIds: [...clipIds],
+    mode,
+    ...(videoAssetKey ? { videoAssetKey } : {}),
+    ...(imageClipSnapshot ? {
+      imageClipSnapshot: imageClipSnapshot.map((snapshot) => ({
+        ...snapshot,
+        meta: { ...snapshot.meta },
+      })),
+    } : {}),
+  };
+
   const existingIndex = pinnedShotGroups.findIndex((group) => (
-    group.shotId === fallbackShotId
-    && group.trackId === fallbackTrackId
+    group.shotId === shotId
+    && group.trackId === trackId
   ));
 
   if (existingIndex < 0) {
@@ -135,16 +161,23 @@ export function useSwitchToFinalVideo({
     if (!Number.isFinite(startTime) || !Number.isFinite(endTime) || endTime <= startTime) {
       return;
     }
+    const groupStart = startTime;
 
     const imageClipSnapshot = sourceClipIds.flatMap((sourceClipId) => {
       const sourceMeta = current.meta[sourceClipId];
+      const sourceAction = imageActions.find((action) => action.id === sourceClipId);
       if (!sourceMeta) {
+        return [];
+      }
+      if (!sourceAction) {
         return [];
       }
 
       return [{
         clipId: sourceClipId,
         assetKey: sourceMeta.asset,
+        start: sourceAction.start,
+        end: sourceAction.end,
         meta: snapshotClipMeta(sourceMeta),
       }];
     });
@@ -173,8 +206,8 @@ export function useSwitchToFinalVideo({
     };
     const videoAction: TimelineAction = {
       id: videoClipId,
-      start: startTime,
-      end: endTime,
+      start: groupStart,
+      end: groupStart + (endTime - startTime),
       effectId: `effect-${videoClipId}`,
     };
 
@@ -198,19 +231,15 @@ export function useSwitchToFinalVideo({
         : [...filtered.slice(0, orderInsertionIndex), videoClipId, ...filtered.slice(orderInsertionIndex)];
     });
 
-    const nextPinnedShotGroups = replacePinnedGroup(
-      existingPinnedGroups,
-      {
-        shotId,
-        trackId: rowId,
-        clipIds: [videoClipId],
-        mode: 'video',
-        videoAssetKey: assetKey,
-        imageClipSnapshot,
-      },
+    const nextPinnedShotGroups = updatePinnedGroup({
+      config: current.config,
       shotId,
-      rowId,
-    );
+      trackId: rowId,
+      clipIds: [videoClipId],
+      mode: 'video',
+      videoAssetKey: assetKey,
+      imageClipSnapshot,
+    });
 
     applyEdit({
       type: 'rows',
@@ -249,15 +278,11 @@ export function useSwitchToFinalVideo({
     }
 
     const assetKey = registerFinalVideoAsset(finalVideo, patchRegistry, registerAsset);
-    const nextPinnedShotGroups = replacePinnedGroup(
-      existingPinnedGroups,
-      {
-        ...pinnedGroup,
-        videoAssetKey: assetKey,
-      },
-      shotId,
-      rowId,
-    );
+    const nextPinnedShotGroups = existingPinnedGroups.map((group) => (
+      group.shotId === shotId && group.trackId === rowId
+        ? { ...group, videoAssetKey: assetKey }
+        : group
+    ));
 
     applyEdit({
       type: 'rows',
@@ -301,14 +326,31 @@ export function useSwitchToFinalVideo({
       };
       restoredMetaUpdates[snapshot.clipId] = clipMeta;
       const duration = getClipDuration(clipMeta, videoAction);
-      const action: TimelineAction = {
+      const start = typeof snapshot.start === 'number' ? snapshot.start : cursor;
+      const end = typeof snapshot.end === 'number' ? snapshot.end : start + duration;
+      cursor = end;
+
+      return {
         id: snapshot.clipId,
-        start: cursor,
-        end: cursor + duration,
+        start,
+        end,
         effectId: `effect-${snapshot.clipId}`,
       };
-      cursor = action.end;
-      return action;
+    });
+    const orderedRestoredActions = [...restoredActions].sort((left, right) => {
+      if (left.start !== right.start) {
+        return left.start - right.start;
+      }
+      return left.id.localeCompare(right.id);
+    });
+    const restoredClipIds = orderedRestoredActions.map((action) => action.id);
+    const nextPinnedShotGroups = updatePinnedGroup({
+      config: current.config,
+      shotId,
+      trackId: rowId,
+      clipIds: restoredClipIds,
+      mode: 'images',
+      imageClipSnapshot: pinnedGroup.imageClipSnapshot,
     });
 
     const nextRows = current.rows.map((row) => {
@@ -321,7 +363,7 @@ export function useSwitchToFinalVideo({
         ...row,
         actions: [
           ...remainingActions.slice(0, videoActionIndex),
-          ...restoredActions,
+          ...orderedRestoredActions,
           ...remainingActions.slice(videoActionIndex),
         ],
       };
@@ -329,22 +371,10 @@ export function useSwitchToFinalVideo({
     const nextClipOrder = updateClipOrder(current.clipOrder, rowId, (ids) => {
       const filtered = ids.filter((id) => id !== videoClipId);
       const insertionIndex = ids.indexOf(videoClipId);
-      const restoredClipIds = pinnedGroup.imageClipSnapshot?.map((snapshot) => snapshot.clipId) ?? [];
       return insertionIndex < 0
         ? [...filtered, ...restoredClipIds]
         : [...filtered.slice(0, insertionIndex), ...restoredClipIds, ...filtered.slice(insertionIndex)];
     });
-    const nextPinnedShotGroups = replacePinnedGroup(
-      existingPinnedGroups,
-      {
-        ...pinnedGroup,
-        clipIds: pinnedGroup.imageClipSnapshot.map((snapshot) => snapshot.clipId),
-        mode: 'images',
-        videoAssetKey: undefined,
-      },
-      shotId,
-      rowId,
-    );
 
     applyEdit({
       type: 'rows',

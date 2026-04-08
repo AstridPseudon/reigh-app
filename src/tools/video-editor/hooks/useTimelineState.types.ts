@@ -42,6 +42,9 @@ type ExternalDropHook = ReturnType<typeof useExternalDrop>;
 type TimelineSetActiveClipTab = (tab: ClipTab) => void;
 type TimelineSetAssetPanelState = (patch: Partial<EditorPreferences['assetPanel']>) => void;
 
+export type TimelineActionResizeStart = ClipResizeHook['onActionResizeStart'];
+export type TimelineClipEdgeResizeEnd = ClipResizeHook['onClipEdgeResizeEnd'];
+
 export interface TimelineEditorDataContextValue {
   data: TimelineData | null;
   resolvedConfig: TimelineResolvedConfig;
@@ -60,6 +63,7 @@ export interface TimelineEditorDataContextValue {
   isLoading: boolean;
   dataRef: TimelineDataRef;
   pendingOpsRef: TimelinePendingOpsRef;
+  interactionStateRef: import('@/tools/video-editor/lib/interaction-state').InteractionStateRef;
   coordinator: DragCoordinatorHook['coordinator'];
   indicatorRef: DragCoordinatorHook['indicatorRef'];
   editAreaRef: DragCoordinatorHook['editAreaRef'];
@@ -81,8 +85,8 @@ export interface TimelineEditorOpsContextValue {
   registerGenerationAsset: AssetManagementHook['registerGenerationAsset'];
   onCursorDrag: TimelinePlaybackHook['onCursorDrag'];
   onClickTimeArea: TimelinePlaybackHook['onClickTimeArea'];
-  onActionResizeStart: ClipResizeHook['onActionResizeStart'];
-  onActionResizeEnd: ClipResizeHook['onActionResizeEnd'];
+  onActionResizeStart: TimelineActionResizeStart;
+  onClipEdgeResizeEnd: TimelineClipEdgeResizeEnd;
   onOverlayChange: ClipEditingHook['onOverlayChange'];
   onTimelineDragOver: ExternalDropHook['onTimelineDragOver'];
   onTimelineDragLeave: ExternalDropHook['onTimelineDragLeave'];

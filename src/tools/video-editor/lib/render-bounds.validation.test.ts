@@ -27,6 +27,19 @@ const expectOverlayAndRenderToMatch = (fullBounds: { x: number; y: number; width
   expect(renderLayout?.renderBounds).toEqual(overlayBounds);
 };
 
+const roundTripConfig = (config: TimelineConfig): TimelineConfig => {
+  const { rows, meta, clipOrder, tracks } = configToRows(config);
+  return rowsToConfig(
+    rows,
+    meta,
+    config.output,
+    clipOrder,
+    tracks,
+    config.customEffects,
+    config.pinnedShotGroups,
+  );
+};
+
 describe('render bounds validation', () => {
   it('matches overlay and render bounds for the large cropped clip case', () => {
     expectOverlayAndRenderToMatch({ x: 658, y: 0, width: 2256, height: 1692 });
@@ -128,17 +141,7 @@ describe('render bounds validation', () => {
         },
       ],
     };
-
-    const { rows, meta, clipOrder } = configToRows(config);
-    const nextConfig = rowsToConfig(
-      rows,
-      meta,
-      config.output,
-      clipOrder,
-      config.tracks ?? [],
-      config.customEffects,
-      config.pinnedShotGroups,
-    );
+    const nextConfig = roundTripConfig(config);
     const [nextClip] = nextConfig.clips;
 
     expect(nextClip).toMatchObject({
@@ -151,6 +154,69 @@ describe('render bounds validation', () => {
       cropBottom: 0.53,
       opacity: 1,
     });
-    expect(nextConfig.pinnedShotGroups).toEqual(config.pinnedShotGroups);
+    expect(nextConfig.pinnedShotGroups).toEqual([{
+      shotId: 'shot-1',
+      trackId: 'V1',
+      clipIds: ['clip-1'],
+      mode: 'images',
+      videoAssetKey: undefined,
+      imageClipSnapshot: undefined,
+    }]);
+  });
+
+  it('preserves adjacent grouped hold boundaries across repeated editor round-trips', () => {
+    const expectedBoundary = 2.3334;
+    let nextConfig: TimelineConfig = {
+      output: {
+        resolution: '1920x1080',
+        fps: 30,
+        file: 'out.mp4',
+      },
+      tracks: [
+        {
+          id: 'V1',
+          kind: 'visual',
+          label: 'Visual',
+        },
+      ],
+      clips: [
+        {
+          id: 'clip-left',
+          at: 1,
+          track: 'V1',
+          clipType: 'hold',
+          hold: 1.3334,
+        },
+        {
+          id: 'clip-right',
+          at: expectedBoundary,
+          track: 'V1',
+          clipType: 'hold',
+          hold: 0.6666,
+        },
+      ],
+      pinnedShotGroups: [
+        {
+          shotId: 'shot-1',
+          trackId: 'V1',
+          clipIds: ['clip-left', 'clip-right'],
+          mode: 'images',
+        },
+      ],
+    };
+
+    for (let cycle = 0; cycle < 6; cycle += 1) {
+      nextConfig = roundTripConfig(nextConfig);
+      const [leftClip, rightClip] = nextConfig.clips;
+      const serializedBoundary = leftClip.at + (leftClip.hold ?? 0);
+
+      expect(leftClip.at).toBe(1);
+      expect(leftClip.hold).toBeCloseTo(1.3334, 10);
+      expect(serializedBoundary).toBeCloseTo(expectedBoundary, 10);
+      expect(rightClip.at).toBeCloseTo(expectedBoundary, 10);
+      expect(rightClip.at).toBeCloseTo(serializedBoundary, 10);
+      expect(rightClip.hold).toBeCloseTo(0.6666, 10);
+      expect(rightClip.at + (rightClip.hold ?? 0)).toBeCloseTo(3, 10);
+    }
   });
 });

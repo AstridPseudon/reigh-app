@@ -9,12 +9,17 @@ import { useUserUIState } from '@/shared/hooks/useUserUIState';
 import { useDarkMode } from '@/shared/hooks/core/useDarkMode';
 import { useClickRipple } from '@/shared/hooks/interaction/useClickRipple';
 import { PaneBackdrop } from '@/shared/components/panes/PaneBackdrop';
+import { useProjectSelectionContext } from '@/shared/contexts/ProjectContext';
+import { useToolSettings } from '@/shared/hooks/settings/useToolSettings';
+import { VIDEO_EDITOR_PATH, videoEditorPathWithTimeline } from '@/tools/video-editor/lib/video-editor-path';
 import {
-  LayoutGrid
+  Home,
+  LayoutGrid,
 } from 'lucide-react';
 import { AppEnv, type AppEnvValue } from '@/types/env';
-import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
+import { isToolEligible } from '@/shared/lib/tooling/toolEligibility';
 import { toolsUIManifest, type ToolUIDefinition } from '@/shared/lib/tooling/toolManifest';
+import { videoEditorSettings } from '@/tools/video-editor/settings/videoEditorDefaults';
 
 const processTools = toolsUIManifest.filter((tool) => tool.paneSection === 'main');
 const assistantTools = toolsUIManifest.filter((tool) => tool.paneSection === 'assistant');
@@ -24,11 +29,13 @@ type ToolItem = ToolUIDefinition;
 interface ToolCardProps {
   item: ToolItem;
   isCurrentTool: boolean;
+  isDefault: boolean;
   isVisible: boolean;
   onNavigate: (path: string) => void;
+  onSetDefault: () => void;
 }
 
-const ToolCard = memo(({ item, isCurrentTool, isVisible, onNavigate }: ToolCardProps) => {
+const ToolCard = memo(({ item, isCurrentTool, isDefault, isVisible, onNavigate, onSetDefault }: ToolCardProps) => {
   const { triggerRipple, rippleStyles, isRippleActive } = useClickRipple();
   const { darkMode } = useDarkMode();
   const [isWiggling, setIsWiggling] = useState(false);
@@ -44,6 +51,12 @@ const ToolCard = memo(({ item, isCurrentTool, isVisible, onNavigate }: ToolCardP
   }, []);
 
   const isDisabled = !item.path;
+  const defaultButtonLabel = isDefault ? 'Default landing tool' : 'Set as default landing tool';
+  const stopDefaultToolEvent = (
+    event: React.PointerEvent<HTMLButtonElement> | React.MouseEvent<HTMLButtonElement>,
+  ) => {
+    event.stopPropagation();
+  };
 
   const handleClick = (e: React.PointerEvent) => {
     if (isDisabled) {
@@ -106,10 +119,34 @@ const ToolCard = memo(({ item, isCurrentTool, isVisible, onNavigate }: ToolCardP
             </p>
           </div>
           
-          {/* Current indicator */}
-          {isCurrentTool && (
-            <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
-          )}
+          <div className="flex items-center gap-2 flex-shrink-0">
+            <button
+              type="button"
+              className={cn(
+                'rounded-md p-1 transition-colors',
+                isDefault ? 'text-blue-400 hover:text-blue-300' : 'text-zinc-500 hover:text-zinc-300',
+              )}
+              aria-label={defaultButtonLabel}
+              title={defaultButtonLabel}
+              onPointerDown={stopDefaultToolEvent}
+              onPointerUp={(event) => {
+                event.stopPropagation();
+                onSetDefault();
+              }}
+              onClick={stopDefaultToolEvent}
+            >
+              {isDefault ? (
+                <Home className="w-4 h-4 fill-current" />
+              ) : (
+                <Home className="w-4 h-4 text-zinc-500" />
+              )}
+            </button>
+
+            {/* Current indicator */}
+            {isCurrentTool && (
+              <div className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0" />
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -124,8 +161,10 @@ interface ToolsPaneDrawerProps {
   shotsPaneWidth: number;
   isPointerEventsEnabled: boolean;
   currentToolId: string | null;
-  isToolVisible: (tool: { environments: AppEnvValue[] } | null | undefined, toolId?: string) => boolean;
+  defaultToolId: string;
+  isToolVisible: (tool: Pick<ToolUIDefinition, 'id' | 'environments'> | null | undefined) => boolean;
   handleNavigate: (path: string) => void;
+  onSetDefaultTool: (toolId: string) => void;
 }
 
 const ToolsPaneDrawer = ({
@@ -134,8 +173,10 @@ const ToolsPaneDrawer = ({
   shotsPaneWidth,
   isPointerEventsEnabled,
   currentToolId,
+  defaultToolId,
   isToolVisible,
   handleNavigate,
+  onSetDefaultTool,
 }: ToolsPaneDrawerProps) => {
   return (
     <div
@@ -180,8 +221,10 @@ const ToolsPaneDrawer = ({
                     key={tool.id}
                     item={tool}
                     isCurrentTool={currentToolId === tool.id}
-                    isVisible={isToolVisible(tool, tool.id)}
+                    isDefault={defaultToolId === tool.id}
+                    isVisible={isToolVisible(tool)}
                     onNavigate={handleNavigate}
+                    onSetDefault={() => onSetDefaultTool(tool.id)}
                   />
                 ))}
               </div>
@@ -192,13 +235,15 @@ const ToolsPaneDrawer = ({
                 Assistant Tools
               </h3>
               <div className="flex flex-col gap-2">
-                {assistantTools.filter((tool) => isToolVisible(tool, tool.id)).map((tool) => (
+                {assistantTools.filter((tool) => isToolVisible(tool)).map((tool) => (
                   <ToolCard
                     key={tool.id}
                     item={tool}
                     isCurrentTool={currentToolId === tool.id}
-                    isVisible={isToolVisible(tool, tool.id)}
+                    isDefault={defaultToolId === tool.id}
+                    isVisible={isToolVisible(tool)}
                     onNavigate={handleNavigate}
+                    onSetDefault={() => onSetDefaultTool(tool.id)}
                   />
                 ))}
               </div>
@@ -213,6 +258,7 @@ const ToolsPaneDrawer = ({
 const ToolsPaneComponent: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { selectedProjectId } = useProjectSelectionContext();
   const {
     isShotsPaneLocked,
     setIsShotsPaneLocked,
@@ -226,7 +272,12 @@ const ToolsPaneComponent: React.FC = () => {
 
   // Get generation method preferences for character-animate visibility
   const { value: generationMethods, isLoading: isLoadingGenerationMethods } = useUserUIState('generationMethods', { onComputer: true, inCloud: true });
+  const { value: defaultTool, update: updateDefaultTool } = useUserUIState('defaultTool', { toolId: 'travel-between-images' });
   const isCloudGenerationEnabled = generationMethods.inCloud;
+  const { settings } = useToolSettings(videoEditorSettings.id, {
+    projectId: selectedProjectId ?? undefined,
+    enabled: Boolean(selectedProjectId),
+  });
 
   const { isLocked, isOpen, toggleLock, openPane, paneProps, transformClass, handlePaneEnter, handlePaneLeave, showBackdrop, closePane } = useSlidingPane({
     side: 'left',
@@ -262,23 +313,21 @@ const ToolsPaneComponent: React.FC = () => {
   const currentToolId = currentTool?.id || null;
 
   // Tool visibility check
-  const isToolVisible = (tool: { environments: AppEnvValue[] } | null | undefined, toolId?: string) => {
-    if (!tool) return false;
-    
-    // Character Animate: check cloud mode
-    if (toolId === TOOL_IDS.CHARACTER_ANIMATE) {
-      const envCheck = tool.environments.includes(currentEnv) || currentEnv === AppEnv.DEV;
-      return envCheck && (isLoadingGenerationMethods || isCloudGenerationEnabled);
-    }
-    
-    // For DEV mode, always show
-    if (currentEnv === AppEnv.DEV) return true;
-    
-    return tool.environments.includes(currentEnv);
-  };
+  const isToolVisible = (tool: Pick<ToolUIDefinition, 'id' | 'environments'> | null | undefined) =>
+    isToolEligible(tool, {
+      currentEnv,
+      isCloudGenerationEnabled,
+      isLoadingGenerationMethods,
+    });
 
   const handleNavigate = (path: string) => {
     setIsShotsPaneLocked(false); // Close the pane when navigating
+
+    if (path === VIDEO_EDITOR_PATH) {
+      navigate(videoEditorPathWithTimeline(settings?.lastTimelineId));
+      return;
+    }
+
     navigate(path);
   };
 
@@ -307,8 +356,10 @@ const ToolsPaneComponent: React.FC = () => {
         shotsPaneWidth={shotsPaneWidth}
         isPointerEventsEnabled={isPointerEventsEnabled}
         currentToolId={currentToolId}
+        defaultToolId={defaultTool.toolId}
         isToolVisible={isToolVisible}
         handleNavigate={handleNavigate}
+        onSetDefaultTool={(toolId) => updateDefaultTool({ toolId })}
       />
     </>
   );

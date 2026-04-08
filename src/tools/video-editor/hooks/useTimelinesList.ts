@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { getSupabaseClient } from '@/integrations/supabase/client';
+import type { Json } from '@/integrations/supabase/jsonTypes';
 import { createDefaultTimelineConfig } from '@/tools/video-editor/lib/defaults';
 
 export const timelineListQueryKey = (projectId: string | null | undefined) => ['timelines', projectId] as const;
@@ -11,7 +12,8 @@ export function useTimelinesList(projectId: string | null | undefined, userId: s
     queryKey: timelineListQueryKey(projectId),
     enabled: Boolean(projectId),
     queryFn: async () => {
-      const { data, error } = await getSupabaseClient()
+      const supabase = getSupabaseClient() as any;
+      const { data, error } = await supabase
         .from('timelines')
         .select('*')
         .eq('project_id', projectId!)
@@ -29,14 +31,15 @@ export function useTimelinesList(projectId: string | null | undefined, userId: s
 
   const createTimeline = useMutation({
     mutationFn: async (name: string) => {
-      const { data, error } = await getSupabaseClient()
+      const supabase = getSupabaseClient() as any;
+      const { data, error } = await supabase
         .from('timelines')
         .insert({
           name,
           project_id: projectId!,
           user_id: userId!,
-          config: createDefaultTimelineConfig(),
-          asset_registry: { assets: {} },
+          config: createDefaultTimelineConfig() as unknown as Json,
+          asset_registry: { assets: {} } as unknown as Json,
         })
         .select('*')
         .single();
@@ -54,7 +57,8 @@ export function useTimelinesList(projectId: string | null | undefined, userId: s
 
   const renameTimeline = useMutation({
     mutationFn: async ({ timelineId, name }: { timelineId: string; name: string }) => {
-      const { error } = await getSupabaseClient()
+      const supabase = getSupabaseClient() as any;
+      const { error } = await supabase
         .from('timelines')
         .update({ name, updated_at: new Date().toISOString() })
         .eq('id', timelineId);
@@ -70,7 +74,8 @@ export function useTimelinesList(projectId: string | null | undefined, userId: s
 
   const deleteTimeline = useMutation({
     mutationFn: async (timelineId: string) => {
-      const { error } = await getSupabaseClient()
+      const supabase = getSupabaseClient() as any;
+      const { error } = await supabase
         .from('timelines')
         .delete()
         .eq('id', timelineId);

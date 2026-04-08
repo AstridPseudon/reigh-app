@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, type MutableRefObject } from 'react';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type MutableRefObject } from 'react';
+import { isInteractionActive, onInteractionEnd, type InteractionStateRef } from '@/tools/video-editor/lib/interaction-state';
 import { shouldAcceptPolledData } from '@/tools/video-editor/lib/timeline-save-utils';
 import { buildTimelineData, preserveUploadingClips, type TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { DataProvider } from '@/tools/video-editor/data/DataProvider';
@@ -24,6 +25,7 @@ interface TimelinePollGate {
   savedSeq: number;
   pendingOps: number;
   isSaving: boolean;
+  interactionActive?: boolean;
 }
 
 export interface PollRejectionInput extends TimelinePollGate {
@@ -46,9 +48,13 @@ interface UsePollSyncOptions {
   configVersionRef: MutableRefObject<number>;
   lastSavedSignatureRef: MutableRefObject<string>;
   isSavingRef: MutableRefObject<boolean>;
+  interactionStateRef: InteractionStateRef;
 }
 
-export function isTimelinePollIdle({ editSeq, savedSeq, pendingOps, isSaving }: TimelinePollGate): boolean {
+export function isTimelinePollIdle({ editSeq, savedSeq, pendingOps, isSaving, interactionActive }: TimelinePollGate): boolean {
+  if (interactionActive) {
+    return false;
+  }
   return savedSeq >= editSeq && !isSaving && pendingOps === 0;
 }
 
@@ -57,12 +63,17 @@ export function getTimelinePollRejectionReason({
   savedSeq,
   pendingOps,
   isSaving,
+  interactionActive,
   polledConfigVersion,
   currentConfigVersion,
   polledStableSignature,
   lastSavedStableSignature,
 }: PollRejectionInput): string | null {
-  if (!isTimelinePollIdle({ editSeq, savedSeq, pendingOps, isSaving })) {
+  if (!isTimelinePollIdle({ editSeq, savedSeq, pendingOps, isSaving, interactionActive })) {
+    if (interactionActive) {
+      return 'interaction active';
+    }
+
     if (savedSeq < editSeq) {
       return 'unsaved edits';
     }
@@ -110,9 +121,16 @@ export function usePollSync({
   configVersionRef,
   lastSavedSignatureRef,
   isSavingRef,
+  interactionStateRef,
 }: UsePollSyncOptions): void {
   const lastRegistryDataRef = useRef<Awaited<ReturnType<DataProvider['loadAssetRegistry']>> | null>(null);
   const commitDataRef = useRef(commitData);
+  // Newest polled timeline data observed while a drag/resize was in flight.
+  // Replayed via the normal commit path on gesture end.
+  const deferredPolledDataRef = useRef<TimelineData | null>(null);
+  // Bumped on gesture end to re-trigger the poll-acceptance effect against
+  // whatever the latest polled payload is.
+  const [interactionEndTick, setInteractionEndTick] = useState(0);
 
   useLayoutEffect(() => {
     commitDataRef.current = commitData;
@@ -151,6 +169,7 @@ export function usePollSync({
       savedSeq: savedSeqRef.current,
       pendingOps: pendingOpsRef.current,
       isSaving: isSavingRef.current,
+      interactionActive: isInteractionActive(interactionStateRef),
       polledConfigVersion: polledData.configVersion,
       currentConfigVersion: configVersionRef.current,
       polledStableSignature: polledData.stableSignature,
@@ -159,6 +178,7 @@ export function usePollSync({
   }, [
     configVersionRef,
     editSeqRef,
+    interactionStateRef,
     isSavingRef,
     lastSavedSignatureRef,
     pendingOpsRef,
@@ -178,17 +198,31 @@ export function usePollSync({
     });
   }, [configVersionRef, editSeqRef, isSavingRef, logTimelineSync, pendingOpsRef, savedSeqRef]);
 
+  // Wake the poll-acceptance effect once a gesture ends so the most recently
+  // deferred polled payload (if any) is re-evaluated against the freshly idle gate.
   useEffect(() => {
-    const polledData = queries.timelineQuery.data;
+    return onInteractionEnd(interactionStateRef, () => {
+      setInteractionEndTick((tick) => tick + 1);
+    });
+  }, [interactionStateRef]);
+
+  useEffect(() => {
+    const polledData = deferredPolledDataRef.current ?? queries.timelineQuery.data;
     if (!polledData) {
       return;
     }
 
     const preflightRejectionReason = getPollRejectionReason(polledData);
     if (preflightRejectionReason) {
+      if (preflightRejectionReason === 'interaction active') {
+        // Defer the conflict reload until the gesture ends; keep the newest payload.
+        deferredPolledDataRef.current = polledData;
+      }
       logPollRejection('preflight', polledData, preflightRejectionReason);
       return;
     }
+    // We accepted this payload — clear any stale deferred reference.
+    deferredPolledDataRef.current = null;
 
     const syncHandle = window.setTimeout(() => {
       const timeoutRejectionReason = getPollRejectionReason(polledData);
@@ -214,6 +248,7 @@ export function usePollSync({
     configVersionRef,
     dataRef,
     getPollRejectionReason,
+    interactionEndTick,
     logConfigVersionUpdate,
     logPollRejection,
     logTimelineSync,

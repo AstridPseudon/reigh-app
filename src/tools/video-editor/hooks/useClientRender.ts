@@ -47,7 +47,7 @@ const getWebRendererModule = async (): Promise<WebRendererModule> => {
   if (webRendererCache) return webRendererCache;
 
   try {
-    const mod = await import('@remotion/web-renderer') as WebRendererModule;
+    const mod = await import('@remotion/web-renderer') as unknown as WebRendererModule;
     webRendererCache = mod;
     return mod;
   } catch (err) {

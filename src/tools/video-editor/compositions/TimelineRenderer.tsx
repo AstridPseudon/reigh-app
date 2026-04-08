@@ -132,7 +132,7 @@ export const TimelineRenderer: FC<{ config: ResolvedTimelineConfig }> = memo(({ 
 
     for (const track of visualTracks) {
       const trackContent = renderVisualTrack(track, clipsByTrack.regular[track.id] ?? [], fps);
-      let lowerTrackContent = accumulated;
+      let lowerTrackContent: ReactNode = accumulated;
       const effectLayers = sortClipsByAt(clipsByTrack.effectLayers[track.id] ?? []);
 
       if (lowerTrackContent && effectLayers.length > 0) {

@@ -53,6 +53,10 @@ function buildProps(overrides: Partial<ComponentProps<typeof ClipAction>> = {}) 
   };
 }
 
+function getContextMenu() {
+  return document.body.querySelector('div.fixed.z-50');
+}
+
 describe('ClipAction', () => {
   afterEach(() => {
     vi.restoreAllMocks();
@@ -143,6 +147,85 @@ describe('ClipAction', () => {
 
     expect(screen.queryByText('Shot 9')).not.toBeInTheDocument();
     expect(screen.queryByTitle('Jump to shot')).not.toBeInTheDocument();
+  });
+
+  it('does not open a context menu for pinned-shot-group clips when no asset-state actions are available', () => {
+    mockUseWaveformData();
+    const props = buildProps({
+      isInPinnedShotGroup: true,
+      selectedClipIds: ['clip-1'],
+      onSplitHere: vi.fn(),
+      onDeleteClip: vi.fn(),
+      onDeleteClips: vi.fn(),
+    });
+    const { container } = render(<ClipAction {...props} />);
+
+    fireEvent.contextMenu(container.querySelector('[data-clip-id="clip-1"]') as HTMLElement);
+
+    expect(getContextMenu()).toBeNull();
+    expect(screen.queryByText('Split Here')).not.toBeInTheDocument();
+    expect(screen.queryByText('Delete Clip')).not.toBeInTheDocument();
+    expect(screen.queryByText('Create Shot')).not.toBeInTheDocument();
+    expect(screen.queryByText('Generate Video')).not.toBeInTheDocument();
+  });
+
+  it('shows only asset-state actions for pinned-shot-group clips when a stale reminder is available', () => {
+    mockUseWaveformData();
+    const props = buildProps({
+      isInPinnedShotGroup: true,
+      selectedClipIds: ['clip-1'],
+      existingShots: [{ id: 'shot-9', name: 'Shot 9' }],
+      isVariantStale: true,
+      isGenerationAsset: true,
+      onUpdateVariant: vi.fn(),
+      onDismissStale: vi.fn(),
+      onDeleteClip: vi.fn(),
+      onDeleteClips: vi.fn(),
+    });
+    const { container } = render(<ClipAction {...props} />);
+
+    fireEvent.contextMenu(container.querySelector('[data-clip-id="clip-1"]') as HTMLElement);
+
+    expect(getContextMenu()).not.toBeNull();
+    expect(screen.getByText('Update to current variant')).toBeInTheDocument();
+    expect(screen.getByText('Dismiss reminder')).toBeInTheDocument();
+    expect(screen.queryByText('Split Here')).not.toBeInTheDocument();
+    expect(screen.queryByText('Delete Clip')).not.toBeInTheDocument();
+    expect(screen.queryByText('Create Shot')).not.toBeInTheDocument();
+    expect(screen.queryByText('Generate Video')).not.toBeInTheDocument();
+    expect(screen.queryByText('Shot 9')).not.toBeInTheDocument();
+  });
+
+  it('does not render resize handles for pinned-shot-group clips', () => {
+    mockUseWaveformData();
+    const props = buildProps({
+      isInPinnedShotGroup: true,
+      selectedClipIds: ['clip-1'],
+    });
+    const { container } = render(<ClipAction {...props} />);
+
+    expect(container.querySelector('.cursor-ew-resize')).toBeNull();
+  });
+
+  it('does not open the stale badge menu for pinned-shot-group clips when no asset-state actions are available', () => {
+    mockUseWaveformData();
+    const props = buildProps({
+      isInPinnedShotGroup: true,
+      selectedClipIds: ['clip-1'],
+      isVariantStale: true,
+      onDismissStale: undefined,
+      onUpdateVariant: undefined,
+      onDeleteClip: vi.fn(),
+      onDeleteClips: vi.fn(),
+    });
+    const { container } = render(<ClipAction {...props} />);
+
+    fireEvent.click(container.querySelector('[title="Variant outdated"]') as HTMLElement);
+
+    expect(getContextMenu()).toBeNull();
+    expect(screen.queryByText('Dismiss reminder')).not.toBeInTheDocument();
+    expect(screen.queryByText('Update to current variant')).not.toBeInTheDocument();
+    expect(screen.queryByText('Delete Clip')).not.toBeInTheDocument();
   });
 
   it('only renders the waveform overlay when audioSrc is truthy', () => {

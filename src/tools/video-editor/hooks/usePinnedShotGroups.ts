@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import type { Shot } from '@/domains/generation/types';
 import { buildAssetDropEdit, type UseAssetManagementResult } from '@/tools/video-editor/hooks/useAssetManagement';
 import type { TimelineApplyEdit, TimelineDataRef } from '@/tools/video-editor/hooks/timeline-state-types';
+import { orderClipIdsByAt } from '@/tools/video-editor/lib/pinned-group-projection';
 import type { ClipMeta, TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { PinnedShotGroup } from '@/tools/video-editor/types';
 import type { TimelineAction } from '@/tools/video-editor/types/timeline-canvas';
@@ -15,6 +16,7 @@ interface UsePinnedGroupSyncArgs extends UsePinnedShotGroupsArgs {
   data: TimelineData | null;
   shots: Shot[] | undefined;
   registerGenerationAsset: UseAssetManagementResult['registerGenerationAsset'];
+  isInteractionActive?: () => boolean;
   debounceMs?: number;
 }
 
@@ -97,10 +99,18 @@ export function usePinnedShotGroups({
 }: UsePinnedShotGroupsArgs) {
   const pinGroup = useCallback((shotId: string, trackId: string, clipIds: string[]) => {
     const currentGroups = readPinnedShotGroups(dataRef);
+    const current = dataRef.current;
+    if (!current) {
+      return;
+    }
+
     const nextGroup: PinnedShotGroup = {
       shotId,
       trackId,
-      clipIds: [...clipIds],
+      clipIds: orderClipIdsByAt(clipIds, {
+        clips: current.config.clips,
+        rows: current.rows,
+      }),
       mode: 'images',
     };
     const existingIndex = currentGroups.findIndex((group) => group.shotId === shotId && group.trackId === trackId);
@@ -119,24 +129,28 @@ export function usePinnedShotGroups({
   }, [applyEdit, dataRef]);
 
   const updatePinnedGroup = useCallback((shotId: string, trackId: string, updates: PinnedShotGroupUpdates) => {
+    const current = dataRef.current;
     const pinnedShotGroups = readPinnedShotGroups(dataRef).map((group) => {
       if (group.shotId !== shotId || group.trackId !== trackId) {
         return group;
       }
 
       return {
-        ...group,
+        ...clonePinnedShotGroup(group),
         ...updates,
-        clipIds: updates.clipIds ? [...updates.clipIds] : [...group.clipIds],
-        imageClipSnapshot: updates.imageClipSnapshot
-          ? updates.imageClipSnapshot.map((snapshot) => ({
-              ...snapshot,
-              meta: { ...snapshot.meta },
-            }))
-          : group.imageClipSnapshot?.map((snapshot) => ({
-              ...snapshot,
-              meta: { ...snapshot.meta },
-            })),
+        clipIds: updates.clipIds
+          ? orderClipIdsByAt(updates.clipIds, {
+              clips: current?.config.clips,
+              rows: current?.rows,
+            })
+          : [...group.clipIds],
+        imageClipSnapshot: updates.imageClipSnapshot?.map((snapshot) => ({
+          ...snapshot,
+          meta: { ...snapshot.meta },
+        })) ?? group.imageClipSnapshot?.map((snapshot) => ({
+          ...snapshot,
+          meta: { ...snapshot.meta },
+        })),
       };
     });
 
@@ -156,9 +170,11 @@ export function usePinnedGroupSync({
   applyEdit,
   shots,
   registerGenerationAsset,
+  isInteractionActive: _isInteractionActive,
   debounceMs = 300,
 }: UsePinnedGroupSyncArgs) {
   const timeoutRef = useRef<number | null>(null);
+  const isInteractionActive = _isInteractionActive ?? (() => false);
 
   useEffect(() => {
     const current = dataRef.current;
@@ -171,13 +187,29 @@ export function usePinnedGroupSync({
       return;
     }
 
-    if (timeoutRef.current !== null) {
-      window.clearTimeout(timeoutRef.current);
-    }
+    const clearScheduledSync = () => {
+      if (timeoutRef.current !== null) {
+        window.clearTimeout(timeoutRef.current);
+        timeoutRef.current = null;
+      }
+    };
 
-    timeoutRef.current = window.setTimeout(() => {
+    const scheduleSync = () => {
+      clearScheduledSync();
+      timeoutRef.current = window.setTimeout(() => {
+        timeoutRef.current = null;
+        runSync();
+      }, debounceMs);
+    };
+
+    const runSync = () => {
       const latest = dataRef.current;
       if (!latest) {
+        return;
+      }
+
+      if (isInteractionActive()) {
+        scheduleSync();
         return;
       }
 
@@ -197,13 +229,6 @@ export function usePinnedGroupSync({
         const desiredGenerationIds = desiredImages
           .map((image) => image.generation_id)
           .filter((generationId): generationId is string => typeof generationId === 'string' && generationId.length > 0);
-        const currentGenerationIds = group.clipIds
-          .map((clipId) => getClipGenerationId(workingData, clipId))
-          .filter((generationId): generationId is string => typeof generationId === 'string' && generationId.length > 0);
-
-        if (areStringArraysEqual(currentGenerationIds, desiredGenerationIds)) {
-          continue;
-        }
 
         const targetRowIndex = workingData.rows.findIndex((row) => row.id === group.trackId);
         if (targetRowIndex < 0) {
@@ -211,6 +236,15 @@ export function usePinnedGroupSync({
         }
 
         const targetRow = workingData.rows[targetRowIndex];
+        const orderedCurrentClipIds = orderClipIdsByAt(group.clipIds, { rows: [targetRow] });
+        const currentGenerationIds = orderedCurrentClipIds
+          .map((clipId) => getClipGenerationId(workingData, clipId))
+          .filter((generationId): generationId is string => typeof generationId === 'string' && generationId.length > 0);
+
+        if (areStringArraysEqual(currentGenerationIds, desiredGenerationIds)) {
+          continue;
+        }
+
         const groupActions = targetRow.actions.filter((action) => group.clipIds.includes(action.id));
         if (groupActions.length === 0) {
           continue;
@@ -229,7 +263,7 @@ export function usePinnedGroupSync({
         const originalGroupEnd = groupActions[groupActions.length - 1]?.end ?? groupActions[0].end;
         const averageDuration = getAverageDuration(groupActions);
         const groupActionById = new Map(groupActions.map((action) => [action.id, action]));
-        const availableClipIds = [...group.clipIds];
+        const availableClipIds = [...orderedCurrentClipIds];
 
         let groupWorkingData: TimelineData = {
           ...workingData,
@@ -246,7 +280,7 @@ export function usePinnedGroupSync({
 
         const nextGroupClipIds: string[] = [];
         const usedClipIds = new Set<string>();
-        let cursor = groupActions[0].start;
+        let cursor = groupActions[0]?.start ?? 0;
 
         for (const desiredImage of desiredImages) {
           const desiredGenerationId = desiredImage.generation_id;
@@ -285,7 +319,7 @@ export function usePinnedGroupSync({
             generationId: desiredGenerationId,
             variantType: 'image',
             imageUrl: desiredImage.imageUrl ?? desiredImage.location ?? '',
-            thumbUrl: desiredImage.thumbUrl ?? desiredImage.thumbnail_url ?? desiredImage.imageUrl ?? desiredImage.location ?? '',
+            thumbUrl: desiredImage.thumbUrl ?? (desiredImage as { thumbnail_url?: string }).thumbnail_url ?? desiredImage.imageUrl ?? desiredImage.location ?? '',
             metadata: {
               content_type: desiredImage.contentType ?? desiredImage.type ?? 'image/png',
             },
@@ -356,24 +390,26 @@ export function usePinnedGroupSync({
             ...(workingData.clipOrder[group.trackId] ?? []).filter((clipId) => afterActionIds.has(clipId)),
           ],
         };
-
-        const nextGroups = workingPinnedShotGroups.flatMap((candidate) => {
-          if (candidate.shotId !== group.shotId || candidate.trackId !== group.trackId) {
-            return [candidate];
-          }
-          if (nextGroupClipIds.length === 0) {
-            return [];
-          }
-
-          return [{
-            ...candidate,
-            clipIds: nextGroupClipIds,
-          }];
-        });
+        const orderedNextGroupClipIds = orderClipIdsByAt(nextGroupClipIds, { rows: nextRows });
+        const nextGroups = workingPinnedShotGroups
+          .map((candidate) => (
+            candidate.shotId === group.shotId && candidate.trackId === group.trackId
+              ? { ...clonePinnedShotGroup(candidate), clipIds: orderedNextGroupClipIds }
+              : clonePinnedShotGroup(candidate)
+          ))
+          .filter((candidate) => (
+            candidate.shotId !== group.shotId
+            || candidate.trackId !== group.trackId
+            || candidate.clipIds.length > 0
+          ));
 
         workingPinnedShotGroups = nextGroups;
         workingData = {
           ...groupWorkingData,
+          config: {
+            ...groupWorkingData.config,
+            pinnedShotGroups: nextGroups,
+          },
           rows: nextRows,
           clipOrder: nextClipOrder,
         };
@@ -392,13 +428,12 @@ export function usePinnedGroupSync({
         clipOrderOverride: workingData.clipOrder,
         pinnedShotGroupsOverride: workingPinnedShotGroups,
       });
-    }, debounceMs);
+    };
+
+    scheduleSync();
 
     return () => {
-      if (timeoutRef.current !== null) {
-        window.clearTimeout(timeoutRef.current);
-        timeoutRef.current = null;
-      }
+      clearScheduledSync();
     };
-  }, [applyEdit, data, dataRef, debounceMs, registerGenerationAsset, shots]);
+  }, [applyEdit, data, dataRef, debounceMs, isInteractionActive, registerGenerationAsset, shots]);
 }

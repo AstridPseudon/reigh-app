@@ -1,5 +1,6 @@
 import { useCallback, useLayoutEffect, useRef } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
+import { toast } from '@/shared/components/ui/runtime/sonner';
 import {
   detachAudioFromVideo,
   getVisualTracks,
@@ -14,6 +15,7 @@ import {
 import {
   updateClipOrder,
 } from '@/tools/video-editor/lib/coordinate-utils';
+import { findEnclosingPinnedGroup } from '@/tools/video-editor/lib/pinned-group-projection';
 import { resolveOverlaps } from '@/tools/video-editor/lib/resolve-overlaps';
 import {
   getNextClipId,
@@ -26,6 +28,10 @@ import type {
   TimelineSelectedTrack,
 } from '@/tools/video-editor/hooks/timeline-state-types';
 import type { TimelineAction } from '@/tools/video-editor/types/timeline-canvas';
+
+type DeleteClipOptions = {
+  allowPinnedGroupDelete?: boolean;
+};
 
 export interface UseClipEditingArgs {
   dataRef: MutableRefObject<TimelineData | null>;
@@ -42,8 +48,8 @@ export interface UseClipEditingResult {
   onOverlayChange: (actionId: string, patch: Partial<ClipMeta>) => void;
   handleUpdateClips: (clipIds: string[], patch: Partial<ClipMeta>) => void;
   handleUpdateClipsDeep: (clipIds: string[], patchFn: (existing: ClipMeta) => Partial<ClipMeta>) => void;
-  handleDeleteClips: (clipIds: string[]) => void;
-  handleDeleteClip: (clipId: string) => void;
+  handleDeleteClips: (clipIds: string[], options?: DeleteClipOptions) => void;
+  handleDeleteClip: (clipId: string, options?: DeleteClipOptions) => void;
   handleSelectedClipChange: (patch: Partial<ClipMeta> & { at?: number }) => void;
   handleResetClipPosition: () => void;
   handleResetClipsPosition: (clipIds: string[]) => void;
@@ -58,6 +64,8 @@ export interface UseClipEditingResult {
 }
 
 export { DURATION_KEYS, patchAffectsDuration, recalcActionEnd } from '@/tools/video-editor/lib/clip-editing-utils';
+
+const PINNED_GROUP_EDIT_MESSAGE = 'Use Delete shot from the shot menu';
 
 export function useClipEditing({
   dataRef,
@@ -110,6 +118,19 @@ export function useClipEditing({
 
     applyEdit(mutation);
   }, [applyEdit]);
+
+  const isPinnedGroupMember = useCallback((clipId: string): boolean => {
+    const current = dataRef.current;
+    if (!current) {
+      return false;
+    }
+
+    return findEnclosingPinnedGroup(current.config, clipId) !== null;
+  }, [dataRef]);
+
+  const notifyPinnedGroupEditBlocked = useCallback(() => {
+    toast.error(PINNED_GROUP_EDIT_MESSAGE);
+  }, []);
 
   useLayoutEffect(() => {
     currentTimeRef.current = currentTime;
@@ -217,14 +238,20 @@ export function useClipEditing({
     applyRowsEdit(current.rows, metaUpdates);
   }, [applyRowsEdit, dataRef, getValidClipIds]);
 
-  const handleDeleteClips = useCallback((clipIds: string[]) => {
+  const handleDeleteClips = useCallback((clipIds: string[], options?: DeleteClipOptions) => {
     const current = dataRef.current;
     if (!current) {
       return;
     }
 
-    const clipIdSet = new Set(getValidClipIds(clipIds));
+    const validClipIds = getValidClipIds(clipIds);
+    const clipIdSet = new Set(validClipIds);
     if (clipIdSet.size === 0) {
+      return;
+    }
+
+    if (!options?.allowPinnedGroupDelete && validClipIds.some((clipId) => isPinnedGroupMember(clipId))) {
+      notifyPinnedGroupEditBlocked();
       return;
     }
 
@@ -233,10 +260,10 @@ export function useClipEditing({
       actions: row.actions.filter((action) => !clipIdSet.has(action.id)),
     }));
     applyRowsEdit(nextRows, undefined, [...clipIdSet], undefined, { semantic: true });
-  }, [applyRowsEdit, dataRef, getValidClipIds]);
+  }, [applyRowsEdit, dataRef, getValidClipIds, isPinnedGroupMember, notifyPinnedGroupEditBlocked]);
 
-  const handleDeleteClip = useCallback((clipId: string) => {
-    handleDeleteClips([clipId]);
+  const handleDeleteClip = useCallback((clipId: string, options?: DeleteClipOptions) => {
+    handleDeleteClips([clipId], options);
   }, [handleDeleteClips]);
 
   const handleSelectedClipChange = useCallback((patch: Partial<ClipMeta> & { at?: number }) => {
@@ -340,16 +367,26 @@ export function useClipEditing({
       return;
     }
 
+    if (isPinnedGroupMember(selectedClipId)) {
+      notifyPinnedGroupEditBlocked();
+      return;
+    }
+
     const splitResult = splitClipAtPlayhead(resolvedConfig, selectedClipId, currentTimeRef.current);
     if (!splitResult.nextSelectedClipId) {
       return;
     }
 
     applyConfigEdit(splitResult.config, { selectedClipId: splitResult.nextSelectedClipId });
-  }, [applyConfigEdit, resolvedConfig, selectedClipId]);
+  }, [applyConfigEdit, isPinnedGroupMember, notifyPinnedGroupEditBlocked, resolvedConfig, selectedClipId]);
 
   const handleSplitClipAtTime = useCallback((clipId: string, timeSeconds: number) => {
     if (!resolvedConfig) {
+      return;
+    }
+
+    if (isPinnedGroupMember(clipId)) {
+      notifyPinnedGroupEditBlocked();
       return;
     }
 
@@ -359,7 +396,7 @@ export function useClipEditing({
     }
 
     applyConfigEdit(splitResult.config, { selectedClipId: splitResult.nextSelectedClipId });
-  }, [applyConfigEdit, resolvedConfig]);
+  }, [applyConfigEdit, isPinnedGroupMember, notifyPinnedGroupEditBlocked, resolvedConfig]);
 
   const handleSplitClipsAtPlayhead = useCallback((clipIds: string[]) => {
     const current = dataRef.current;
@@ -369,6 +406,11 @@ export function useClipEditing({
 
     const validClipIds = getValidClipIds(clipIds);
     if (validClipIds.length === 0) {
+      return;
+    }
+
+    if (validClipIds.some((clipId) => isPinnedGroupMember(clipId))) {
+      notifyPinnedGroupEditBlocked();
       return;
     }
 
@@ -383,7 +425,7 @@ export function useClipEditing({
     }
 
     applyConfigEdit(nextResolvedConfig);
-  }, [applyConfigEdit, dataRef, getValidClipIds, resolvedConfig]);
+  }, [applyConfigEdit, dataRef, getValidClipIds, isPinnedGroupMember, notifyPinnedGroupEditBlocked, resolvedConfig]);
 
   const handleToggleMuteClips = useCallback((clipIds: string[]) => {
     const current = dataRef.current;

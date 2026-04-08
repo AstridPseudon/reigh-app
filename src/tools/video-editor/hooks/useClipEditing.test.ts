@@ -1,15 +1,42 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { Shot } from '@/domains/generation/types';
+import { toast } from '@/shared/components/ui/runtime/sonner';
 import { patchAffectsDuration, recalcActionEnd } from '@/tools/video-editor/lib/clip-editing-utils';
+import { getConfigSignature } from '@/tools/video-editor/lib/config-utils';
 import { useClipEditing } from '@/tools/video-editor/hooks/useClipEditing';
-import { usePinnedGroupSync } from '@/tools/video-editor/hooks/usePinnedShotGroups';
+import { usePinnedGroupSync, usePinnedShotGroups } from '@/tools/video-editor/hooks/usePinnedShotGroups';
 import { useSwitchToFinalVideo } from '@/tools/video-editor/hooks/useSwitchToFinalVideo';
+import { repairConfig } from '@/tools/video-editor/lib/migrate';
 import { configToRows, type ClipMeta, type TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import { TimelineEventBus } from '@/tools/video-editor/hooks/useTimelineEventBus';
 import { useTimelineCommit } from '@/tools/video-editor/hooks/useTimelineCommit';
 import type { TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 import type { AssetRegistry, TimelineConfig } from '@/tools/video-editor/types';
+
+vi.mock('@/shared/components/ui/runtime/sonner', () => ({
+  toast: {
+    error: vi.fn(),
+  },
+}));
+
+const makePinnedGroup = (args: {
+  shotId: string;
+  trackId: string;
+  clipIds: string[];
+  mode?: 'images' | 'video';
+  videoAssetKey?: string;
+  imageClipSnapshot?: TimelineConfig['pinnedShotGroups'] extends Array<infer Group>
+    ? Group extends { imageClipSnapshot?: infer Snapshot } ? Snapshot : never
+    : never;
+}) => ({
+  shotId: args.shotId,
+  trackId: args.trackId,
+  clipIds: args.clipIds,
+  ...(args.mode ? { mode: args.mode } : {}),
+  ...(args.videoAssetKey ? { videoAssetKey: args.videoAssetKey } : {}),
+  ...(args.imageClipSnapshot ? { imageClipSnapshot: args.imageClipSnapshot } : {}),
+});
 
 const makeTimelineData = (overrides?: {
   rows?: TimelineRow[];
@@ -31,16 +58,17 @@ const makeTimelineData = (overrides?: {
 });
 
 function makeConfigTimelineData(config: TimelineConfig, registry: AssetRegistry): TimelineData {
-  const rowData = configToRows(config);
+  const canonicalConfig = repairConfig(config);
+  const rowData = configToRows(canonicalConfig);
 
   return {
-    config,
+    config: canonicalConfig,
     configVersion: 1,
     registry,
     resolvedConfig: {
-      output: { ...config.output },
-      tracks: (config.tracks ?? []).map((track) => ({ ...track })),
-      clips: config.clips.map((clip) => ({
+      output: { ...canonicalConfig.output },
+      tracks: (canonicalConfig.tracks ?? []).map((track) => ({ ...track })),
+      clips: canonicalConfig.clips.map((clip) => ({
         ...clip,
         assetEntry: clip.asset ? {
           ...registry.assets[clip.asset],
@@ -58,8 +86,8 @@ function makeConfigTimelineData(config: TimelineConfig, registry: AssetRegistry)
     meta: rowData.meta,
     effects: rowData.effects,
     assetMap: Object.fromEntries(Object.entries(registry.assets).map(([assetId, entry]) => [assetId, entry.file])),
-    output: { ...config.output },
-    tracks: (config.tracks ?? []).map((track) => ({ ...track })),
+    output: { ...canonicalConfig.output },
+    tracks: (canonicalConfig.tracks ?? []).map((track) => ({ ...track })),
     clipOrder: rowData.clipOrder,
     signature: 'signature',
     stableSignature: 'stable-signature',
@@ -170,123 +198,270 @@ describe('useClipEditing duration recalculation', () => {
   });
 });
 
-describe('useTimelineCommit pinned shot reconciliation', () => {
-  it('reconciles deleted pinned clips inline without a second commit boundary', () => {
-    const eventBus = new TimelineEventBus();
-    const beforeCommit = vi.fn();
-    const lastSavedSignatureRef = { current: 'stable-signature' };
-    eventBus.on('beforeCommit', beforeCommit);
+describe('useClipEditing pinned group guards', () => {
+  it('allows explicit full-group deletion through the shot menu path', () => {
+    vi.mocked(toast.error).mockClear();
+    const applyEdit = vi.fn();
+    const dataRef = {
+      current: makeConfigTimelineData(
+        {
+          output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
+          tracks: [{ id: 'V1', kind: 'visual', label: 'V1' }],
+          clips: [
+            { id: 'clip-1', at: 0, track: 'V1', clipType: 'hold', asset: 'asset-1', hold: 5 },
+            { id: 'clip-2', at: 5, track: 'V1', clipType: 'hold', asset: 'asset-2', hold: 5 },
+          ],
+          pinnedShotGroups: [makePinnedGroup({
+            shotId: 'shot-1',
+            trackId: 'V1',
+            clipIds: ['clip-1', 'clip-2'],
+            mode: 'images',
+          })],
+        },
+        {
+          assets: {
+            'asset-1': { file: 'one.png', type: 'image/png' },
+            'asset-2': { file: 'two.png', type: 'image/png' },
+          },
+        },
+      ),
+    };
 
+    const { result } = renderHook(() => useClipEditing({
+      dataRef,
+      resolvedConfig: dataRef.current.resolvedConfig,
+      selectedClipId: 'clip-1',
+      selectedTrack: null,
+      currentTime: 0,
+      setSelectedClipId: vi.fn(),
+      setSelectedTrackId: vi.fn(),
+      applyEdit,
+    }));
+
+    act(() => {
+      result.current.handleDeleteClips(['clip-1', 'clip-2'], { allowPinnedGroupDelete: true });
+    });
+
+    expect(applyEdit).toHaveBeenCalledWith({
+      type: 'rows',
+      rows: [{ id: 'V1', actions: [] }],
+      metaDeletes: ['clip-1', 'clip-2'],
+    }, { semantic: true });
+  });
+
+  it('blocks grouped clip deletion outside the shot menu path', () => {
+    vi.mocked(toast.error).mockClear();
+    const applyEdit = vi.fn();
+    const dataRef = {
+      current: makeConfigTimelineData(
+        {
+          output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
+          tracks: [{ id: 'V1', kind: 'visual', label: 'V1' }],
+          clips: [
+            { id: 'clip-1', at: 0, track: 'V1', clipType: 'hold', asset: 'asset-1', hold: 5 },
+          ],
+          pinnedShotGroups: [makePinnedGroup({
+            shotId: 'shot-1',
+            trackId: 'V1',
+            clipIds: ['clip-1'],
+            mode: 'images',
+          })],
+        },
+        {
+          assets: {
+            'asset-1': { file: 'one.png', type: 'image/png' },
+          },
+        },
+      ),
+    };
+
+    const { result } = renderHook(() => useClipEditing({
+      dataRef,
+      resolvedConfig: dataRef.current.resolvedConfig,
+      selectedClipId: 'clip-1',
+      selectedTrack: null,
+      currentTime: 0,
+      setSelectedClipId: vi.fn(),
+      setSelectedTrackId: vi.fn(),
+      applyEdit,
+    }));
+
+    act(() => {
+      result.current.handleDeleteClips(['clip-1']);
+    });
+
+    expect(applyEdit).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith('Use Delete shot from the shot menu');
+  });
+
+  it('blocks grouped single-clip deletion handlers used by keyboard Backspace/Delete paths', () => {
+    vi.mocked(toast.error).mockClear();
+    const applyEdit = vi.fn();
+    const dataRef = {
+      current: makeConfigTimelineData(
+        {
+          output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
+          tracks: [{ id: 'V1', kind: 'visual', label: 'V1' }],
+          clips: [
+            { id: 'clip-1', at: 0, track: 'V1', clipType: 'hold', asset: 'asset-1', hold: 5 },
+          ],
+          pinnedShotGroups: [makePinnedGroup({
+            shotId: 'shot-1',
+            trackId: 'V1',
+            clipIds: ['clip-1'],
+            mode: 'images',
+          })],
+        },
+        {
+          assets: {
+            'asset-1': { file: 'one.png', type: 'image/png' },
+          },
+        },
+      ),
+    };
+
+    const { result } = renderHook(() => useClipEditing({
+      dataRef,
+      resolvedConfig: dataRef.current.resolvedConfig,
+      selectedClipId: 'clip-1',
+      selectedTrack: null,
+      currentTime: 0,
+      setSelectedClipId: vi.fn(),
+      setSelectedTrackId: vi.fn(),
+      applyEdit,
+    }));
+
+    act(() => {
+      result.current.handleDeleteClip('clip-1');
+    });
+
+    expect(applyEdit).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith('Use Delete shot from the shot menu');
+  });
+
+  it('blocks grouped clip split operations used by the keyboard s path', () => {
+    vi.mocked(toast.error).mockClear();
+    const applyEdit = vi.fn();
+    const dataRef = {
+      current: makeConfigTimelineData(
+        {
+          output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
+          tracks: [{ id: 'V1', kind: 'visual', label: 'V1' }],
+          clips: [
+            { id: 'clip-1', at: 0, track: 'V1', clipType: 'hold', asset: 'asset-1', hold: 5 },
+          ],
+          pinnedShotGroups: [makePinnedGroup({
+            shotId: 'shot-1',
+            trackId: 'V1',
+            clipIds: ['clip-1'],
+            mode: 'images',
+          })],
+        },
+        {
+          assets: {
+            'asset-1': { file: 'one.png', type: 'image/png' },
+          },
+        },
+      ),
+    };
+
+    const { result } = renderHook(() => useClipEditing({
+      dataRef,
+      resolvedConfig: dataRef.current.resolvedConfig,
+      selectedClipId: 'clip-1',
+      selectedTrack: null,
+      currentTime: 2,
+      setSelectedClipId: vi.fn(),
+      setSelectedTrackId: vi.fn(),
+      applyEdit,
+    }));
+
+    act(() => {
+      result.current.handleSplitSelectedClip();
+    });
+
+    expect(applyEdit).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith('Use Delete shot from the shot menu');
+  });
+});
+
+describe('useTimelineCommit pinned shot reconciliation', () => {
+  it('applies soft-tag pinned shot group edits without rewriting clip geometry', () => {
+    const eventBus = new TimelineEventBus();
+    const lastSavedSignatureRef = { current: 'stable-signature' };
     const initialData = makeConfigTimelineData(
       {
         output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
         tracks: [{ id: 'V1', kind: 'visual', label: 'V1' }],
         clips: [
-          { id: 'clip-1', at: 0, track: 'V1', clipType: 'hold', asset: 'asset-1', hold: 5 },
-          { id: 'clip-2', at: 5, track: 'V1', clipType: 'hold', asset: 'asset-2', hold: 5 },
+          { id: 'clip-1', at: 0, track: 'V1', clipType: 'hold', hold: 2 },
+          { id: 'clip-2', at: 2, track: 'V1', clipType: 'hold', hold: 2 },
         ],
-        pinnedShotGroups: [{
+      },
+      { assets: {} },
+    );
+
+    const { result } = renderHook(() => useTimelineCommit({ eventBus, lastSavedSignatureRef }));
+
+    act(() => {
+      result.current.commitData(initialData, { save: false, selectedTrackId: 'V1' });
+    });
+
+    act(() => {
+      result.current.applyEdit({
+        type: 'pinnedShotGroups',
+        pinnedShotGroups: [makePinnedGroup({
           shotId: 'shot-1',
           trackId: 'V1',
           clipIds: ['clip-1', 'clip-2'],
           mode: 'images',
-        }],
-      },
-      {
-        assets: {
-          'asset-1': { file: 'one.png', type: 'image/png' },
-          'asset-2': { file: 'two.png', type: 'image/png' },
-        },
-      },
-    );
-
-    const { result } = renderHook(() => useTimelineCommit({ eventBus, lastSavedSignatureRef }));
-
-    act(() => {
-      result.current.commitData(initialData, { save: false, selectedTrackId: 'V1' });
-    });
-
-    act(() => {
-      result.current.applyEdit({
-        type: 'rows',
-        rows: [{ id: 'V1', actions: [{ id: 'clip-1', start: 0, end: 5, effectId: 'effect-clip-1' }] }],
-        metaDeletes: ['clip-2'],
-        clipOrderOverride: { V1: ['clip-1'] },
+        })],
       });
     });
 
-    expect(beforeCommit).toHaveBeenCalledTimes(1);
-    expect(result.current.dataRef.current?.config.pinnedShotGroups).toEqual([{
+    expect(result.current.dataRef.current?.resolvedConfig.clips).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'clip-1', at: 0, track: 'V1', hold: 2 }),
+      expect.objectContaining({ id: 'clip-2', at: 2, track: 'V1', hold: 2 }),
+    ]));
+    expect(result.current.dataRef.current?.signature).toBe(
+      getConfigSignature(result.current.dataRef.current!.resolvedConfig),
+    );
+    const projectedGroup = result.current.dataRef.current?.config.pinnedShotGroups?.[0];
+    expect(projectedGroup).toEqual({
       shotId: 'shot-1',
       trackId: 'V1',
-      clipIds: ['clip-1'],
+      clipIds: ['clip-1', 'clip-2'],
       mode: 'images',
-    }]);
-  });
+    });
 
-  it('restores image snapshots inline when a pinned video clip is deleted', () => {
-    const eventBus = new TimelineEventBus();
-    const lastSavedSignatureRef = { current: 'stable-signature' };
-    const initialData = makeConfigTimelineData(
-      {
-        output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
-        tracks: [{ id: 'V1', kind: 'visual', label: 'V1' }],
-        clips: [
-          { id: 'video-1', at: 10, track: 'V1', clipType: 'media', asset: 'asset-video', from: 0, to: 10, speed: 1 },
-        ],
-        pinnedShotGroups: [{
+    const bypassAttempt = {
+      ...result.current.dataRef.current!.resolvedConfig,
+      clips: result.current.dataRef.current!.resolvedConfig.clips.map((clip) => ({
+        ...clip,
+        at: 0,
+      })),
+    };
+
+    act(() => {
+      result.current.applyEdit({
+        type: 'config',
+        resolvedConfig: bypassAttempt,
+        pinnedShotGroupsOverride: [makePinnedGroup({
           shotId: 'shot-1',
           trackId: 'V1',
-          clipIds: ['video-1'],
-          mode: 'video',
-          videoAssetKey: 'asset-video',
-          imageClipSnapshot: [
-            { clipId: 'img-1', assetKey: 'asset-1', meta: { clipType: 'hold', hold: 3 } },
-            { clipId: 'img-2', assetKey: 'asset-2', meta: { clipType: 'hold', hold: 4 } },
-          ],
-        }],
-      },
-      {
-        assets: {
-          'asset-video': { file: 'video.mp4', type: 'video/mp4', duration: 10 },
-          'asset-1': { file: 'one.png', type: 'image/png' },
-          'asset-2': { file: 'two.png', type: 'image/png' },
-        },
-      },
-    );
-
-    const { result } = renderHook(() => useTimelineCommit({ eventBus, lastSavedSignatureRef }));
-
-    act(() => {
-      result.current.commitData(initialData, { save: false, selectedTrackId: 'V1' });
-    });
-
-    act(() => {
-      result.current.applyEdit({
-        type: 'rows',
-        rows: [{ id: 'V1', actions: [] }],
-        metaDeletes: ['video-1'],
-        clipOrderOverride: { V1: [] },
+          clipIds: ['clip-1', 'clip-2'],
+          mode: 'images',
+        })],
       });
     });
 
-    expect(result.current.dataRef.current?.config.pinnedShotGroups).toEqual([{
-      shotId: 'shot-1',
-      trackId: 'V1',
-      clipIds: ['img-1', 'img-2'],
-      mode: 'images',
-      imageClipSnapshot: [
-        { clipId: 'img-1', assetKey: 'asset-1', meta: { clipType: 'hold', hold: 3 } },
-        { clipId: 'img-2', assetKey: 'asset-2', meta: { clipType: 'hold', hold: 4 } },
-      ],
-    }]);
-    expect(result.current.dataRef.current?.rows).toEqual([{
-      id: 'V1',
-      actions: [
-        { id: 'img-1', start: 10, end: 13, effectId: 'effect-img-1' },
-        { id: 'img-2', start: 13, end: 17, effectId: 'effect-img-2' },
-      ],
-    }]);
+    expect(result.current.dataRef.current?.resolvedConfig.clips).toEqual(expect.arrayContaining([
+      expect.objectContaining({ id: 'clip-1', at: 0, track: 'V1', hold: 2 }),
+      expect.objectContaining({ id: 'clip-2', at: 0, track: 'V1', hold: 2 }),
+    ]));
+    expect(result.current.dataRef.current?.signature).toBe(
+      getConfigSignature(result.current.dataRef.current!.resolvedConfig),
+    );
   });
 });
 
@@ -301,9 +476,15 @@ describe('useSwitchToFinalVideo', () => {
           output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
           tracks: [{ id: 'V1', kind: 'visual', label: 'V1' }],
           clips: [
-            { id: 'clip-1', at: 0, track: 'V1', clipType: 'hold', asset: 'asset-1', hold: 5 },
-            { id: 'clip-2', at: 5, track: 'V1', clipType: 'hold', asset: 'asset-2', hold: 5 },
+            { id: 'clip-1', at: 4, track: 'V1', clipType: 'hold', asset: 'asset-1', hold: 5 },
+            { id: 'clip-2', at: 9, track: 'V1', clipType: 'hold', asset: 'asset-2', hold: 5 },
           ],
+          pinnedShotGroups: [makePinnedGroup({
+            shotId: 'shot-1',
+            trackId: 'V1',
+            clipIds: ['clip-1', 'clip-2'],
+            mode: 'images',
+          })],
         },
         {
           assets: {
@@ -330,17 +511,25 @@ describe('useSwitchToFinalVideo', () => {
     const mutation = applyEdit.mock.calls[0][0];
     expect(mutation.type).toBe('rows');
     expect(mutation.metaDeletes).toEqual(['clip-1', 'clip-2']);
-    expect(mutation.pinnedShotGroupsOverride).toEqual([{
+    expect(mutation.pinnedShotGroupsOverride).toEqual([expect.objectContaining({
       shotId: 'shot-1',
       trackId: 'V1',
       clipIds: ['clip-3'],
       mode: 'video',
       videoAssetKey: expect.any(String),
       imageClipSnapshot: [
-        { clipId: 'clip-1', assetKey: 'asset-1', meta: { clipType: 'hold', hold: 5, opacity: undefined, from: undefined, to: undefined, speed: undefined, volume: undefined, x: undefined, y: undefined, width: undefined, height: undefined, cropTop: undefined, cropBottom: undefined, cropLeft: undefined, cropRight: undefined, text: undefined, entrance: undefined, exit: undefined, continuous: undefined, transition: undefined, effects: undefined } },
-        { clipId: 'clip-2', assetKey: 'asset-2', meta: { clipType: 'hold', hold: 5, opacity: undefined, from: undefined, to: undefined, speed: undefined, volume: undefined, x: undefined, y: undefined, width: undefined, height: undefined, cropTop: undefined, cropBottom: undefined, cropLeft: undefined, cropRight: undefined, text: undefined, entrance: undefined, exit: undefined, continuous: undefined, transition: undefined, effects: undefined } },
+        { clipId: 'clip-1', assetKey: 'asset-1', start: 4, end: 9, meta: { clipType: 'hold', hold: 5, opacity: undefined, from: undefined, to: undefined, speed: undefined, volume: undefined, x: undefined, y: undefined, width: undefined, height: undefined, cropTop: undefined, cropBottom: undefined, cropLeft: undefined, cropRight: undefined, text: undefined, entrance: undefined, exit: undefined, continuous: undefined, transition: undefined, effects: undefined } },
+        { clipId: 'clip-2', assetKey: 'asset-2', start: 9, end: 14, meta: { clipType: 'hold', hold: 5, opacity: undefined, from: undefined, to: undefined, speed: undefined, volume: undefined, x: undefined, y: undefined, width: undefined, height: undefined, cropTop: undefined, cropBottom: undefined, cropLeft: undefined, cropRight: undefined, text: undefined, entrance: undefined, exit: undefined, continuous: undefined, transition: undefined, effects: undefined } },
       ],
-    }]);
+    })]);
+    expect(mutation.rows).toEqual([
+      {
+        id: 'V1',
+        actions: [
+          { id: 'clip-3', start: 4, end: 14, effectId: 'effect-clip-3' },
+        ],
+      },
+    ]);
     expect(patchRegistry).toHaveBeenCalledTimes(1);
   });
 
@@ -352,19 +541,19 @@ describe('useSwitchToFinalVideo', () => {
           output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
           tracks: [{ id: 'V1', kind: 'visual', label: 'V1' }],
           clips: [
-            { id: 'clip-3', at: 0, track: 'V1', clipType: 'media', asset: 'asset-video', from: 0, to: 10, speed: 1 },
+            { id: 'clip-3', at: 7, track: 'V1', clipType: 'media', asset: 'asset-video', from: 0, to: 10, speed: 1 },
           ],
-          pinnedShotGroups: [{
+          pinnedShotGroups: [makePinnedGroup({
             shotId: 'shot-1',
             trackId: 'V1',
             clipIds: ['clip-3'],
             mode: 'video',
             videoAssetKey: 'asset-video',
             imageClipSnapshot: [
-              { clipId: 'clip-1', assetKey: 'asset-1', meta: { clipType: 'hold', hold: 3 } },
-              { clipId: 'clip-2', assetKey: 'asset-2', meta: { clipType: 'hold', hold: 4 } },
+              { clipId: 'clip-1', assetKey: 'asset-1', start: 7, end: 10, meta: { clipType: 'hold', hold: 3 } },
+              { clipId: 'clip-2', assetKey: 'asset-2', start: 10, end: 14, meta: { clipType: 'hold', hold: 4 } },
             ],
-          }],
+          })],
         },
         {
           assets: {
@@ -392,16 +581,63 @@ describe('useSwitchToFinalVideo', () => {
     const mutation = applyEdit.mock.calls[0][0];
     expect(mutation.type).toBe('rows');
     expect(mutation.metaDeletes).toEqual(['clip-3']);
-    expect(mutation.pinnedShotGroupsOverride).toEqual([{
+    expect(mutation.pinnedShotGroupsOverride).toEqual([expect.objectContaining({
       shotId: 'shot-1',
       trackId: 'V1',
       clipIds: ['clip-1', 'clip-2'],
       mode: 'images',
       imageClipSnapshot: [
-        { clipId: 'clip-1', assetKey: 'asset-1', meta: { clipType: 'hold', hold: 3 } },
-        { clipId: 'clip-2', assetKey: 'asset-2', meta: { clipType: 'hold', hold: 4 } },
+        { clipId: 'clip-1', assetKey: 'asset-1', start: 7, end: 10, meta: { clipType: 'hold', hold: 3 } },
+        { clipId: 'clip-2', assetKey: 'asset-2', start: 10, end: 14, meta: { clipType: 'hold', hold: 4 } },
       ],
-    }]);
+    })]);
+    expect(mutation.rows).toEqual([
+      {
+        id: 'V1',
+        actions: [
+          { id: 'clip-1', start: 7, end: 10, effectId: 'effect-clip-1' },
+          { id: 'clip-2', start: 10, end: 14, effectId: 'effect-clip-2' },
+        ],
+      },
+    ]);
+  });
+});
+
+describe('usePinnedShotGroups', () => {
+  it('pins groups from config clip geometry instead of raw selection order', () => {
+    const applyEdit = vi.fn();
+    const dataRef = {
+      current: makeConfigTimelineData(
+        {
+          output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
+          tracks: [{ id: 'V1', kind: 'visual', label: 'V1' }],
+          clips: [
+            { id: 'clip-1', at: 4, track: 'V1', clipType: 'hold', hold: 2 },
+            { id: 'clip-2', at: 1, track: 'V1', clipType: 'hold', hold: 3 },
+          ],
+        },
+        { assets: {} },
+      ),
+    };
+
+    const { result } = renderHook(() => usePinnedShotGroups({
+      dataRef,
+      applyEdit,
+    }));
+
+    act(() => {
+      result.current.pinGroup('shot-1', 'V1', ['clip-1', 'clip-2']);
+    });
+
+    expect(applyEdit).toHaveBeenCalledWith({
+      type: 'pinnedShotGroups',
+      pinnedShotGroups: [makePinnedGroup({
+        shotId: 'shot-1',
+        trackId: 'V1',
+        clipIds: ['clip-2', 'clip-1'],
+        mode: 'images',
+      })],
+    });
   });
 });
 
@@ -417,12 +653,12 @@ describe('usePinnedGroupSync', () => {
           clips: [
             { id: 'clip-1', at: 0, track: 'V1', clipType: 'hold', asset: 'asset-1', hold: 5 },
           ],
-          pinnedShotGroups: [{
+          pinnedShotGroups: [makePinnedGroup({
             shotId: 'shot-1',
             trackId: 'V1',
             clipIds: ['clip-1'],
             mode: 'images',
-          }],
+          })],
         },
         {
           assets: {
@@ -435,8 +671,8 @@ describe('usePinnedGroupSync', () => {
       id: 'shot-1',
       name: 'Shot 1',
       images: [
-        { generation_id: 'gen-1', imageUrl: 'https://example.com/one.png', type: 'image/png' },
-        { generation_id: 'gen-2', imageUrl: 'https://example.com/two.png', type: 'image/png' },
+        { generation_id: 'gen-1', imageUrl: 'https://example.com/one.png', type: 'image/png', timeline_frame: 0 },
+        { generation_id: 'gen-2', imageUrl: 'https://example.com/two.png', type: 'image/png', timeline_frame: 1 },
       ],
     } as Shot];
     const registerGenerationAsset = vi.fn((generation: { generationId: string; imageUrl: string }) => {
@@ -470,12 +706,91 @@ describe('usePinnedGroupSync', () => {
     expect(applyEdit).toHaveBeenCalledTimes(1);
     const mutation = applyEdit.mock.calls[0][0];
     expect(mutation.type).toBe('rows');
-    expect(mutation.pinnedShotGroupsOverride).toEqual([{
+    expect(mutation.pinnedShotGroupsOverride).toEqual([expect.objectContaining({
       shotId: 'shot-1',
       trackId: 'V1',
       clipIds: ['clip-1', 'clip-2'],
       mode: 'images',
-    }]);
+    })]);
+    vi.useRealTimers();
+  });
+
+  it('re-arms pinned-group sync until resize interaction ends', () => {
+    vi.useFakeTimers();
+    const applyEdit = vi.fn();
+    const interactionStateRef = { current: { drag: false, resize: true } };
+    const dataRef = {
+      current: makeConfigTimelineData(
+        {
+          output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
+          tracks: [{ id: 'V1', kind: 'visual', label: 'V1' }],
+          clips: [
+            { id: 'clip-1', at: 0, track: 'V1', clipType: 'hold', asset: 'asset-1', hold: 5 },
+          ],
+          pinnedShotGroups: [makePinnedGroup({
+            shotId: 'shot-1',
+            trackId: 'V1',
+            clipIds: ['clip-1'],
+            mode: 'images',
+          })],
+        },
+        {
+          assets: {
+            'asset-1': { file: 'one.png', type: 'image/png', generationId: 'gen-1' },
+          },
+        },
+      ),
+    };
+
+    renderHook(() => usePinnedGroupSync({
+      data: dataRef.current,
+      dataRef,
+      applyEdit,
+      shots: [{
+        id: 'shot-1',
+        name: 'Shot 1',
+        images: [
+          { generation_id: 'gen-1', imageUrl: 'https://example.com/one.png', type: 'image/png', timeline_frame: 0 },
+          { generation_id: 'gen-2', imageUrl: 'https://example.com/two.png', type: 'image/png', timeline_frame: 1 },
+        ],
+      } as Shot],
+      registerGenerationAsset: vi.fn(() => {
+        dataRef.current.registry.assets['asset-2'] = {
+          file: 'https://example.com/two.png',
+          type: 'image/png',
+          generationId: 'gen-2',
+        };
+        return 'asset-2';
+      }),
+      isInteractionActive: () => interactionStateRef.current.drag || interactionStateRef.current.resize,
+      debounceMs: 25,
+    }));
+
+    act(() => {
+      vi.advanceTimersByTime(25);
+    });
+    expect(applyEdit).not.toHaveBeenCalled();
+
+    interactionStateRef.current.resize = false;
+
+    act(() => {
+      vi.advanceTimersByTime(24);
+    });
+    expect(applyEdit).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+
+    expect(applyEdit).toHaveBeenCalledTimes(1);
+    expect(applyEdit.mock.calls[0][0]).toEqual(expect.objectContaining({
+      type: 'rows',
+      pinnedShotGroupsOverride: [expect.objectContaining({
+        shotId: 'shot-1',
+        trackId: 'V1',
+        clipIds: ['clip-1', 'clip-2'],
+      })],
+    }));
     vi.useRealTimers();
   });
 
@@ -490,12 +805,12 @@ describe('usePinnedGroupSync', () => {
           clips: [
             { id: 'clip-1', at: 0, track: 'V1', clipType: 'media', asset: 'asset-1', from: 0, to: 5, speed: 1 },
           ],
-          pinnedShotGroups: [{
+          pinnedShotGroups: [makePinnedGroup({
             shotId: 'shot-1',
             trackId: 'V1',
             clipIds: ['clip-1'],
             mode: 'video',
-          }],
+          })],
         },
         {
           assets: {
@@ -523,6 +838,88 @@ describe('usePinnedGroupSync', () => {
     });
 
     expect(applyEdit).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
+  it('re-arms sync while interactions are active and rebuilds clipIds from the live row order once it applies', () => {
+    vi.useFakeTimers();
+    const applyEdit = vi.fn();
+    const dataRef = {
+      current: makeConfigTimelineData(
+        {
+          output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
+          tracks: [{ id: 'V1', kind: 'visual', label: 'V1' }],
+          clips: [
+            { id: 'clip-1', at: 7, track: 'V1', clipType: 'hold', asset: 'asset-1', hold: 5 },
+          ],
+          pinnedShotGroups: [makePinnedGroup({
+            shotId: 'shot-1',
+            trackId: 'V1',
+            clipIds: ['clip-1'],
+            mode: 'images',
+          })],
+        },
+        {
+          assets: {
+            'asset-1': { file: 'one.png', type: 'image/png', generationId: 'gen-1' },
+          },
+        },
+      ),
+    };
+    const shots: Shot[] = [{
+      id: 'shot-1',
+      name: 'Shot 1',
+      images: [
+        { generation_id: 'gen-1', imageUrl: 'https://example.com/one.png', type: 'image/png', timeline_frame: 0 },
+        { generation_id: 'gen-2', imageUrl: 'https://example.com/two.png', type: 'image/png', timeline_frame: 1 },
+      ],
+    } as Shot];
+    const registerGenerationAsset = vi.fn((generation: { generationId: string; imageUrl: string }) => {
+      const assetId = 'asset-2';
+      dataRef.current.registry.assets[assetId] = {
+        file: generation.imageUrl,
+        type: 'image/png',
+        generationId: generation.generationId,
+      };
+      return assetId;
+    });
+    let interactionActive = true;
+
+    renderHook(() => usePinnedGroupSync({
+      data: dataRef.current,
+      dataRef,
+      applyEdit,
+      shots,
+      registerGenerationAsset,
+      isInteractionActive: () => interactionActive,
+      debounceMs: 25,
+    }));
+
+    act(() => {
+      vi.advanceTimersByTime(25);
+    });
+
+    expect(applyEdit).not.toHaveBeenCalled();
+
+    interactionActive = false;
+
+    act(() => {
+      vi.advanceTimersByTime(24);
+    });
+
+    expect(applyEdit).not.toHaveBeenCalled();
+
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+
+    expect(applyEdit).toHaveBeenCalledTimes(1);
+    expect(applyEdit.mock.calls[0][0].pinnedShotGroupsOverride).toEqual([expect.objectContaining({
+      shotId: 'shot-1',
+      trackId: 'V1',
+      clipIds: ['clip-1', 'clip-2'],
+      mode: 'images',
+    })]);
     vi.useRealTimers();
   });
 });

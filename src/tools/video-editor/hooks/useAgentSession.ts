@@ -205,7 +205,8 @@ export function useCreateSession(timelineId: string | null | undefined) {
         throw new Error('User not authenticated');
       }
 
-      const { data, error } = await getSupabaseClient()
+      const supabase = getSupabaseClient() as any;
+      const { data, error } = await supabase
         .from(TIMELINE_AGENT_SESSIONS_TABLE as never)
         .insert({
           timeline_id: timelineId,
@@ -359,7 +360,8 @@ export function useCancelSession(sessionId: string | null | undefined) {
         throw new Error('sessionId is required');
       }
 
-      const { error } = await getSupabaseClient()
+      const supabase = getSupabaseClient() as any;
+      const { error } = await supabase
         .from(TIMELINE_AGENT_SESSIONS_TABLE as never)
         .update({
           status: 'cancelled',

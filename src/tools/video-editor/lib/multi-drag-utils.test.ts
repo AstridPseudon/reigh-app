@@ -1,14 +1,13 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import * as editorUtils from '@/tools/video-editor/lib/editor-utils';
 import {
+  applyMultiDragMoves,
   buildAugmentedData,
   buildConfigFromDragResult,
   planMultiDragMoves,
-  updatePinnedShotGroupTrackIdsFromClipTrackMap,
-  updatePinnedShotGroupTrackIds,
 } from '@/tools/video-editor/lib/multi-drag-utils';
 import type { ClipMeta, TimelineData } from '@/tools/video-editor/lib/timeline-data';
-import type { TrackDefinition } from '@/tools/video-editor/types';
+import type { PinnedShotGroup, TrackDefinition } from '@/tools/video-editor/types';
 import type { TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 
 const output = { resolution: '1920x1080', fps: 30, file: 'out.mp4' };
@@ -229,8 +228,8 @@ describe('planMultiDragMoves on augmented data', () => {
     expect(result).toEqual({
       canMove: true,
       moves: [
-        { clipId: 'clip-a', sourceRowId: 'V1', targetRowId: 'V3', newStart: 1 },
-        { clipId: 'clip-b', sourceRowId: 'V2', targetRowId: 'V1', newStart: 4 },
+        { kind: 'clip', clipId: 'clip-a', sourceRowId: 'V1', targetRowId: 'V3', newStart: 1 },
+        { kind: 'clip', clipId: 'clip-b', sourceRowId: 'V2', targetRowId: 'V1', newStart: 4 },
       ],
     });
   });
@@ -267,63 +266,149 @@ describe('planMultiDragMoves on augmented data', () => {
   });
 });
 
-describe('updatePinnedShotGroupTrackIdsFromClipTrackMap', () => {
-  it('updates a pinned group when all of its clips resolve to one new track', () => {
-    expect(updatePinnedShotGroupTrackIdsFromClipTrackMap(
-      [{
-        shotId: 'shot-1',
-        trackId: 'V1',
-        clipIds: ['clip-1', 'clip-2'],
-        mode: 'images',
-      }],
+describe('planMultiDragMoves on grouped drag (soft-tag)', () => {
+  const buildGroupedData = (): TimelineData => {
+    const tracks = [makeTrack('V1'), makeTrack('V2')];
+    const rows: TimelineRow[] = [
       {
-        'clip-1': 'V2',
-        'clip-2': 'V2',
+        id: 'V1',
+        actions: [
+          makeAction('clip-1', 0, 2),
+          makeAction('clip-2', 2, 4),
+        ],
       },
-    )).toEqual([{
-      shotId: 'shot-1',
-      trackId: 'V2',
-      clipIds: ['clip-1', 'clip-2'],
-      mode: 'images',
-    }]);
-  });
-
-  it('keeps the existing track when a group would span multiple tracks', () => {
-    const pinnedShotGroups = [{
+      { id: 'V2', actions: [] },
+    ];
+    const meta: Record<string, ClipMeta> = {
+      'clip-1': { track: 'V1', clipType: 'hold', hold: 2 },
+      'clip-2': { track: 'V1', clipType: 'hold', hold: 2 },
+    };
+    const data = makeTimelineData(tracks, rows, meta);
+    const pinnedGroup: PinnedShotGroup = {
       shotId: 'shot-1',
       trackId: 'V1',
       clipIds: ['clip-1', 'clip-2'],
-      mode: 'images' as const,
-    }];
-
-    expect(updatePinnedShotGroupTrackIdsFromClipTrackMap(
-      pinnedShotGroups,
-      {
-        'clip-1': 'V2',
-        'clip-2': 'V1',
-      },
-    )).toBe(pinnedShotGroups);
-  });
-});
-
-describe('updatePinnedShotGroupTrackIds', () => {
-  it('updates a pinned group when every clip in the group moves together', () => {
-    expect(updatePinnedShotGroupTrackIds(
-      [{
-        shotId: 'shot-1',
-        trackId: 'V1',
-        clipIds: ['clip-1', 'clip-2'],
-        mode: 'images',
-      }],
-      [
-        { clipId: 'clip-1', targetRowId: 'V2' },
-        { clipId: 'clip-2', targetRowId: 'V2' },
-      ],
-    )).toEqual([{
-      shotId: 'shot-1',
-      trackId: 'V2',
-      clipIds: ['clip-1', 'clip-2'],
       mode: 'images',
-    }]);
+    };
+    data.config = {
+      ...data.config,
+      pinnedShotGroups: [pinnedGroup],
+    };
+    return data;
+  };
+
+  it('expands a same-track grouped drag into per-clip moves', () => {
+    const data = buildGroupedData();
+    const result = planMultiDragMoves(
+      data,
+      [
+        { clipId: 'clip-1', rowId: 'V1', deltaTime: 0, initialStart: 0, initialEnd: 2 },
+        { clipId: 'clip-2', rowId: 'V1', deltaTime: 2, initialStart: 2, initialEnd: 4 },
+      ],
+      'clip-1',
+      'V1',
+      'V1',
+      3, // shift the whole group right by 3s
+      {
+        groupKey: { shotId: 'shot-1', trackId: 'V1' },
+        originStart: 0,
+        originTrackId: 'V1',
+      },
+    );
+
+    expect(result.canMove).toBe(true);
+    expect(result.moves).toEqual([
+      { kind: 'clip', clipId: 'clip-1', sourceRowId: 'V1', targetRowId: 'V1', newStart: 3 },
+      { kind: 'clip', clipId: 'clip-2', sourceRowId: 'V1', targetRowId: 'V1', newStart: 5 },
+    ]);
+  });
+
+  it('expands a cross-track grouped drag into per-clip moves on the new row', () => {
+    const data = buildGroupedData();
+    const result = planMultiDragMoves(
+      data,
+      [
+        { clipId: 'clip-1', rowId: 'V1', deltaTime: 0, initialStart: 0, initialEnd: 2 },
+        { clipId: 'clip-2', rowId: 'V1', deltaTime: 2, initialStart: 2, initialEnd: 4 },
+      ],
+      'clip-1',
+      'V2',
+      'V1',
+      0,
+      {
+        groupKey: { shotId: 'shot-1', trackId: 'V1' },
+        originStart: 0,
+        originTrackId: 'V1',
+      },
+    );
+
+    expect(result.canMove).toBe(true);
+    expect(result.moves).toEqual([
+      { kind: 'clip', clipId: 'clip-1', sourceRowId: 'V1', targetRowId: 'V2', newStart: 0 },
+      { kind: 'clip', clipId: 'clip-2', sourceRowId: 'V1', targetRowId: 'V2', newStart: 2 },
+    ]);
+  });
+
+  it('rejects grouped drag onto an incompatible track kind', () => {
+    const data = buildGroupedData();
+    data.tracks = [makeTrack('V1'), makeTrack('A1', 'audio')];
+    const result = planMultiDragMoves(
+      data,
+      [
+        { clipId: 'clip-1', rowId: 'V1', deltaTime: 0, initialStart: 0, initialEnd: 2 },
+        { clipId: 'clip-2', rowId: 'V1', deltaTime: 2, initialStart: 2, initialEnd: 4 },
+      ],
+      'clip-1',
+      'A1',
+      'V1',
+      0,
+      {
+        groupKey: { shotId: 'shot-1', trackId: 'V1' },
+        originStart: 0,
+        originTrackId: 'V1',
+      },
+    );
+    expect(result.canMove).toBe(false);
   });
 });
+
+describe('applyMultiDragMoves', () => {
+  it('applies per-clip moves from an expanded grouped drag without calling any group helper', () => {
+    const tracks = [makeTrack('V1'), makeTrack('V2')];
+    const rows: TimelineRow[] = [
+      {
+        id: 'V1',
+        actions: [
+          makeAction('clip-1', 0, 2),
+          makeAction('clip-2', 2, 4),
+        ],
+      },
+      { id: 'V2', actions: [] },
+    ];
+    const meta: Record<string, ClipMeta> = {
+      'clip-1': { track: 'V1', clipType: 'hold', hold: 2 },
+      'clip-2': { track: 'V1', clipType: 'hold', hold: 2 },
+    };
+    const data = makeTimelineData(tracks, rows, meta);
+
+    const result = applyMultiDragMoves(data, [
+      { kind: 'clip', clipId: 'clip-1', sourceRowId: 'V1', targetRowId: 'V2', newStart: 0 },
+      { kind: 'clip', clipId: 'clip-2', sourceRowId: 'V1', targetRowId: 'V2', newStart: 2 },
+    ]);
+
+    const v2 = result.nextRows.find((r) => r.id === 'V2');
+    expect(v2?.actions.map((a) => a.id).sort()).toEqual(['clip-1', 'clip-2']);
+    const v1 = result.nextRows.find((r) => r.id === 'V1');
+    expect(v1?.actions.map((a) => a.id)).toEqual([]);
+    // No nextPinnedShotGroups / nextConfig on the return anymore — cohesion is
+    // rebuilt at the commit site via pinnedShotGroupsOverride.
+    expect(result).not.toHaveProperty('nextPinnedShotGroups');
+    expect(result).not.toHaveProperty('nextConfig');
+    // Each moved clip gets a meta track patch.
+    expect(result.metaUpdates['clip-1']).toEqual({ track: 'V2' });
+    expect(result.metaUpdates['clip-2']).toEqual({ track: 'V2' });
+  });
+});
+
+// Suppress unused-import warning for vi in the top-level helpers.
+void vi;

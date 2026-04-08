@@ -8,7 +8,7 @@ import { useTimelinePlaybackContext } from '@/tools/video-editor/contexts/Timeli
 import { useRenderDiagnostic } from '@/tools/video-editor/hooks/usePerfDiagnostics';
 
 interface PreviewPanelProps {
-  previewSlotRef: RefObject<HTMLDivElement | null>;
+  previewSlotRef: RefObject<HTMLDivElement>;
 }
 
 function PreviewPanelComponent({ previewSlotRef }: PreviewPanelProps) {

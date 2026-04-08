@@ -12,10 +12,14 @@ import {
   buildConfigFromDragResult,
   computeSecondaryGhosts,
   planMultiDragMoves,
-  updatePinnedShotGroupTrackIdsFromClipTrackMap,
 } from '@/tools/video-editor/lib/multi-drag-utils';
 import { createAutoScroller } from '@/tools/video-editor/lib/auto-scroll';
+import { notifyInteractionEndIfIdle } from '@/tools/video-editor/lib/interaction-state';
+import { findEnclosingPinnedGroup, orderClipIdsByAt } from '@/tools/video-editor/lib/pinned-group-projection';
 import { snapDrag } from '@/tools/video-editor/lib/snap-edges';
+import { useTimelineScale } from '@/tools/video-editor/hooks/useTimelineScale';
+import type { PinnedShotGroup } from '@/tools/video-editor/types';
+import type { TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 
 const DRAG_THRESHOLD_PX = 4;
 /** Snap threshold in pixels — converted to seconds based on current zoom. */
@@ -35,6 +39,7 @@ interface UseCrossTrackDragOptions {
   timelineWrapperRef: RefObject<HTMLDivElement | null>;
   dataRef: MutableRefObject<TimelineData | null>;
   pendingOpsRef: MutableRefObject<number>;
+  interactionStateRef?: import('@/tools/video-editor/lib/interaction-state').InteractionStateRef;
   moveClipToRow: (clipId: string, targetRowId: string, newStartTime?: number, transactionId?: string) => void;
   createTrackAndMoveClip: (clipId: string, kind: TrackKind, newStartTime?: number, insertAtTop?: boolean) => void;
   selectClip: (clipId: string, opts?: SelectClipOptions) => void;
@@ -72,7 +77,13 @@ export interface DragSession {
   countBadgeEl: HTMLSpanElement | null;
   hasMoved: boolean;
   transactionId: string;
-  deferredPinnedGroupClipIds: string[] | null;
+  groupDragEntry: GroupDragEntry | null;
+}
+
+interface GroupDragEntry {
+  groupKey: { shotId: string; trackId: string };
+  originStart: number;
+  originTrackId: string;
 }
 
 export interface UseClipDragResult {
@@ -83,6 +94,7 @@ export const useClipDrag = ({
   timelineWrapperRef,
   dataRef,
   pendingOpsRef,
+  interactionStateRef,
   moveClipToRow,
   createTrackAndMoveClip,
   selectClip,
@@ -99,15 +111,16 @@ export const useClipDrag = ({
   const actionDragStateRef = useRef<ActionDragState | null>(null);
   const crossTrackActiveRef = useRef(false);
   const autoScrollerRef = useRef<ReturnType<typeof createAutoScroller> | null>(null);
+  const { pixelsPerSecondRef } = useTimelineScale({
+    scale,
+    scaleWidth,
+    startLeft: _startLeft,
+  });
 
   // Keep volatile values in refs so the effect doesn't re-run mid-drag
   // when zoom/scale changes.
   const coordinatorRef = useRef(coordinator);
   coordinatorRef.current = coordinator;
-  const scaleRef = useRef(scale);
-  scaleRef.current = scale;
-  const scaleWidthRef = useRef(scaleWidth);
-  scaleWidthRef.current = scaleWidth;
   const moveClipToRowRef = useRef(moveClipToRow);
   moveClipToRowRef.current = moveClipToRow;
   const createTrackAndMoveClipRef = useRef(createTrackAndMoveClip);
@@ -150,6 +163,10 @@ export const useClipDrag = ({
       }
 
       pendingOpsRefRef.current.current -= 1;
+      if (interactionStateRef) {
+        interactionStateRef.current.drag = false;
+        notifyInteractionEndIfIdle(interactionStateRef);
+      }
       dragSessionRef.current = null;
       actionDragStateRef.current = null;
       if (deferDeactivate) {
@@ -212,33 +229,41 @@ export const useClipDrag = ({
       });
     };
 
-    const expandPinnedGroupDrag = (session: DragSession) => {
-      if (!session.deferredPinnedGroupClipIds?.length) {
-        return;
-      }
-
-      const current = dataRef.current;
-      const anchorInitialStart = actionDragStateRef.current?.initialStart;
-      if (!current || anchorInitialStart === undefined) {
-        session.deferredPinnedGroupClipIds = null;
-        return;
-      }
-
-      const expandedClipIds = [
-        ...session.draggedClipIds,
-        ...session.deferredPinnedGroupClipIds.filter((clipId) => !session.draggedClipIds.includes(clipId)),
-      ];
-      const expandedClipOffsets = buildClipOffsets(current, expandedClipIds, anchorInitialStart);
-      const validExpandedClipIds = expandedClipOffsets.map(({ clipId }) => clipId);
-
-      session.draggedClipIds = validExpandedClipIds;
-      session.clipOffsets = expandedClipOffsets;
-      session.deferredPinnedGroupClipIds = null;
-    };
-
     const getAnchorTimeDelta = (session: DragSession, snappedStart: number): number => {
+      if (session.groupDragEntry) {
+        return snappedStart - session.groupDragEntry.originStart;
+      }
+
       const anchorClip = session.clipOffsets.find((c) => c.clipId === session.clipId);
       return anchorClip ? snappedStart - anchorClip.initialStart : 0;
+    };
+
+    /**
+     * After a grouped drag commit, rebuild the soft-tag pinned group list so:
+     *  - the dragged group's trackId reflects the new row (cross-track drag)
+     *  - the dragged group's clipIds are re-derived from the post-commit live
+     *    `at` order (may differ from the pre-drag order if resolveOverlaps or
+     *    snap-edges shuffled members)
+     * Non-dragged groups pass through unchanged.
+     */
+    const rebuildGroupAfterDrag = (
+      currentGroups: PinnedShotGroup[] | undefined,
+      draggedGroupKey: { shotId: string; trackId: string },
+      newTrackId: string,
+      nextRows: TimelineRow[],
+    ): PinnedShotGroup[] | undefined => {
+      if (!currentGroups || currentGroups.length === 0) return undefined;
+      return currentGroups.map((group) => {
+        if (group.shotId !== draggedGroupKey.shotId || group.trackId !== draggedGroupKey.trackId) {
+          return group;
+        }
+        const orderedClipIds = orderClipIdsByAt(group.clipIds, { rows: nextRows });
+        return {
+          ...group,
+          trackId: newTrackId,
+          clipIds: orderedClipIds,
+        };
+      });
     };
 
     // ── Pointer handlers ─────────────────────────────────────────────
@@ -262,29 +287,61 @@ export const useClipDrag = ({
       const sourceRow = current?.rows.find((row) => row.id === rowId);
       const sourceAction = sourceRow?.actions.find((action) => action.id === clipId);
       if (!current || !sourceTrack || !sourceAction) return;
+      const enclosingGroup = findEnclosingPinnedGroup(current.config, clipId);
 
       clearSession(dragSessionRef.current);
       const editArea = wrapper.querySelector<HTMLElement>('.timeline-canvas-edit-area');
 
       const clipRect = clipTarget.getBoundingClientRect();
-      const initialStart = sourceAction.start;
-      const clipDuration = sourceAction.end - sourceAction.start;
+      const pixelsPerSecond = pixelsPerSecondRef.current;
+
+      // Soft-tag grouped drag: compute the group's live outer bounds from the
+      // member clips' current actions. Fall back to the clicked clip's bounds
+      // if the group has no resolvable members.
+      let groupLiveStart = sourceAction.start;
+      let groupLiveEnd = sourceAction.end;
+      if (enclosingGroup) {
+        const memberActions: { start: number; end: number }[] = [];
+        for (const row of current.rows) {
+          for (const action of row.actions) {
+            if (enclosingGroup.group.clipIds.includes(action.id)) {
+              memberActions.push({ start: action.start, end: action.end });
+            }
+          }
+        }
+        if (memberActions.length > 0) {
+          groupLiveStart = Math.min(...memberActions.map((a) => a.start));
+          groupLiveEnd = Math.max(...memberActions.map((a) => a.end));
+        }
+      }
+      const initialStart = enclosingGroup ? groupLiveStart : sourceAction.start;
+      const clipDuration = enclosingGroup
+        ? (groupLiveEnd - groupLiveStart)
+        : (sourceAction.end - sourceAction.start);
       const selectedClipIds = selectedClipIdsRefRef.current.current;
-      const draggedClipIds = selectedClipIds.has(clipId)
-        ? [clipId, ...[...selectedClipIds].filter((selectedClipId) => selectedClipId !== clipId)]
-        : [clipId];
+      const draggedClipIds = enclosingGroup
+        ? [
+            ...enclosingGroup.group.clipIds,
+            ...[...selectedClipIds].filter((selectedClipId) => !enclosingGroup.group.clipIds.includes(selectedClipId)),
+          ]
+        : selectedClipIds.has(clipId)
+          ? [clipId, ...[...selectedClipIds].filter((selectedClipId) => selectedClipId !== clipId)]
+          : [clipId];
       const clipOffsets = buildClipOffsets(current, draggedClipIds, initialStart);
       const validDraggedClipIds = clipOffsets.map(({ clipId: draggedClipId }) => draggedClipId);
-      const deferredPinnedGroupClipIds = current.config.pinnedShotGroups
-        ?.find((group) => group.clipIds.includes(clipId))
-        ?.clipIds.filter((groupClipId) => !validDraggedClipIds.includes(groupClipId))
-        ?? null;
+      const groupDragEntry = enclosingGroup
+        ? {
+            groupKey: enclosingGroup.groupKey,
+            originStart: groupLiveStart,
+            originTrackId: enclosingGroup.group.trackId,
+          }
+        : null;
       actionDragStateRef.current = {
         rowId,
         initialStart,
-        initialEnd: sourceAction.end,
+        initialEnd: initialStart + clipDuration,
         latestStart: initialStart,
-        latestEnd: sourceAction.end,
+        latestEnd: initialStart + clipDuration,
       };
 
       const updateDragState = (session: DragSession, clientX: number, clientY: number) => {
@@ -296,7 +353,7 @@ export const useClipDrag = ({
           clipOffsetX: session.pointerOffsetX,
         });
 
-        const pixelsPerSecond = scaleWidthRef.current / scaleRef.current;
+        const pixelsPerSecond = pixelsPerSecondRef.current;
         const snapThresholdS = SNAP_THRESHOLD_PX / pixelsPerSecond;
         const targetRowId = nextPosition.trackId ?? session.sourceRowId;
         const targetRow = dataRef.current?.rows.find((row) => row.id === targetRowId);
@@ -377,7 +434,9 @@ export const useClipDrag = ({
         // and the timeline library can't start its own competing drag.
         if (!session.hasMoved) {
           session.hasMoved = true;
-          expandPinnedGroupDrag(session);
+          if (interactionStateRef) {
+            interactionStateRef.current.drag = true;
+          }
           try { session.clipEl.setPointerCapture(session.pointerId); } catch { /* ok */ }
           ensureCountBadge(session);
         }
@@ -397,8 +456,9 @@ export const useClipDrag = ({
         // the raw coordinator time, which doesn't account for edge snapping.
         const nextStart = actionDragStateRef.current!.latestStart;
 
-        // Cross-track single-clip drag: use existing moveClipToRow / createTrackAndMoveClip
-        if (crossTrackActiveRef.current && session.draggedClipIds.length === 1) {
+        const isGroupDrag = session.groupDragEntry !== null;
+
+        if (!isGroupDrag && crossTrackActiveRef.current && session.draggedClipIds.length === 1) {
           upEvent.preventDefault();
           if (dropPosition?.isNewTrack) {
             createTrackAndMoveClipRef.current(session.clipId, session.sourceKind, nextStart, dropPosition.isNewTrackTop);
@@ -413,14 +473,14 @@ export const useClipDrag = ({
         }
 
         // Multi-clip drag (same-track or cross-track) — unified path
-        if (session.hasMoved && session.draggedClipIds.length > 1) {
+        if (session.hasMoved && (session.draggedClipIds.length > 1 || isGroupDrag)) {
           const current = dataRef.current;
           if (current) {
             const timeDelta = getAnchorTimeDelta(session, nextStart);
             let handledNewTrackMove = false;
 
             if (crossTrackActiveRef.current && dropPosition?.isNewTrack) {
-              const augmentedData = buildAugmentedData(current, session.sourceKind, dropPosition.isNewTrackTop);
+              const augmentedData = buildAugmentedData(current, session.sourceKind, dropPosition.isNewTrackTop ?? false);
               if (augmentedData) {
                 const { augmented, newTrackId } = augmentedData;
                 const { canMove, moves } = planMultiDragMoves(
@@ -430,27 +490,31 @@ export const useClipDrag = ({
                   newTrackId,
                   session.sourceRowId,
                   timeDelta,
+                  session.groupDragEntry ?? undefined,
                 );
 
                 if (canMove && moves.length > 0) {
                   const { nextRows, metaUpdates } = applyMultiDragMoves(augmented, moves);
+                  // Soft-tag grouped new-track drag: single `type: 'config'`
+                  // commit carrying the new track AND the soft-tag override.
                   const finalConfig = buildConfigFromDragResult(
                     augmented.resolvedConfig,
                     augmented.meta,
                     nextRows,
                     metaUpdates,
                   );
-                  const clipTrackMap = Object.fromEntries(
-                    finalConfig.clips.map((clip) => [clip.id, clip.track]),
-                  );
-                  const nextPinnedShotGroups = updatePinnedShotGroupTrackIdsFromClipTrackMap(
-                    current.config.pinnedShotGroups,
-                    clipTrackMap,
-                  );
+                  const pinnedShotGroupsOverride = session.groupDragEntry
+                    ? rebuildGroupAfterDrag(
+                        current.config.pinnedShotGroups,
+                        session.groupDragEntry.groupKey,
+                        newTrackId,
+                        nextRows,
+                      )
+                    : undefined;
                   applyEditRef.current({
                     type: 'config',
                     resolvedConfig: finalConfig,
-                    pinnedShotGroupsOverride: nextPinnedShotGroups,
+                    pinnedShotGroupsOverride,
                   }, {
                     transactionId: session.transactionId,
                   });
@@ -472,24 +536,31 @@ export const useClipDrag = ({
                 anchorTargetRowId,
                 session.sourceRowId,
                 timeDelta,
+                session.groupDragEntry ?? undefined,
               );
 
               if (canMove && moves.length > 0) {
                 const { nextRows, metaUpdates, nextClipOrder } = applyMultiDragMoves(current, moves);
-                const clipTrackMap = {
-                  ...Object.fromEntries(Object.entries(current.meta).map(([clipId, clipMeta]) => [clipId, clipMeta.track])),
-                  ...Object.fromEntries(Object.entries(metaUpdates).map(([clipId, patch]) => [clipId, patch.track])),
-                };
-                const nextPinnedShotGroups = updatePinnedShotGroupTrackIdsFromClipTrackMap(
-                  current.config.pinnedShotGroups,
-                  clipTrackMap,
-                );
+                // Soft-tag grouped drag (same-track or existing cross-track):
+                // single `type: 'rows'` commit carrying translated clip moves
+                // AND a soft-tag override re-derived from post-resolveOverlaps
+                // `at` order. Do NOT hard-code 'no override needed' — the order
+                // may change even when members stayed on the same row, and the
+                // trackId must update for existing-track cross-track moves.
+                const pinnedShotGroupsOverride = session.groupDragEntry
+                  ? rebuildGroupAfterDrag(
+                      current.config.pinnedShotGroups,
+                      session.groupDragEntry.groupKey,
+                      anchorTargetRowId,
+                      nextRows,
+                    )
+                  : undefined;
                 applyEditRef.current({
                   type: 'rows',
                   rows: nextRows,
                   metaUpdates,
                   clipOrderOverride: nextClipOrder,
-                  pinnedShotGroupsOverride: nextPinnedShotGroups,
+                  pinnedShotGroupsOverride,
                 }, {
                   transactionId: session.transactionId,
                 });
@@ -532,7 +603,9 @@ export const useClipDrag = ({
         wasSelectedOnPointerDown: selectedClipIdsRefRef.current.current.has(clipId),
         startClientX: event.clientX,
         startClientY: event.clientY,
-        pointerOffsetX: event.clientX - clipRect.left,
+        pointerOffsetX: groupDragEntry
+          ? event.clientX - (clipRect.left - ((sourceAction.start - initialStart) * pixelsPerSecond))
+          : event.clientX - clipRect.left,
         pointerOffsetY: event.clientY - clipRect.top,
         clipDuration,
         clipEl: clipTarget,
@@ -543,7 +616,7 @@ export const useClipDrag = ({
         countBadgeEl: null,
         hasMoved: false,
         transactionId: crypto.randomUUID(),
-        deferredPinnedGroupClipIds,
+        groupDragEntry,
       };
 
       window.addEventListener('pointermove', handlePointerMove);

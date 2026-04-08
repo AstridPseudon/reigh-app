@@ -3,10 +3,17 @@ import type {
   ClipContinuous,
   ClipEntrance,
   ClipExit,
+  PinnedShotGroup,
   TimelineClip,
   TimelineConfig,
   TrackDefinition,
 } from '@/tools/video-editor/types';
+
+type LegacyPinnedGroupChild = { clipId: string; offset?: number; duration?: number };
+type LegacyPinnedShotGroup = PinnedShotGroup & {
+  start?: number;
+  children?: LegacyPinnedGroupChild[];
+};
 
 const DEFAULT_VIDEO_SCALE = 0.95;
 
@@ -160,15 +167,22 @@ const ensureBackgroundClip = (config: TimelineConfig): TimelineClip[] => {
   ];
 };
 
+const clonePinnedShotImageSnapshots = (
+  imageClipSnapshot: PinnedShotGroup['imageClipSnapshot'],
+): PinnedShotGroup['imageClipSnapshot'] => imageClipSnapshot?.map((snapshot) => ({
+  ...snapshot,
+  meta: { ...snapshot.meta },
+}));
+
 const clonePinnedShotGroups = (
   pinnedShotGroups: TimelineConfig['pinnedShotGroups'],
 ): TimelineConfig['pinnedShotGroups'] => pinnedShotGroups?.map((group) => ({
-  ...group,
+  shotId: group.shotId,
+  trackId: group.trackId,
   clipIds: [...group.clipIds],
-  imageClipSnapshot: group.imageClipSnapshot?.map((snapshot) => ({
-    ...snapshot,
-    meta: { ...snapshot.meta },
-  })),
+  mode: group.mode,
+  videoAssetKey: group.videoAssetKey,
+  imageClipSnapshot: clonePinnedShotImageSnapshots(group.imageClipSnapshot),
 }));
 
 /**
@@ -234,6 +248,35 @@ export const repairConfig = (config: TimelineConfig): TimelineConfig => {
     clips.push(baseId !== clip.id ? { ...clip, id: baseId } : clip);
   }
 
+  const pinnedShotGroups = config.pinnedShotGroups?.map((group) => {
+    const legacy = group as LegacyPinnedShotGroup;
+    const hasLegacyFields
+      = typeof legacy.start === 'number'
+      || Array.isArray(legacy.children);
+
+    if (!hasLegacyFields) {
+      return group;
+    }
+
+    repaired = true;
+    // Derive soft-tag clipIds from legacy children when present; otherwise preserve
+    // the existing clipIds array. Clip positions are already correct in `clips[]`
+    // because the prior projection model wrote them back on every commit.
+    const derivedClipIds = Array.isArray(legacy.children) && legacy.children.length > 0
+      ? legacy.children.map((child) => child.clipId).filter((id): id is string => typeof id === 'string' && id.length > 0)
+      : [...group.clipIds];
+
+    const softTagGroup: PinnedShotGroup = {
+      shotId: group.shotId,
+      trackId: group.trackId,
+      clipIds: derivedClipIds,
+      mode: group.mode,
+      videoAssetKey: group.videoAssetKey,
+      imageClipSnapshot: clonePinnedShotImageSnapshots(group.imageClipSnapshot),
+    };
+    return softTagGroup;
+  });
+
   if (repaired) {
     console.warn(
       '[timeline] repairConfig: fixed corrupted data —',
@@ -243,6 +286,6 @@ export const repairConfig = (config: TimelineConfig): TimelineConfig => {
   }
 
   return repaired
-    ? { ...config, tracks, clips }
+    ? { ...config, tracks, clips, pinnedShotGroups }
     : config;
 };

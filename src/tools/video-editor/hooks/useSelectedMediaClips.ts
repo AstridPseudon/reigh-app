@@ -34,37 +34,39 @@ export function useSelectedMediaClips(): { clips: SelectedMediaClip[]; summary: 
       return { clips: [], summary: '' };
     }
 
-    const clips = [...selectedClipIds].flatMap((clipId) => {
+    const clips = [...selectedClipIds].reduce<SelectedMediaClip[]>((acc, clipId) => {
       const clip = resolvedConfig.clips.find((item) => item.id === clipId);
       const assetKey = clip?.asset;
       const assetEntry = assetKey ? resolvedConfig.registry[assetKey] : undefined;
 
       if (!assetKey || !assetEntry?.src || !assetEntry.type) {
-        return [];
+        return acc;
       }
 
       if (assetEntry.type.startsWith('image/')) {
-        return [{
+        acc.push({
           clipId,
           assetKey,
           url: assetEntry.src,
           mediaType: 'image' as const,
           generationId: assetEntry.generationId,
-        }];
+        });
+        return acc;
       }
 
       if (assetEntry.type.startsWith('video/')) {
-        return [{
+        acc.push({
           clipId,
           assetKey,
           url: assetEntry.src,
           mediaType: 'video' as const,
           generationId: assetEntry.generationId,
-        }];
+        });
+        return acc;
       }
 
-      return [];
-    });
+      return acc;
+    }, []);
 
     const imageCount = clips.filter((clip) => clip.mediaType === 'image').length;
     const videoCount = clips.length - imageCount;

@@ -1,10 +1,14 @@
 import { getConfigSignature, getStableConfigSignature } from '@/tools/video-editor/lib/config-utils';
 import { addTrack } from '@/tools/video-editor/lib/editor-utils';
+import type { PinnedGroupKey } from '@/tools/video-editor/lib/pinned-group-projection';
 import { getSourceTime, type ClipMeta, type ClipOrderMap, type TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 import type { PinnedShotGroup, ResolvedTimelineConfig, TrackKind } from '@/tools/video-editor/types';
 import { moveClipBetweenTracks } from '@/tools/video-editor/lib/coordinate-utils';
-import { resolveGroupOverlaps, type GroupMovedClip } from '@/tools/video-editor/lib/resolve-overlaps';
+import {
+  findBestGroupStart,
+  type GroupExtent,
+} from '@/tools/video-editor/lib/resolve-overlaps';
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -18,15 +22,23 @@ export interface ClipOffset {
 }
 
 export interface PlannedMove {
+  kind: 'clip';
   clipId: string;
   sourceRowId: string;
   targetRowId: string;
   newStart: number;
 }
 
+/**
+ * Soft-tag model: grouped drag is expanded into per-clip PlannedMove entries at
+ * planning time. There is no distinct group-move plan anymore — cohesion is an
+ * emergent property of moving all members by the same delta.
+ */
+export type MultiDragMove = PlannedMove;
+
 export interface MultiDragResult {
   canMove: boolean;
-  moves: PlannedMove[];
+  moves: MultiDragMove[];
 }
 
 /** Lightweight rect for rendering secondary ghost indicators. */
@@ -37,47 +49,7 @@ export interface GhostRect {
   height: number;
 }
 
-type PinnedTrackMove = {
-  clipId: string;
-  targetRowId: string;
-};
-
 const roundConfigValue = (value: number): number => Math.round(value * 100) / 100;
-
-export function updatePinnedShotGroupTrackIdsFromClipTrackMap(
-  pinnedShotGroups: TimelineData['config']['pinnedShotGroups'],
-  clipTrackMap: Readonly<Record<string, string | undefined>>,
-): TimelineData['config']['pinnedShotGroups'] {
-  if (!pinnedShotGroups?.length) {
-    return pinnedShotGroups;
-  }
-
-  let hasChanges = false;
-  const nextGroups = pinnedShotGroups.map((group) => {
-    const finalTrackIds = new Set(
-      group.clipIds
-        .map((clipId) => clipTrackMap[clipId])
-        .filter((trackId): trackId is string => typeof trackId === 'string' && trackId.length > 0),
-    );
-
-    if (finalTrackIds.size !== 1) {
-      return group;
-    }
-
-    const [nextTrackId] = [...finalTrackIds];
-    if (nextTrackId === group.trackId) {
-      return group;
-    }
-
-    hasChanges = true;
-    return {
-      ...group,
-      trackId: nextTrackId,
-    } satisfies PinnedShotGroup;
-  });
-
-  return hasChanges ? nextGroups : pinnedShotGroups;
-}
 
 export function buildAugmentedData(
   data: TimelineData,
@@ -153,13 +125,11 @@ export function buildConfigFromDragResult(
     }
   }
 
-  return {
-    ...baseConfig,
-    clips: baseConfig.clips.flatMap((clip) => {
+  const nextClips = baseConfig.clips.reduce<ResolvedTimelineConfig['clips']>((acc, clip) => {
       const position = positions.get(clip.id);
       const clipMeta = mergedMeta[clip.id];
       if (!position || !clipMeta) {
-        return [];
+        return acc;
       }
 
       const nextClip = {
@@ -172,67 +142,30 @@ export function buildConfigFromDragResult(
         delete nextClip.from;
         delete nextClip.to;
         delete nextClip.speed;
-        return [{
+        acc.push({
           ...nextClip,
           hold: roundConfigValue(position.duration),
-        }];
+        });
+        return acc;
       }
 
       const speed = clipMeta.speed ?? 1;
       const from = clipMeta.from ?? 0;
       delete nextClip.hold;
-      return [{
+      acc.push({
         ...nextClip,
         speed: clipMeta.speed,
         from: roundConfigValue(from),
         to: roundConfigValue(getSourceTime({ from, start: position.at, speed }, position.at + position.duration)),
-      }];
-    }),
+      });
+      return acc;
+    }, []);
+
+  return {
+    ...baseConfig,
+    clips: nextClips,
     ...(pinnedShotGroups && pinnedShotGroups.length > 0 ? { pinnedShotGroups } : {}),
   };
-}
-
-export function updatePinnedShotGroupTrackIds(
-  pinnedShotGroups: PinnedShotGroup[] | undefined,
-  moves: readonly PinnedTrackMove[],
-  options?: { requireCompleteGroup?: boolean },
-): PinnedShotGroup[] | undefined {
-  if (!pinnedShotGroups?.length || moves.length === 0) {
-    return pinnedShotGroups;
-  }
-
-  const requireCompleteGroup = options?.requireCompleteGroup ?? true;
-  const moveByClipId = new Map(moves.map((move) => [move.clipId, move.targetRowId]));
-  let hasChanges = false;
-
-  const nextPinnedShotGroups = pinnedShotGroups.map((group) => {
-    const movedClipIds = group.clipIds.filter((clipId) => moveByClipId.has(clipId));
-    if (movedClipIds.length === 0) {
-      return group;
-    }
-
-    if (requireCompleteGroup && movedClipIds.length !== group.clipIds.length) {
-      return group;
-    }
-
-    const targetRowIds = new Set(movedClipIds.map((clipId) => moveByClipId.get(clipId)));
-    if (targetRowIds.size !== 1) {
-      return group;
-    }
-
-    const nextTrackId = targetRowIds.values().next().value;
-    if (!nextTrackId || nextTrackId === group.trackId) {
-      return group;
-    }
-
-    hasChanges = true;
-    return {
-      ...group,
-      trackId: nextTrackId,
-    };
-  });
-
-  return hasChanges ? nextPinnedShotGroups : pinnedShotGroups;
 }
 
 // ── Planning ─────────────────────────────────────────────────────────
@@ -252,6 +185,11 @@ export function planMultiDragMoves(
   anchorTargetRowId: string,
   anchorSourceRowId: string,
   timeDelta: number,
+  groupDragEntry?: {
+    groupKey: PinnedGroupKey;
+    originStart: number;
+    originTrackId: string;
+  },
 ): MultiDragResult {
   const rowIds = data.rows.map((r) => r.id);
   const trackById = new Map(data.tracks.map((t) => [t.id, t]));
@@ -264,8 +202,58 @@ export function planMultiDragMoves(
   }
 
   const moves: PlannedMove[] = [];
+  const pinnedGroupClipIds = new Set<string>();
+
+  if (groupDragEntry) {
+    // Soft-tag grouped drag: validate that the target track is kind-compatible,
+    // then emit per-clip moves for every group member so they all translate by
+    // the same anchor delta. The group entry's trackId update happens at the
+    // commit site (via pinnedShotGroupsOverride), not in multi-drag-utils.
+    const sourceTrack = trackById.get(groupDragEntry.originTrackId);
+    const targetTrack = trackById.get(anchorTargetRowId);
+    if (!sourceTrack || !targetTrack || sourceTrack.kind !== targetTrack.kind) {
+      return { canMove: false, moves: [] };
+    }
+
+    const group = data.config.pinnedShotGroups?.find((candidate) => (
+      candidate.shotId === groupDragEntry.groupKey.shotId
+      && candidate.trackId === groupDragEntry.groupKey.trackId
+    ));
+
+    for (const memberClipId of group?.clipIds ?? []) {
+      pinnedGroupClipIds.add(memberClipId);
+      // Find the member clip's current row+start from clipOffsets (or fall back
+      // to a lookup on the live rows).
+      const memberOffset = clipOffsets.find((o) => o.clipId === memberClipId);
+      let memberStart: number | null = null;
+      if (memberOffset) {
+        memberStart = memberOffset.initialStart;
+      } else {
+        for (const row of data.rows) {
+          const action = row.actions.find((a) => a.id === memberClipId);
+          if (action) {
+            memberStart = action.start;
+            break;
+          }
+        }
+      }
+      if (memberStart === null) continue;
+
+      moves.push({
+        kind: 'clip',
+        clipId: memberClipId,
+        sourceRowId: groupDragEntry.originTrackId,
+        targetRowId: anchorTargetRowId,
+        newStart: memberStart + timeDelta,
+      });
+    }
+  }
 
   for (const offset of clipOffsets) {
+    if (pinnedGroupClipIds.has(offset.clipId)) {
+      continue;
+    }
+
     const sourceIndex = rowIds.indexOf(offset.rowId);
     const targetIndex = sourceIndex + trackDelta;
 
@@ -282,6 +270,7 @@ export function planMultiDragMoves(
     }
 
     moves.push({
+      kind: 'clip',
       clipId: offset.clipId,
       sourceRowId: offset.rowId,
       targetRowId,
@@ -301,13 +290,14 @@ export function planMultiDragMoves(
  */
 export function applyMultiDragMoves(
   data: TimelineData,
-  moves: PlannedMove[],
+  moves: MultiDragMove[],
 ): {
   nextRows: TimelineRow[];
   metaUpdates: Record<string, Partial<ClipMeta>>;
   nextClipOrder: ClipOrderMap;
 } {
-  const movedClipIds = new Set(moves.map((m) => m.clipId));
+  const clipMoves = moves;
+  const movedClipIds = new Set(clipMoves.map((m) => m.clipId));
 
   // Remove all moved clips from their source rows
   let nextRows = data.rows.map((row) => ({
@@ -319,13 +309,17 @@ export function applyMultiDragMoves(
   const actionsToAdd = new Map<string, typeof data.rows[0]['actions']>();
   const metaUpdates: Record<string, Partial<ClipMeta>> = {};
 
-  for (const move of moves) {
+  for (const move of clipMoves) {
     const originalRow = data.rows.find((r) => r.id === move.sourceRowId);
     const action = originalRow?.actions.find((a) => a.id === move.clipId);
     if (!action) continue;
 
     const duration = action.end - action.start;
-    const newStart = Math.max(0, move.newStart);
+    // Do NOT clamp newStart to >= 0 here — the resolver below clamps the
+    // entire moved group as a unit. Per-clip clamping would collapse the
+    // front of a multi-clip group (e.g. a pinned shot) onto a single point
+    // when dragged toward the timeline start.
+    const newStart = move.newStart;
     const movedAction = { ...action, start: newStart, end: newStart + duration };
 
     const existing = actionsToAdd.get(move.targetRowId) ?? [];
@@ -344,29 +338,88 @@ export function applyMultiDragMoves(
   });
 
   // Resolve overlaps per target row
-  const targetRowIds = new Set(moves.map((m) => m.targetRowId));
+  const targetRowIds = new Set(clipMoves.map((m) => m.targetRowId));
   for (const targetRowId of targetRowIds) {
-    const rowMoves = moves.filter((m) => m.targetRowId === targetRowId);
-    const groupMoved: GroupMovedClip[] = rowMoves.map((m) => {
-      const originalRow = data.rows.find((r) => r.id === m.sourceRowId);
-      const action = originalRow?.actions.find((a) => a.id === m.clipId);
+    const rowMoves = clipMoves.filter((m) => m.targetRowId === targetRowId);
+    const movedClipIds = rowMoves.map((move) => move.clipId);
+    const movedClipIdSet = new Set(movedClipIds);
+    const movedExtent = rowMoves.reduce<GroupExtent>((range, move) => {
+      const originalRow = data.rows.find((row) => row.id === move.sourceRowId);
+      const action = originalRow?.actions.find((candidate) => candidate.id === move.clipId);
       const duration = action ? action.end - action.start : 0;
-      const newStart = Math.max(0, m.newStart);
-      return { rowId: targetRowId, clipId: m.clipId, newStart, newEnd: newStart + duration };
+      const newStart = move.newStart;
+      const newEnd = newStart + duration;
+      return {
+        start: Math.min(range.start, newStart),
+        end: Math.max(range.end, newEnd),
+      };
+    }, {
+      start: Infinity,
+      end: -Infinity,
     });
-    const { rows: resolvedRows, metaPatches } = resolveGroupOverlaps(nextRows, groupMoved, data.meta);
-    nextRows = resolvedRows;
-    for (const [clipId, patch] of Object.entries(metaPatches)) {
+    if (!Number.isFinite(movedExtent.start) || !Number.isFinite(movedExtent.end)) {
+      continue;
+    }
+    const rowIndex = nextRows.findIndex((row) => row.id === targetRowId);
+    if (rowIndex < 0) {
+      continue;
+    }
+
+    const row = nextRows[rowIndex]!;
+    const resolvedStart = findBestGroupStart(
+      movedExtent,
+      row.actions.filter((action) => !movedClipIdSet.has(action.id)),
+    );
+    if (resolvedStart === null) {
+      continue;
+    }
+
+    const delta = resolvedStart - movedExtent.start;
+    if (delta === 0) {
+      continue;
+    }
+
+    const movedActionsById = new Map(
+      row.actions
+        .filter((action) => movedClipIdSet.has(action.id))
+        .map((action) => [action.id, action]),
+    );
+
+    nextRows[rowIndex] = {
+      ...row,
+      actions: row.actions.map((action) => {
+        if (!movedClipIdSet.has(action.id)) {
+          return action;
+        }
+
+        return {
+          ...action,
+          start: action.start + delta,
+          end: action.end + delta,
+        };
+      }),
+    };
+
+    for (const clipId of movedClipIds) {
+      const clipMeta = data.meta[clipId];
+      const movedAction = movedActionsById.get(clipId);
+      if (!movedAction || !clipMeta || typeof clipMeta.hold === 'number') {
+        continue;
+      }
+
+      const speed = clipMeta.speed ?? 1;
+      const from = (clipMeta.from ?? 0) + delta * speed;
       metaUpdates[clipId] = {
         ...metaUpdates[clipId],
-        ...patch,
+        from,
+        to: from + (movedAction.end - movedAction.start) * speed,
       };
     }
   }
 
   // Update clip order for cross-track moves
   let nextClipOrder = data.clipOrder;
-  for (const move of moves) {
+  for (const move of clipMoves) {
     if (move.sourceRowId !== move.targetRowId) {
       nextClipOrder = moveClipBetweenTracks(nextClipOrder, move.clipId, move.sourceRowId, move.targetRowId);
     }

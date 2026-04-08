@@ -107,4 +107,50 @@ describe('usePollSync helpers', () => {
       lastSavedStableSignature: 'saved-sig',
     })).toBe('saving');
   });
+
+  it('rejects polls while an interaction (drag/resize) is active', () => {
+    // Even when the timeline would otherwise be idle and the poll signature is fresh,
+    // an active interaction must defer the conflict reload.
+    expect(isTimelinePollIdle({
+      editSeq: 4,
+      savedSeq: 4,
+      pendingOps: 0,
+      isSaving: false,
+      interactionActive: true,
+    })).toBe(false);
+
+    expect(getTimelinePollRejectionReason({
+      editSeq: 4,
+      savedSeq: 4,
+      pendingOps: 0,
+      isSaving: false,
+      interactionActive: true,
+      polledConfigVersion: 8,
+      currentConfigVersion: 7,
+      polledStableSignature: 'remote-sig',
+      lastSavedStableSignature: 'saved-sig',
+    })).toBe('interaction active');
+  });
+
+  it('accepts polls when interaction is no longer active', () => {
+    expect(isTimelinePollIdle({
+      editSeq: 4,
+      savedSeq: 4,
+      pendingOps: 0,
+      isSaving: false,
+      interactionActive: false,
+    })).toBe(true);
+
+    expect(getTimelinePollRejectionReason({
+      editSeq: 4,
+      savedSeq: 4,
+      pendingOps: 0,
+      isSaving: false,
+      interactionActive: false,
+      polledConfigVersion: 8,
+      currentConfigVersion: 7,
+      polledStableSignature: 'remote-sig',
+      lastSavedStableSignature: 'saved-sig',
+    })).toBeNull();
+  });
 });

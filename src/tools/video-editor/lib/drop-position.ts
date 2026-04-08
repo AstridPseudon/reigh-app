@@ -1,6 +1,7 @@
 import type { DragEvent as ReactDragEvent, MutableRefObject } from 'react';
 import { getDragType } from '@/shared/lib/dnd/dragDrop';
 import { rawRowIndexFromY } from '@/tools/video-editor/lib/coordinate-utils';
+import { createTimelineScale } from '@/tools/video-editor/lib/timeline-scale';
 import type { TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { TrackKind } from '@/tools/video-editor/types';
 
@@ -91,10 +92,10 @@ export const computeDropPosition = ({
   const editRect = (editArea ?? wrapper).getBoundingClientRect();
   const scrollLeft = grid?.scrollLeft ?? 0;
   const scrollTop = grid?.scrollTop ?? 0;
-  const pixelsPerSecond = scaleWidth / scale;
+  const { pixelsPerSecond, pixelToTime, timeToPixel } = createTimelineScale({ scale, scaleWidth, startLeft });
   const effectiveOffsetX = clipOffsetX ?? (clipDuration * pixelsPerSecond) / 2;
   const leftInGrid = clientX - editRect.left + scrollLeft - effectiveOffsetX;
-  const time = Math.max(0, (leftInGrid - startLeft) / pixelsPerSecond);
+  const time = Math.max(0, pixelToTime(leftInGrid));
 
   const rowCount = current?.rows.length ?? 0;
   const rawRowIndex = rawRowIndexFromY(clientY, editRect.top, scrollTop, rowHeight);
@@ -115,7 +116,7 @@ export const computeDropPosition = ({
   const rowTop = visualRowIndex >= 0
     ? editRect.top + visualRowIndex * rowHeight - scrollTop
     : editRect.top;
-  const clipLeft = editRect.left + startLeft + time * pixelsPerSecond - scrollLeft;
+  const clipLeft = editRect.left + timeToPixel(time) - scrollLeft;
   const clipWidth = Math.max(0, Math.min(clipDuration * pixelsPerSecond, editRect.right - clipLeft));
   const ghostCenter = clipLeft + clipWidth / 2;
   const kindMismatch = !isNewTrack && sourceKind !== null && targetTrack?.kind !== undefined && sourceKind !== targetTrack.kind;

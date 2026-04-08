@@ -1,5 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
+import { createInteractionState } from '@/tools/video-editor/lib/interaction-state';
 import { useGallerySelection } from '@/shared/contexts/GallerySelectionContext';
 import { useProjectSelectionContext } from '@/shared/contexts/ProjectContext';
 import { useVideoEditorRuntime } from '@/tools/video-editor/contexts/DataProviderContext';
@@ -36,7 +37,9 @@ export function useTimelineState(): UseTimelineStateResult {
   const playback = useTimelinePlayback();
   const preferences = useEditorPreferences(runtime.timelineId);
   const queries = useTimelineQueries(runtime.provider, runtime.timelineId);
-  const save = useTimelineSave(queries, runtime.provider);
+  // Shared gate observed by drag/resize writers and read by save/persistence/poll.
+  const interactionStateRef = useRef(createInteractionState());
+  const save = useTimelineSave(queries, runtime.provider, interactionStateRef);
   const history = useTimelineHistory({
     dataRef: save.dataRef,
     commitData: save.commitData,
@@ -184,6 +187,7 @@ export function useTimelineState(): UseTimelineStateResult {
     coordinator: dragCoordinator.coordinator,
     registerGenerationAsset: assetManagement.registerGenerationAsset,
     uploadImageGeneration: assetManagement.uploadImageGeneration,
+    uploadVideoGeneration: assetManagement.uploadVideoGeneration,
     handleAssetDrop: assetManagement.handleAssetDrop,
     handleAddTextAt: clipEditing.handleAddTextAt,
     onSeekToTime: playback.onClickTimeArea,
@@ -208,6 +212,7 @@ export function useTimelineState(): UseTimelineStateResult {
     isLoading,
     dataRef,
     pendingOpsRef,
+    interactionStateRef,
     editorPreferences,
     setSelectedTrackId,
     setActiveClipTab,

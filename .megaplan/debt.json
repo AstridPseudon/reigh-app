@@ -2092,6 +2092,176 @@
       "resolved": false,
       "resolved_by": null,
       "resolved_at": null
+    },
+    {
+      "id": "DEBT-124",
+      "subsystem": "does-the-change-touch-all-locations-and-supporting-infrastructure",
+      "concern": "does the change touch all locations and supporting infrastructure?: checked the actual ownership of interaction state across the repo. resize liveness currently lives in `timelinecanvas` (`resizesessionref`, `pendingopsref`, `resizeoverrides`) rather than in `usedragcoordinator`, so rev 2 still does not touch all supporting infrastructure needed for a reliable sync-deferral guard.",
+      "flag_ids": [
+        "all_locations-1"
+      ],
+      "plan_ids": [
+        "refactor-pinned-shot-groups-20260408-0508"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-08T03:48:09Z",
+      "updated_at": "2026-04-08T03:48:09Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-125",
+      "subsystem": "does-the-change-touch-all-locations-and-supporting-infrastructure",
+      "concern": "does the change touch all locations and supporting infrastructure?: checked `src/tools/video-editor/hooks/usetimelinestate.contexts.ts:98-161` and confirmed the editor context exports clip-level delete/split/move handlers throughout the tool. if the plan changes selection semantics or reroutes mutations through group-level primitives, this context wiring is part of the supporting infrastructure that also needs updating.",
+      "flag_ids": [
+        "all_locations-3"
+      ],
+      "plan_ids": [
+        "refactor-pinned-shot-groups-20260408-0508"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-08T03:48:09Z",
+      "updated_at": "2026-04-08T03:48:09Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-126",
+      "subsystem": "search-for-related-code-that-handles-the-same-concept-is-the-reported-issue-a-symptom-of-something-broader",
+      "concern": "search for related code that handles the same concept. is the reported issue a symptom of something broader?: checked where drag, resize, and sync already meet in the live component tree. because `useclipdrag`, `timelinecanvas`, and `usepinnedgroupsync` all already converge in `timelineeditor`, pushing the new interaction state up into shared editor context broadens the implementation surface beyond what this repository structure appears to require.",
+      "flag_ids": [
+        "scope"
+      ],
+      "plan_ids": [
+        "refactor-pinned-shot-groups-20260408-0508"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-08T03:48:09Z",
+      "updated_at": "2026-04-08T03:48:09Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-127",
+      "subsystem": "interaction-state-ownership",
+      "concern": "interaction-state ownership: rev 3 moves the shared drag/resize interaction ref into `usetimelinestate.contexts.ts` and describes that as the only place both paths can write to, but in this repo `useclipdrag`, `timelinecanvas`, and `usepinnedgroupsync` already meet in `timelineeditor`, so the proposed location is broader than necessary and the named file list omits the provider/type plumbing needed to expose it through context cleanly.",
+      "flag_ids": [
+        "FLAG-006"
+      ],
+      "plan_ids": [
+        "refactor-pinned-shot-groups-20260408-0508"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-08T03:48:09Z",
+      "updated_at": "2026-04-08T03:48:09Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-128",
+      "subsystem": "are-the-proposed-changes-technically-correct",
+      "concern": "are the proposed changes technically correct?: checked the proposed shared interaction-state location against the actual hook graph in `src/tools/video-editor/components/timelineeditor/timelineeditor.tsx:194`, `src/tools/video-editor/components/timelineeditor/timelineeditor.tsx:479`, `src/tools/video-editor/hooks/usetimelinestate.ts:172-204`, and `src/tools/video-editor/hooks/usetimelinestate.contexts.ts:72-166`. rev 3 says the ref should live in `usetimelinestate.contexts.ts`, but that file only memoizes context values while `useclipdrag`, `timelinecanvas`, and `usepinnedgroupsync` are all coordinated from `timelineeditor`, so the stated location and rationale are still technically off.",
+      "flag_ids": [
+        "correctness"
+      ],
+      "plan_ids": [
+        "refactor-pinned-shot-groups-20260408-0508"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-08T03:48:09Z",
+      "updated_at": "2026-04-08T03:48:09Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-129",
+      "subsystem": "does-the-change-touch-all-locations-and-supporting-infrastructure",
+      "concern": "does the change touch all locations and supporting infrastructure?: checked the supporting infrastructure needed if rev 3 really exposes `interactionstateref` and `isinteractionactive()` through the existing split editor contexts. that change would also require updates in `src/tools/video-editor/hooks/usetimelinestate.types.ts`, `src/tools/video-editor/contexts/timelineeditorcontext.tsx`, `src/tools/video-editor/contexts/videoeditorprovider.tsx`, and likely `src/tools/video-editor/contexts/videoeditorprovider.test.tsx`, but step 7 only names `usetimelinestate.contexts.ts`, `useclipdrag.ts`, and `timelinecanvas.tsx`, so the named wiring is still incomplete.",
+      "flag_ids": [
+        "all_locations"
+      ],
+      "plan_ids": [
+        "refactor-pinned-shot-groups-20260408-0508"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-08T03:48:09Z",
+      "updated_at": "2026-04-08T03:48:09Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-130",
+      "subsystem": "find-the-callers-of-the-changed-function-what-arguments-do-they-actually-pass-does-the-fix-handle-all-of-them",
+      "concern": "find the callers of the changed function. what arguments do they actually pass? does the fix handle all of them?: checked the `usepinnedgroupsync()` call site in `src/tools/video-editor/components/timelineeditor/timelineeditor.tsx:479` against the proposed context-based interaction guard. because sync is called directly from `timelineeditor`, routing its guard through new editor-context plumbing is not the most direct fit for the actual caller and depends on extra provider/type changes that the step does not enumerate.",
+      "flag_ids": [
+        "callers"
+      ],
+      "plan_ids": [
+        "refactor-pinned-shot-groups-20260408-0508"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-08T03:48:09Z",
+      "updated_at": "2026-04-08T03:48:09Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-131",
+      "subsystem": "are-the-proposed-changes-technically-correct",
+      "concern": "are the proposed changes technically correct?: step 5.1 claims `updatepinnedgroupwithchildren` is 'currently imported by useswitchtofinalvideo.ts:357'. verified at useswitchtofinalvideo.ts:71-130 that this function is actually **defined locally** in useswitchtofinalvideo.ts, not imported from pinned-group-projection.ts. the real imports from pinned-group-projection at :5-8 are `buildgroupfromchildren` and `replacegroupchildren`, both of which are already in step 5's delete list. the plan's characterization is factually wrong (delete list shouldn't include updatepinnedgroupwithchildren as a pinned-group-projection export), but the substantive intent still works: once `buildgroupfromchildren`/`replacegroupchildren` are deleted, the local helper won't compile and step 11.2's 'inline soft-tag construction' rewrite removes it. minor wording error, not a blocking issue.",
+      "flag_ids": [
+        "correctness-1"
+      ],
+      "plan_ids": [
+        "roll-back-the-first-class-20260408-1337"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-08T12:38:04Z",
+      "updated_at": "2026-04-08T12:38:04Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-132",
+      "subsystem": "are-the-proposed-changes-technically-correct",
+      "concern": "are the proposed changes technically correct?: step 11.2 specifies the reverse switch is 'single commit, no `start`/`children`/`offset` reads anywhere' but doesn't state the mutation type explicitly. since the step describes metadeletes + cliporderoverride + pinnedshotgroupsoverride in a single commit, the mutation must be `type: 'rows'` (the only variant carrying all three). self-consistent with step 11.1's restriction on `type: 'pinnedshotgroups'`, but making the mutation type explicit would reduce executor ambiguity.",
+      "flag_ids": [
+        "correctness-2"
+      ],
+      "plan_ids": [
+        "roll-back-the-first-class-20260408-1337"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-08T12:38:04Z",
+      "updated_at": "2026-04-08T12:38:04Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-133",
+      "subsystem": "does-the-change-touch-all-locations-and-supporting-infrastructure",
+      "concern": "does the change touch all locations and supporting infrastructure?: step 5.1 mentions `updatepinnedgroupwithchildren` in the delete list referencing `pinned-group-projection.ts`, but that function is a local helper in useswitchtofinalvideo.ts, not a pinned-group-projection export. the real pinned-group-projection exports consumed by useswitchtofinalvideo are `buildgroupfromchildren` and `replacegroupchildren` at imports :5-8, both of which are already in step 5's delete list. the plan's list item is misattributed but the file-level coverage is complete.",
+      "flag_ids": [
+        "all_locations"
+      ],
+      "plan_ids": [
+        "roll-back-the-first-class-20260408-1337"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-08T12:38:04Z",
+      "updated_at": "2026-04-08T12:38:04Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
     }
   ]
 }

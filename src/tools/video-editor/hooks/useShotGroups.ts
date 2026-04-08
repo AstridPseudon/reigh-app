@@ -10,7 +10,9 @@ export interface ShotGroup {
   shotName: string;
   rowId: string;
   rowIndex: number;
+  start: number;
   clipIds: string[];
+  children: Array<{ clipId: string; offset: number; duration: number }>;
   color: string;
   mode?: 'images' | 'video';
 }
@@ -29,27 +31,47 @@ export function useShotGroups(
   pinnedShotGroups?: TimelineConfig['pinnedShotGroups'],
 ): ShotGroup[] {
   return useMemo(() => {
-    const rowById = new Map(rows.map((row, rowIndex) => [row.id, { row, rowIndex }]));
+    const rowIndexById = new Map(rows.map((row, rowIndex) => [row.id, rowIndex]));
     const shotNameById = new Map((shots ?? []).map((shot) => [shot.id, shot.name]));
 
-    return (pinnedShotGroups ?? [])
-      .map((group) => {
-        const rowEntry = rowById.get(group.trackId);
-        if (!rowEntry) return null;
-        const liveClipIds = group.clipIds.filter((clipId) =>
-          rowEntry.row.actions.some((action) => action.id === clipId),
-        );
-        if (liveClipIds.length === 0) return null;
-        return {
-          shotId: group.shotId,
-          shotName: shotNameById.get(group.shotId) ?? group.shotId,
-          rowId: group.trackId,
-          rowIndex: rowEntry.rowIndex,
-          clipIds: liveClipIds,
-          color: getShotColor(group.shotId),
-          mode: group.mode,
-        } satisfies ShotGroup;
-      })
-      .filter((g): g is ShotGroup => g !== null);
+    const result: ShotGroup[] = [];
+    for (const group of pinnedShotGroups ?? []) {
+      const rowIndex = rowIndexById.get(group.trackId);
+      if (typeof rowIndex !== 'number') continue;
+
+      // Soft-tag model: derive children (clipId/offset/duration) from
+      // the live row actions, since the data no longer carries them.
+      const row = rows[rowIndex];
+      if (!row) continue;
+      const actionsById = new Map(
+        row.actions.map((action) => [action.id, action] as const),
+      );
+      const liveClipIds = group.clipIds.filter((clipId) => actionsById.has(clipId));
+      if (liveClipIds.length === 0) continue;
+
+      const liveActions = liveClipIds
+        .map((clipId) => actionsById.get(clipId)!)
+        .sort((a, b) => a.start - b.start);
+      const firstAction = liveActions[0]!;
+      const groupStart = firstAction.start;
+      const children = liveActions.map((action) => ({
+        clipId: action.id,
+        offset: action.start - groupStart,
+        duration: action.end - action.start,
+      }));
+
+      result.push({
+        shotId: group.shotId,
+        shotName: shotNameById.get(group.shotId) ?? group.shotId,
+        rowId: group.trackId,
+        rowIndex,
+        start: groupStart,
+        clipIds: children.map((child) => child.clipId),
+        children,
+        color: getShotColor(group.shotId),
+        mode: group.mode,
+      });
+    }
+    return result;
   }, [rows, shots, pinnedShotGroups]);
 }

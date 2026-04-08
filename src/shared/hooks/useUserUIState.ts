@@ -40,6 +40,9 @@ const settingsCache = new Map<string, SettingsCacheEntry>();
 const CACHE_DURATION = 30000; // 30 seconds
 
 interface UISettings {
+  defaultTool: {
+    toolId: string;
+  };
   paneLocks: {
     shots: boolean;
     tasks: boolean;
@@ -100,6 +103,16 @@ function decodePaneLocks(
     tasks: readBoolean(record?.tasks, fallback.tasks),
     gens: readBoolean(record?.gens, fallback.gens),
     editor: readBoolean(record?.editor, fallback.editor),
+  };
+}
+
+function decodeDefaultTool(
+  value: unknown,
+  fallback: UISettings['defaultTool'],
+): UISettings['defaultTool'] {
+  const record = toRecord(value);
+  return {
+    toolId: readString(record?.toolId, fallback.toolId),
   };
 }
 
@@ -203,6 +216,8 @@ function normalizeUserUISetting<K extends keyof UISettings>(
   fallback: UISettings[K],
 ): UISettings[K] {
   switch (key) {
+    case 'defaultTool':
+      return decodeDefaultTool(value, fallback as UISettings['defaultTool']) as UISettings[K];
     case 'paneLocks':
       return decodePaneLocks(value, fallback as UISettings['paneLocks']) as UISettings[K];
     case 'settingsModal':

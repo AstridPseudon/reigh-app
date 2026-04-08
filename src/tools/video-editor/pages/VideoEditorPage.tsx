@@ -90,7 +90,7 @@ function TimelineList({ onSelect }: { onSelect: (timelineId: string) => void }) 
 
           <div className="grid gap-3">
             {timelines.isLoading && Array.from({ length: 3 }).map((_, index) => <Skeleton key={index} className="h-20 w-full" />)}
-            {(timelines.data ?? []).map((timeline) => {
+            {(timelines.data ?? []).map((timeline: { id: string; name: string; updated_at: string }) => {
               const isEditing = editingId === timeline.id;
               const isActive = settings?.lastTimelineId === timeline.id;
 
@@ -193,26 +193,48 @@ export default function VideoEditorPage() {
     return new SupabaseDataProvider({ projectId: selectedProjectId, userId });
   }, [selectedProjectId, userId]);
   const timelines = useTimelinesList(selectedProjectId, userId);
-  const { update } = useToolSettings(videoEditorSettings.id, {
+  const { settings, update } = useToolSettings(videoEditorSettings.id, {
     projectId: selectedProjectId ?? undefined,
     enabled: Boolean(selectedProjectId),
   });
-  const timelineName = timelines.data?.find((timeline) => timeline.id === timelineId)?.name ?? null;
+  const timelineName = timelines.data?.find((timeline: { id: string; name: string }) => timeline.id === timelineId)?.name ?? null;
 
+  // Reconcile the URL timelineId against the live list:
+  // - if it exists in the list, persist it as lastTimelineId
+  // - if the list has loaded and it's not there, clear the URL + setting so
+  //   the auto-select effect below picks a valid timeline
   useEffect(() => {
-    if (!timelineId || !selectedProjectId) {
+    if (!timelineId || !selectedProjectId || !timelines.data) {
       return;
     }
 
-    void update('project', { lastTimelineId: timelineId });
-  }, [selectedProjectId, timelineId, update]);
-
-  useEffect(() => {
-    if (timelineId || !selectedProjectId || !userId || timelines.isLoading || timelines.error) {
+    if (timelines.data.some((timeline: { id: string }) => timeline.id === timelineId)) {
+      void update('project', { lastTimelineId: timelineId });
       return;
     }
 
-    const nextTimelineId = timelines.data?.[0]?.id;
+    void update('project', { lastTimelineId: undefined });
+    setSearchParams({}, { replace: true });
+  }, [selectedProjectId, setSearchParams, timelineId, timelines.data, update]);
+
+  useEffect(() => {
+    if (timelineId || !selectedProjectId || !userId) {
+      return;
+    }
+
+    if (settings?.lastTimelineId) {
+      setSearchParams({ timeline: settings.lastTimelineId }, { replace: true });
+      return;
+    }
+
+    // Wait for the timelines list before deciding to auto-create — otherwise
+    // we'd race the network and create a duplicate "Main timeline" on every
+    // first visit to a project that already has timelines.
+    if (timelines.isLoading || timelines.error || !timelines.data) {
+      return;
+    }
+
+    const nextTimelineId = timelines.data[0]?.id;
     if (nextTimelineId) {
       void update('project', { lastTimelineId: nextTimelineId });
       setSearchParams({ timeline: nextTimelineId }, { replace: true });
@@ -236,6 +258,7 @@ export default function VideoEditorPage() {
         toast.error('Failed to create the default timeline');
       });
   }, [
+    settings?.lastTimelineId,
     selectedProjectId,
     setSearchParams,
     timelineId,
@@ -271,21 +294,7 @@ export default function VideoEditorPage() {
       );
     }
 
-    return (
-      <div className="flex h-screen items-center justify-center bg-background px-6">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle>Opening video editor</CardTitle>
-            <CardDescription>Loading your latest timeline and preparing the editor.</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <Skeleton className="h-4 w-40" />
-            <Skeleton className="h-10 w-full" />
-            <Skeleton className="h-48 w-full" />
-          </CardContent>
-        </Card>
-      </div>
-    );
+    return null;
   }
 
   return (

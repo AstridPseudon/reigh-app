@@ -32,6 +32,8 @@ import { usePinnedGroupSync, usePinnedShotGroups } from '@/tools/video-editor/ho
 import { useShotGroups } from '@/tools/video-editor/hooks/useShotGroups';
 import { useStaleVariants } from '@/tools/video-editor/hooks/useStaleVariants';
 import { useSwitchToFinalVideo } from '@/tools/video-editor/hooks/useSwitchToFinalVideo';
+import { useTimelineScale } from '@/tools/video-editor/hooks/useTimelineScale';
+import type { TimelineActionResizeStart, TimelineClipEdgeResizeEnd } from '@/tools/video-editor/hooks/useTimelineState.types';
 import type { ResolvedTimelineClip, TrackDefinition } from '@/tools/video-editor/types';
 import type { TimelineAction, TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 
@@ -145,6 +147,7 @@ function TimelineEditorComponent() {
     indicatorRef,
     editAreaRef,
     selectedTrackId,
+    interactionStateRef,
   } = useTimelineEditorData();
   const {
     applyEdit,
@@ -167,7 +170,7 @@ function TimelineEditorComponent() {
     onCursorDrag,
     onClickTimeArea,
     onActionResizeStart,
-    onActionResizeEnd,
+    onClipEdgeResizeEnd,
     onTimelineDragOver,
     onTimelineDragLeave,
     onTimelineDrop,
@@ -184,6 +187,11 @@ function TimelineEditorComponent() {
       coordinateGetter: sortableKeyboardCoordinates,
     }),
   );
+  const resizeStartHandler: TimelineActionResizeStart = onActionResizeStart;
+  const clipEdgeResizeEndHandler: TimelineClipEdgeResizeEnd = onClipEdgeResizeEnd;
+  const isInteractionActive = useCallback(() => {
+    return interactionStateRef.current.drag || interactionStateRef.current.resize;
+  }, [interactionStateRef]);
 
   // useClipDrag handles all internal clip drag interactions (horizontal moves,
   // cross-track moves, and new-track creation) using the same fixed-position
@@ -192,6 +200,7 @@ function TimelineEditorComponent() {
     timelineWrapperRef,
     dataRef,
     pendingOpsRef,
+    interactionStateRef,
     moveClipToRow,
     createTrackAndMoveClip,
     applyEdit,
@@ -312,7 +321,11 @@ function TimelineEditorComponent() {
     setSelectedTrackId(trackId);
   }, [selectClip, setSelectedTrackId]);
 
-  const pixelsPerSecond = scaleWidth / scale;
+  const { pixelsPerSecond, pixelToTime } = useTimelineScale({
+    scale,
+    scaleWidth,
+    startLeft: TIMELINE_START_LEFT,
+  });
   const shotGroups = useShotGroups(
     data?.rows ?? [],
     shots,
@@ -479,6 +492,7 @@ function TimelineEditorComponent() {
     applyEdit,
     shots,
     registerGenerationAsset,
+    isInteractionActive,
   });
 
   const clientXToTime = useCallback((clientX: number): number => {
@@ -488,8 +502,8 @@ function TimelineEditorComponent() {
     const grid = editArea;
     const rect = (editArea ?? wrapper).getBoundingClientRect();
     const scrollLeft = grid?.scrollLeft ?? 0;
-    return Math.max(0, (clientX - rect.left + scrollLeft - TIMELINE_START_LEFT) / pixelsPerSecond);
-  }, [pixelsPerSecond, timelineWrapperRef]);
+    return Math.max(0, pixelToTime(clientX - rect.left + scrollLeft));
+  }, [pixelToTime, timelineWrapperRef]);
 
   const handleDoubleClickVideoClip = useCallback((clipId: string) => {
     // 1. Check pinned groups
@@ -563,6 +577,7 @@ function TimelineEditorComponent() {
         action={action}
         clipMeta={clipMeta}
         isVideoClip={isVideoClip}
+        isInPinnedShotGroup={shotGroupClipIds.has(action.id)}
         isSelected={isClipSelected(action.id)}
         isPrimary={primaryClipId === action.id}
         selectedClipIds={[...selectedClipIds]}
@@ -676,8 +691,8 @@ function TimelineEditorComponent() {
           trackSensors={trackSensors}
           onCursorDrag={onCursorDrag}
           onClickTimeArea={onClickTimeArea}
-          onActionResizeStart={onActionResizeStart}
-          onActionResizeEnd={onActionResizeEnd}
+          onActionResizeStart={resizeStartHandler}
+          onClipEdgeResizeEnd={clipEdgeResizeEndHandler}
           shotGroups={shotGroups}
           finalVideoMap={finalVideoMap}
           staleShotGroupIds={staleShotGroupIds}
@@ -685,6 +700,10 @@ function TimelineEditorComponent() {
           onShotGroupNavigate={handleShotGroupNavigate}
           onShotGroupGenerateVideo={handleShotGroupGenerateVideo}
           onShotGroupUnpin={(group) => {
+            unpinGroup(group.shotId, group.trackId);
+          }}
+          onShotGroupDelete={(group) => {
+            handleDeleteClips(group.clipIds, { allowPinnedGroupDelete: true });
             unpinGroup(group.shotId, group.trackId);
           }}
           onShotGroupSwitchToFinalVideo={(group) => {
@@ -700,6 +719,7 @@ function TimelineEditorComponent() {
           onShotGroupUpdateToLatestVideo={handleUpdateToLatestVideo}
           onSelectClips={selectClips}
           dragSessionRef={dragSessionRef}
+          interactionStateRef={interactionStateRef}
           marqueeRect={marqueeRect}
           onEditAreaPointerDown={onMarqueePointerDown}
           onAddTrack={chrome.handleAddTrack}

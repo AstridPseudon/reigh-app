@@ -3,8 +3,10 @@ import { act, fireEvent, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { useClipDrag } from '@/tools/video-editor/hooks/useClipDrag';
 import type { DragCoordinator } from '@/tools/video-editor/hooks/useDragCoordinator';
-import type { TimelineData } from '@/tools/video-editor/lib/timeline-data';
-import type { TrackDefinition } from '@/tools/video-editor/types';
+import { createInteractionState } from '@/tools/video-editor/lib/interaction-state';
+import { repairConfig } from '@/tools/video-editor/lib/migrate';
+import { configToRows, type TimelineData } from '@/tools/video-editor/lib/timeline-data';
+import type { TimelineConfig, TrackDefinition } from '@/tools/video-editor/types';
 
 const makeTrack = (id: string): TrackDefinition => ({
   id,
@@ -59,9 +61,31 @@ function makeCoordinator(overrides: Partial<ReturnType<DragCoordinator['update']
   return coordinator;
 }
 
+function canonicalizeTimelineData(data: TimelineData): TimelineData {
+  const config = repairConfig(data.config as TimelineConfig);
+  const rowData = configToRows(config);
+
+  return {
+    ...data,
+    config,
+    resolvedConfig: {
+      ...data.resolvedConfig,
+      output: { ...config.output },
+      tracks: (config.tracks ?? []).map((track) => ({ ...track })),
+      clips: config.clips.map((clip) => ({ ...clip })),
+    },
+    rows: rowData.rows,
+    meta: rowData.meta,
+    effects: rowData.effects,
+    output: { ...config.output },
+    tracks: (config.tracks ?? []).map((track) => ({ ...track })),
+    clipOrder: rowData.clipOrder,
+  };
+}
+
 function makeData(): TimelineData {
   const baseTrack = makeTrack('V1');
-  return {
+  return canonicalizeTimelineData({
     config: {
       output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
       tracks: [baseTrack],
@@ -95,12 +119,12 @@ function makeData(): TimelineData {
     clipOrder: { V1: ['clip-1'] },
     signature: 'sig-1',
     stableSignature: 'stable-1',
-  };
+  });
 }
 
 function makeMultiClipData(): TimelineData {
   const tracks = [makeTrack('V1'), makeTrack('V2')];
-  return {
+  return canonicalizeTimelineData({
     config: {
       output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
       tracks,
@@ -138,12 +162,12 @@ function makeMultiClipData(): TimelineData {
     clipOrder: { V1: ['clip-1'], V2: ['clip-2'] },
     signature: 'sig-1',
     stableSignature: 'stable-1',
-  };
+  });
 }
 
 function makePinnedGroupData(): TimelineData {
   const tracks = [makeTrack('V1'), makeTrack('V2')];
-  return {
+  return canonicalizeTimelineData({
     config: {
       output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
       tracks,
@@ -192,8 +216,8 @@ function makePinnedGroupData(): TimelineData {
     tracks,
     clipOrder: { V1: ['clip-1', 'clip-2'], V2: [] },
     signature: 'sig-1',
-    stableSignature: 'stable-1',
-  };
+      stableSignature: 'stable-1',
+  });
 }
 
 function setupDom(clipId = 'clip-1', rowId = 'V1') {
@@ -326,7 +350,78 @@ describe('useClipDrag', () => {
     }
   });
 
-  it('commits a config edit when a multi-clip drag drops onto a new bottom track', () => {
+  it('toggles interactionStateRef.drag only after the drag threshold is crossed', () => {
+    const pendingOpsRef = { current: 0 };
+    const interactionStateRef = { current: createInteractionState() };
+    const { clip, wrapper, cleanup } = setupDom();
+    const timelineWrapperRef = { current: wrapper };
+    const dataRef = { current: makeData() };
+
+    try {
+      renderHook(() => useClipDrag({
+        timelineWrapperRef,
+        dataRef,
+        pendingOpsRef,
+        interactionStateRef,
+        moveClipToRow: vi.fn(),
+        createTrackAndMoveClip: vi.fn(),
+        selectClip: vi.fn(),
+        selectClips: vi.fn(),
+        selectedClipIdsRef: { current: new Set<string>() },
+        applyEdit: vi.fn(),
+        coordinator: makeCoordinator(),
+        rowHeight: 48,
+        scale: 1,
+        scaleWidth: 100,
+        startLeft: 0,
+      }));
+
+      act(() => {
+        fireEvent.pointerDown(clip, {
+          button: 0,
+          pointerId: 9,
+          clientX: 24,
+          clientY: 12,
+        });
+      });
+
+      expect(interactionStateRef.current.drag).toBe(false);
+
+      act(() => {
+        fireEvent.pointerMove(window, {
+          pointerId: 9,
+          clientX: 26,
+          clientY: 12,
+        });
+      });
+
+      expect(interactionStateRef.current.drag).toBe(false);
+
+      act(() => {
+        fireEvent.pointerMove(window, {
+          pointerId: 9,
+          clientX: 32,
+          clientY: 12,
+        });
+      });
+
+      expect(interactionStateRef.current.drag).toBe(true);
+
+      act(() => {
+        fireEvent.pointerUp(window, {
+          pointerId: 9,
+          clientX: 32,
+          clientY: 12,
+        });
+      });
+
+      expect(interactionStateRef.current.drag).toBe(false);
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('commits a config edit when a free multi-clip drag drops onto a new bottom track', () => {
     const pendingOpsRef = { current: 0 };
     const applyEdit = vi.fn();
     const selectClips = vi.fn();
@@ -350,14 +445,7 @@ describe('useClipDrag', () => {
     });
     const { clip, wrapper, cleanup } = setupDom('clip-2', 'V2');
     const timelineWrapperRef = { current: wrapper };
-    const baseData = makeMultiClipData();
-    baseData.config.pinnedShotGroups = [{
-      shotId: 'shot-1',
-      trackId: 'V2',
-      clipIds: ['clip-2'],
-      mode: 'video',
-    }];
-    const dataRef = { current: baseData };
+    const dataRef = { current: makeMultiClipData() };
 
     try {
       renderHook(() => useClipDrag({
@@ -411,12 +499,7 @@ describe('useClipDrag', () => {
         expect.objectContaining({ id: 'clip-1', track: 'V2', at: 1, hold: 2 }),
         expect.objectContaining({ id: 'clip-2', track: 'V3', at: 3, hold: 2 }),
       ]));
-      expect(edit.pinnedShotGroupsOverride).toEqual([{
-        shotId: 'shot-1',
-        trackId: 'V3',
-        clipIds: ['clip-2'],
-        mode: 'video',
-      }]);
+      expect(edit.pinnedShotGroupsOverride).toBeUndefined();
       expect(selectClips).toHaveBeenCalledWith(['clip-2', 'clip-1']);
       expect(coordinator.showSecondaryGhosts).toHaveBeenCalled();
       expect(pendingOpsRef.current).toBe(0);
@@ -425,7 +508,7 @@ describe('useClipDrag', () => {
     }
   });
 
-  it('defers pinned-group expansion until the drag threshold is crossed', () => {
+  it('records a group drag entry when pointerdown starts on a pinned-group member', () => {
     const pendingOpsRef = { current: 0 };
     const { clip, wrapper, cleanup } = setupDom('clip-1', 'V1');
     const timelineWrapperRef = { current: wrapper };
@@ -458,17 +541,15 @@ describe('useClipDrag', () => {
         });
       });
 
-      expect(result.current.dragSessionRef.current?.draggedClipIds).toEqual(['clip-1']);
-
-      act(() => {
-        fireEvent.pointerMove(window, {
-          pointerId: 4,
-          clientX: 32,
-          clientY: 12,
-        });
-      });
-
       expect(result.current.dragSessionRef.current?.draggedClipIds).toEqual(['clip-1', 'clip-2']);
+      expect(result.current.dragSessionRef.current?.groupDragEntry).toEqual({
+        groupKey: {
+          shotId: 'shot-1',
+          trackId: 'V1',
+        },
+        originStart: 0,
+        originTrackId: 'V1',
+      });
     } finally {
       cleanup();
     }
@@ -542,13 +623,36 @@ describe('useClipDrag', () => {
 
       expect(applyEdit).toHaveBeenCalledTimes(1);
       const [edit, options] = applyEdit.mock.calls[0];
-      expect(edit.type).toBe('rows');
-      expect(edit.pinnedShotGroupsOverride).toEqual([{
+      expect(edit).toEqual({
+        type: 'rows',
+        rows: [
+          { id: 'V1', actions: [] },
+          {
+            id: 'V2',
+            actions: [
+              { id: 'clip-1', start: 1, end: 3, effectId: 'effect-clip-1' },
+              { id: 'clip-2', start: 3, end: 5, effectId: 'effect-clip-2' },
+            ],
+          },
+        ],
+        metaUpdates: {
+          'clip-1': { track: 'V2' },
+          'clip-2': { track: 'V2' },
+        },
+        clipOrderOverride: { V1: [], V2: ['clip-1', 'clip-2'] },
+        pinnedShotGroupsOverride: [expect.objectContaining({
+          shotId: 'shot-1',
+          trackId: 'V2',
+          clipIds: ['clip-1', 'clip-2'],
+          mode: 'images',
+        })],
+      });
+      expect(edit.pinnedShotGroupsOverride).toEqual([expect.objectContaining({
         shotId: 'shot-1',
         trackId: 'V2',
         clipIds: ['clip-1', 'clip-2'],
         mode: 'images',
-      }]);
+      })]);
       expect(options).toMatchObject({ transactionId: expect.any(String) });
       expect(selectClips).toHaveBeenCalledWith(['clip-1', 'clip-2']);
     } finally {
@@ -627,12 +731,12 @@ describe('useClipDrag', () => {
       expect(applyEdit).toHaveBeenCalledTimes(1);
       const [edit] = applyEdit.mock.calls[0];
       expect(edit.type).toBe('config');
-      expect(edit.pinnedShotGroupsOverride).toEqual([{
+      expect(edit.pinnedShotGroupsOverride).toEqual([expect.objectContaining({
         shotId: 'shot-1',
         trackId: 'V3',
         clipIds: ['clip-1', 'clip-2'],
         mode: 'images',
-      }]);
+      })]);
     } finally {
       cleanup();
     }

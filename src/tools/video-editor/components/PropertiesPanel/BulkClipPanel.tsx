@@ -392,7 +392,7 @@ export function BulkClipPanel(props: BulkClipPanelProps) {
                 min={0}
                 max={1}
                 step={0.05}
-                onValueChange={(value) => onChange({ opacity: value[0] })}
+                onValueChange={(value) => onChange({ opacity: value })}
               />
             </div>
             <Button type="button" variant="outline" size="sm" onClick={onResetPosition}>
@@ -418,7 +418,7 @@ export function BulkClipPanel(props: BulkClipPanelProps) {
                 min={0}
                 max={1}
                 step={0.05}
-                onValueChange={(value) => onChange({ volume: value[0] })}
+                onValueChange={(value) => onChange({ volume: value })}
               />
               <Button type="button" variant="secondary" size="sm" className="mt-3" onClick={onToggleMute}>
                 Toggle mute

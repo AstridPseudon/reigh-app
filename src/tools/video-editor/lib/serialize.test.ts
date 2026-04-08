@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
+import { repairConfig } from '@/tools/video-editor/lib/migrate';
 import { serializeForDisk, validateSerializedConfig } from '@/tools/video-editor/lib/serialize';
-import type { ResolvedTimelineConfig } from '@/tools/video-editor/types';
+import type { ResolvedTimelineConfig, TimelineConfig } from '@/tools/video-editor/types';
 
 describe('video-editor serialization', () => {
   it('preserves exact source fields and strips resolved-only data', () => {
@@ -86,18 +87,20 @@ describe('video-editor serialization', () => {
       },
     } as unknown as ResolvedTimelineConfig;
 
-    const pinnedShotGroups = [
+    const pinnedShotGroups: TimelineConfig['pinnedShotGroups'] = [
       {
         shotId: 'shot-1',
         trackId: 'V1',
         clipIds: ['clip-1'],
-        mode: 'images' as const,
+        mode: 'images',
         imageClipSnapshot: [
           {
             clipId: 'clip-1',
             assetKey: 'asset-1',
+            start: 0,
+            end: 5,
             meta: {
-              clipType: 'hold' as const,
+              clipType: 'hold',
               hold: 5,
             },
           },
@@ -109,5 +112,90 @@ describe('video-editor serialization', () => {
 
     expect(() => validateSerializedConfig(serialized)).not.toThrow();
     expect(serialized.pinnedShotGroups).toEqual(pinnedShotGroups);
+  });
+
+  it('round-trips legacy pinnedShotGroups through repairConfig before serialization', () => {
+    const repaired = repairConfig({
+      output: {
+        resolution: '1280x720',
+        fps: 30,
+        file: 'out.mp4',
+      },
+      tracks: [
+        {
+          id: 'V1',
+          kind: 'visual',
+          label: 'V1',
+        },
+      ],
+      clips: [
+        {
+          id: 'clip-2',
+          at: 5,
+          track: 'V1',
+          clipType: 'hold',
+          asset: 'asset-2',
+          hold: 3,
+        },
+        {
+          id: 'clip-1',
+          at: 1,
+          track: 'V1',
+          clipType: 'hold',
+          asset: 'asset-1',
+          hold: 4,
+        },
+      ],
+      pinnedShotGroups: [{
+        shotId: 'shot-1',
+        trackId: 'V1',
+        clipIds: ['clip-2', 'clip-1'],
+        mode: 'images',
+        imageClipSnapshot: [
+          {
+            clipId: 'clip-1',
+            assetKey: 'asset-1',
+            start: 1,
+            end: 5,
+            meta: { clipType: 'hold', hold: 4 },
+          },
+        ],
+        ...({
+          start: 1,
+          children: [
+            { clipId: 'clip-1', offset: 0, duration: 4 },
+            { clipId: 'clip-2', offset: 4, duration: 3 },
+          ],
+        } as unknown as object),
+      }],
+    } as TimelineConfig);
+
+    expect(repaired.pinnedShotGroups).toEqual([{
+      shotId: 'shot-1',
+      trackId: 'V1',
+      clipIds: ['clip-1', 'clip-2'],
+      mode: 'images',
+      imageClipSnapshot: [
+        {
+          clipId: 'clip-1',
+          assetKey: 'asset-1',
+          start: 1,
+          end: 5,
+          meta: { clipType: 'hold', hold: 4 },
+        },
+      ],
+    }]);
+
+    const serialized = serializeForDisk({
+      output: repaired.output,
+      tracks: repaired.tracks ?? [],
+      clips: repaired.clips,
+      registry: {},
+    } as unknown as ResolvedTimelineConfig, undefined, repaired.pinnedShotGroups);
+
+    expect(() => validateSerializedConfig(serialized)).not.toThrow();
+    expect(serialized.pinnedShotGroups).toEqual(repaired.pinnedShotGroups);
+    expect(serialized.pinnedShotGroups?.[0]).not.toHaveProperty('start');
+    expect(serialized.pinnedShotGroups?.[0]).not.toHaveProperty('children');
   });
 });

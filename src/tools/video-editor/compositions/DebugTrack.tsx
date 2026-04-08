@@ -31,7 +31,6 @@ export const DebugTrack: FC<{ src: string }> = ({ src }) => {
       <Video
         src={src}
         style={{ width: '100%', height: '100%', objectFit: 'contain' }}
-        crossOrigin="anonymous"
       />
       <div style={{
         position: 'absolute',

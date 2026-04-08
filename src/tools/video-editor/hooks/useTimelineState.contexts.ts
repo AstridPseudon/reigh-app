@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, type MutableRefObject } from 'react';
 import type { useAssetManagement } from '@/tools/video-editor/hooks/useAssetManagement';
 import type { useClipEditing } from '@/tools/video-editor/hooks/useClipEditing';
 import type { useClipResize } from '@/tools/video-editor/hooks/useClipResize';
@@ -25,7 +25,9 @@ import type { useRenderState } from '@/tools/video-editor/hooks/useRenderState';
 import type { SaveStatus } from '@/tools/video-editor/hooks/useTimelineSave';
 import type { useTimelineHistory } from '@/tools/video-editor/hooks/useTimelineHistory';
 import type {
+  TimelineActionResizeStart,
   TimelineChromeContextValue,
+  TimelineClipEdgeResizeEnd,
   TimelineEditorContextValue,
   TimelinePlaybackContextValue,
 } from '@/tools/video-editor/hooks/useTimelineState.types';
@@ -55,6 +57,7 @@ interface UseTimelineEditorContextValueArgs {
   isLoading: boolean;
   dataRef: TimelineDataRef;
   pendingOpsRef: TimelinePendingOpsRef;
+  interactionStateRef: import('@/tools/video-editor/lib/interaction-state').InteractionStateRef;
   editorPreferences: EditorPreferences;
   setSelectedTrackId: TimelineSetSelectedTrackId;
   setActiveClipTab: TimelineSetActiveClipTab;
@@ -83,6 +86,7 @@ export function useTimelineEditorContextValue({
   isLoading,
   dataRef,
   pendingOpsRef,
+  interactionStateRef,
   editorPreferences,
   setSelectedTrackId,
   setActiveClipTab,
@@ -99,6 +103,9 @@ export function useTimelineEditorContextValue({
   patchRegistry,
   registerAsset,
 }: UseTimelineEditorContextValueArgs): TimelineEditorContextValue {
+  const onActionResizeStart: TimelineActionResizeStart = clipResize.onActionResizeStart;
+  const onClipEdgeResizeEnd: TimelineClipEdgeResizeEnd = clipResize.onClipEdgeResizeEnd;
+
   return useMemo<TimelineEditorContextValue>(() => ({
     data,
     resolvedConfig: selection.resolvedConfig,
@@ -117,6 +124,7 @@ export function useTimelineEditorContextValue({
     isLoading,
     dataRef,
     pendingOpsRef,
+    interactionStateRef,
     coordinator: dragCoordinator.coordinator,
     indicatorRef: dragCoordinator.indicatorRef,
     editAreaRef: dragCoordinator.editAreaRef,
@@ -135,8 +143,8 @@ export function useTimelineEditorContextValue({
     registerGenerationAsset: assetManagement.registerGenerationAsset,
     onCursorDrag: playback.onCursorDrag,
     onClickTimeArea: playback.onClickTimeArea,
-    onActionResizeStart: clipResize.onActionResizeStart,
-    onActionResizeEnd: clipResize.onActionResizeEnd,
+    onActionResizeStart,
+    onClipEdgeResizeEnd,
     onOverlayChange: clipEditing.onOverlayChange,
     onTimelineDragOver: externalDrop.onTimelineDragOver,
     onTimelineDragLeave: externalDrop.onTimelineDragLeave,
@@ -172,6 +180,7 @@ export function useTimelineEditorContextValue({
     dataRef,
     isLoading,
     pendingOpsRef,
+    interactionStateRef,
     editorPreferences,
     scale,
     scaleWidth,
@@ -202,8 +211,8 @@ export function useTimelineEditorContextValue({
     clipEditing.handleUpdateClips,
     clipEditing.handleUpdateClipsDeep,
     clipEditing.onOverlayChange,
-    clipResize.onActionResizeEnd,
-    clipResize.onActionResizeStart,
+    onClipEdgeResizeEnd,
+    onActionResizeStart,
     dragCoordinator.coordinator,
     dragCoordinator.editAreaRef,
     dragCoordinator.indicatorRef,

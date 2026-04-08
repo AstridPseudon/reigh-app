@@ -27,6 +27,7 @@ vi.mock('@/tools/travel-between-images/pages/VideoTravelToolPage', () => ({ defa
 vi.mock('@/tools/character-animate/pages/CharacterAnimatePage', () => ({ default: () => null }));
 vi.mock('@/tools/join-clips/pages/JoinClipsPage', () => ({ default: () => null }));
 vi.mock('@/tools/edit-video/pages/EditVideoPage', () => ({ default: () => null }));
+vi.mock('@/tools/video-editor/pages/VideoEditorPage', () => ({ default: () => null }));
 vi.mock('@/tools/edit-images/pages/EditImagesPage', () => ({ default: () => null }));
 vi.mock('@/tools/training-data-helper/pages/TrainingDataHelperPage', () => ({ default: () => null }));
 vi.mock('@/pages/Blog/BlogListPage', () => ({ default: () => null }));
@@ -34,6 +35,7 @@ vi.mock('@/pages/Blog/BlogPostPage', () => ({ default: () => null }));
 vi.mock('@/pages/NotFoundPage', () => ({ default: () => null }));
 vi.mock('@/pages/ShotsPage', () => ({ default: () => null }));
 vi.mock('@/app/Layout', () => ({ Layout: () => null }));
+vi.mock('./DefaultToolRedirect', () => ({ DefaultToolRedirect: () => null }));
 vi.mock('@/shared/components/ReighLoading', () => ({ ReighLoading: () => null }));
 vi.mock('@/shared/components/ToolErrorBoundary', () => ({
   ToolErrorBoundary: ({ children }: { children: React.ReactNode }) => <>{children}</>,

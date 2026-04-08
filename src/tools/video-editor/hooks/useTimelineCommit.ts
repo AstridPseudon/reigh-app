@@ -20,7 +20,7 @@ import {
   type ClipOrderMap,
   type TimelineData,
 } from '@/tools/video-editor/lib/timeline-data';
-import type { TimelineAction, TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
+import type { TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 import type { AssetRegistryEntry } from '@/tools/video-editor/types';
 
 export type CommitHistoryOptions = {
@@ -73,156 +73,6 @@ export type ApplyEditOptions = {
 interface UseTimelineCommitOptions {
   eventBus: TimelineEventBus;
   lastSavedSignatureRef: MutableRefObject<string>;
-}
-
-function collectClipIds(rows: TimelineRow[]): Set<string> {
-  const clipIds = new Set<string>();
-  for (const row of rows) {
-    for (const action of row.actions) {
-      if (!action.id.startsWith('uploading-')) {
-        clipIds.add(action.id);
-      }
-    }
-  }
-  return clipIds;
-}
-
-function getSnapshotDuration(meta: NonNullable<TimelineData['config']['pinnedShotGroups']>[number]['imageClipSnapshot'][number]['meta']) {
-  if (typeof meta.hold === 'number' && Number.isFinite(meta.hold) && meta.hold > 0) {
-    return meta.hold;
-  }
-
-  if (
-    typeof meta.from === 'number'
-    && typeof meta.to === 'number'
-    && Number.isFinite(meta.from)
-    && Number.isFinite(meta.to)
-    && meta.to > meta.from
-  ) {
-    return Math.max(0.05, (meta.to - meta.from) / Math.max(meta.speed ?? 1, 0.01));
-  }
-
-  return 5;
-}
-
-function reconcilePinnedShotGroupsInRows({
-  current,
-  rows,
-  meta,
-  clipOrder,
-}: {
-  current: TimelineData;
-  rows: TimelineRow[];
-  meta: Record<string, ClipMeta>;
-  clipOrder: ClipOrderMap;
-}): {
-  rows: TimelineRow[];
-  meta: Record<string, ClipMeta>;
-  clipOrder: ClipOrderMap;
-  pinnedShotGroups: TimelineData['config']['pinnedShotGroups'];
-} {
-  const pinnedShotGroups = current.config.pinnedShotGroups;
-  if (!pinnedShotGroups?.length) {
-    return { rows, meta, clipOrder, pinnedShotGroups };
-  }
-
-  let nextRows = rows.map((row) => ({ ...row, actions: [...row.actions] }));
-  const nextMeta = { ...meta };
-  const nextClipOrder: ClipOrderMap = Object.fromEntries(
-    Object.entries(clipOrder).map(([trackId, clipIds]) => [trackId, [...clipIds]]),
-  );
-  const nextGroups: NonNullable<TimelineData['config']['pinnedShotGroups']> = [];
-
-  for (const group of pinnedShotGroups) {
-    const liveClipIds = group.clipIds.filter((clipId) => collectClipIds(nextRows).has(clipId));
-
-    if (group.mode !== 'video') {
-      if (liveClipIds.length > 0) {
-        nextGroups.push({ ...group, clipIds: liveClipIds });
-      }
-      continue;
-    }
-
-    if (liveClipIds.length > 0) {
-      nextGroups.push({ ...group, clipIds: liveClipIds });
-      continue;
-    }
-
-    if (!group.imageClipSnapshot?.length) {
-      continue;
-    }
-
-    const previousRow = current.rows.find((row) => row.id === group.trackId);
-    const deletedVideoClipId = group.clipIds[0];
-    const deletedVideoActionIndex = previousRow?.actions.findIndex((action) => action.id === deletedVideoClipId) ?? -1;
-    const deletedVideoAction = deletedVideoActionIndex >= 0
-      ? previousRow?.actions[deletedVideoActionIndex]
-      : undefined;
-    const nextRowIndex = nextRows.findIndex((row) => row.id === group.trackId);
-    if (!deletedVideoAction || nextRowIndex < 0) {
-      continue;
-    }
-
-    const idsBeforeDeleted = (previousRow?.actions.slice(0, deletedVideoActionIndex) ?? [])
-      .map((action) => action.id)
-      .filter((clipId) => collectClipIds(nextRows).has(clipId));
-    const insertionIndex = idsBeforeDeleted.length;
-
-    const restoredClipIds: string[] = [];
-    let cursor = deletedVideoAction.start;
-    const restoredActions: TimelineAction[] = group.imageClipSnapshot.map((snapshot) => {
-      const duration = getSnapshotDuration(snapshot.meta);
-      const action: TimelineAction = {
-        id: snapshot.clipId,
-        start: cursor,
-        end: cursor + duration,
-        effectId: `effect-${snapshot.clipId}`,
-      };
-      cursor = action.end;
-      restoredClipIds.push(snapshot.clipId);
-      nextMeta[snapshot.clipId] = {
-        ...snapshot.meta,
-        asset: snapshot.assetKey,
-        track: group.trackId,
-      };
-      return action;
-    });
-
-    nextRows = nextRows.map((row, rowIndex) => {
-      if (rowIndex !== nextRowIndex) {
-        return row;
-      }
-      return {
-        ...row,
-        actions: [
-          ...row.actions.slice(0, insertionIndex),
-          ...restoredActions,
-          ...row.actions.slice(insertionIndex),
-        ],
-      };
-    });
-
-    const currentTrackClipOrder = nextClipOrder[group.trackId] ?? [];
-    nextClipOrder[group.trackId] = [
-      ...currentTrackClipOrder.slice(0, insertionIndex),
-      ...restoredClipIds,
-      ...currentTrackClipOrder.slice(insertionIndex),
-    ];
-
-    nextGroups.push({
-      ...group,
-      clipIds: restoredClipIds,
-      mode: 'images',
-      videoAssetKey: undefined,
-    });
-  }
-
-  return {
-    rows: nextRows,
-    meta: nextMeta,
-    clipOrder: nextClipOrder,
-    pinnedShotGroups: nextGroups.length > 0 ? nextGroups : undefined,
-  };
 }
 
 export interface UseTimelineCommitResult {
@@ -283,24 +133,22 @@ export function useTimelineCommit({
     meta: Record<string, ClipMeta>,
     clipOrder: ClipOrderMap,
   ) => {
-    const reconciled = reconcilePinnedShotGroupsInRows({
-      current,
+    // Soft-tag model: cohesion is a property of edit operations, not data shape.
+    // rowsToConfig receives the untouched pinnedShotGroups from the current config;
+    // callers that need to update group membership must pass `pinnedShotGroupsOverride`
+    // explicitly on the mutation, which `applyEdit` handles below.
+    const config = rowsToConfig(
       rows,
       meta,
-      clipOrder,
-    });
-    const config = rowsToConfig(
-      reconciled.rows,
-      reconciled.meta,
       current.output,
-      reconciled.clipOrder,
+      clipOrder,
       current.tracks,
       current.config.customEffects,
-      reconciled.pinnedShotGroups,
+      current.config.pinnedShotGroups,
     );
 
     return preserveUploadingClips(
-      { ...current, rows: reconciled.rows, meta: reconciled.meta } as TimelineData,
+      { ...current, rows, meta } as TimelineData,
       buildDataFromCurrentRegistry(config, current),
     );
   }, []);
@@ -364,6 +212,8 @@ export function useTimelineCommit({
     }
 
     if (mutation.type === 'pinnedShotGroups') {
+      // Membership/metadata-only mutation. Soft-tag model: no projection; the
+      // clips are unchanged, only the group entries' clipIds/mode/etc. update.
       commitData(
         preserveUploadingClips(
           current,

@@ -141,6 +141,8 @@ export type CustomEffectEntry = {
 export type PinnedShotImageClipSnapshot = {
   clipId: string;
   assetKey?: string;
+  start?: number;
+  end?: number;
   meta: {
     clipType?: ClipType;
     from?: number;
@@ -166,11 +168,12 @@ export type PinnedShotImageClipSnapshot = {
   };
 };
 
+// `clipIds` is ordered left-to-right by each clip's live `at` and must be rebuilt whenever group membership or ordering changes.
 export type PinnedShotGroup = {
   shotId: string;
   trackId: string;
   clipIds: string[];
-  mode: 'images' | 'video';
+  mode?: 'images' | 'video';
   videoAssetKey?: string;
   imageClipSnapshot?: PinnedShotImageClipSnapshot[];
 };

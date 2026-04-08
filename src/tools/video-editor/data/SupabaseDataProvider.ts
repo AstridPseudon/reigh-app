@@ -49,7 +49,8 @@ export class SupabaseDataProvider implements DataProvider {
   ) {}
 
   async loadTimeline(timelineId: string): Promise<LoadedTimeline> {
-    const { data, error } = await getSupabaseClient()
+    const supabase = getSupabaseClient() as any;
+    const { data, error } = await supabase
       .from('timelines')
       .select('config, config_version')
       .eq('id', timelineId)
@@ -73,7 +74,8 @@ export class SupabaseDataProvider implements DataProvider {
   async saveTimeline(timelineId: string, config: TimelineConfig, expectedVersion: number): Promise<number> {
     validateSerializedConfig(config);
 
-    const { data, error } = await getSupabaseClient()
+    const supabase = getSupabaseClient() as any;
+    const { data, error } = await supabase
       .rpc('update_timeline_config_versioned' as never, {
         p_timeline_id: timelineId,
         p_expected_version: expectedVersion,
@@ -95,7 +97,7 @@ export class SupabaseDataProvider implements DataProvider {
   async saveCheckpoint(timelineId: string, checkpoint: Omit<Checkpoint, 'id'>): Promise<string> {
     validateSerializedConfig(checkpoint.config);
 
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClient() as any;
     const { data, error } = await supabase
       .from('timeline_checkpoints')
       .insert({
@@ -127,8 +129,8 @@ export class SupabaseDataProvider implements DataProvider {
 
     const extraCheckpointIds = (checkpointRows ?? [])
       .slice(TIMELINE_CHECKPOINT_LIMIT)
-      .map((row) => row.id)
-      .filter((id): id is string => typeof id === 'string');
+      .map((row: { id?: unknown }) => row.id)
+      .filter((id: unknown): id is string => typeof id === 'string');
 
     if (extraCheckpointIds.length > 0) {
       const { error: deleteError } = await supabase
@@ -145,7 +147,7 @@ export class SupabaseDataProvider implements DataProvider {
   }
 
   async loadCheckpoints(timelineId: string): Promise<Checkpoint[]> {
-    const supabase = getSupabaseClient();
+    const supabase = getSupabaseClient() as any;
     const retentionCutoff = new Date(Date.now() - TIMELINE_CHECKPOINT_RETENTION_MS).toISOString();
 
     const { error: cleanupError } = await supabase
@@ -169,11 +171,12 @@ export class SupabaseDataProvider implements DataProvider {
       throw error;
     }
 
-    return (data ?? []).map((row) => mapCheckpointRow(row as TimelineCheckpointRow));
+    return (data ?? []).map((row: unknown) => mapCheckpointRow(row as TimelineCheckpointRow));
   }
 
   async loadAssetRegistry(timelineId: string): Promise<AssetRegistry> {
-    const { data, error } = await getSupabaseClient()
+    const supabase = getSupabaseClient() as any;
+    const { data, error } = await supabase
       .from('timelines')
       .select('asset_registry')
       .eq('id', timelineId)
@@ -191,7 +194,8 @@ export class SupabaseDataProvider implements DataProvider {
       return file;
     }
 
-    const { data } = getSupabaseClient()
+    const supabase = getSupabaseClient() as any;
+    const { data } = supabase
       .storage
       .from(TIMELINE_ASSETS_BUCKET)
       .getPublicUrl(file);
@@ -204,7 +208,8 @@ export class SupabaseDataProvider implements DataProvider {
     assetId: string,
     entry: AssetRegistryEntry,
   ): Promise<void> {
-    const { error } = await getSupabaseClient()
+    const supabase = getSupabaseClient() as any;
+    const { error } = await supabase
       .rpc('upsert_asset_registry_entry' as never, {
         p_timeline_id: timelineId,
         p_asset_id: assetId,
@@ -225,7 +230,8 @@ export class SupabaseDataProvider implements DataProvider {
       .replace(/[^a-zA-Z0-9._-]/g, '');
     const storagePath = `${options.userId}/${options.timelineId}/${Date.now()}-${safeFilename}`;
 
-    const { error: uploadError } = await getSupabaseClient()
+    const supabase = getSupabaseClient() as any;
+    const { error: uploadError } = await supabase
       .storage
       .from(TIMELINE_ASSETS_BUCKET)
       .upload(storagePath, file, {
