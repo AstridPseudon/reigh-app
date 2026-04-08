@@ -1,4 +1,5 @@
 import type { AIInputMode } from "@/shared/contexts/AIInputModeContext"
+import type { WorkerLaunchConfigValues, WorkerLaunchConfigSetters } from "./hooks/useWorkerLaunchConfig"
 
 // Types for SettingsModal components
 
@@ -32,19 +33,9 @@ export interface GenerationSectionProps {
   handleGenerateToken: () => void;
   isGenerating: boolean;
   getActiveToken: () => { token: string; created_at: string } | undefined;
-  // Config state
-  computerType: string;
-  setComputerType: (value: string) => void;
-  gpuType: string;
-  setGpuType: (value: string) => void;
-  memoryProfile: string;
-  setMemoryProfile: (value: string) => void;
-  windowsShell: string;
-  setWindowsShell: (value: string) => void;
-  showDebugLogs: boolean;
-  setShowDebugLogs: (value: boolean) => void;
-  idleReleaseMinutes: string;
-  setIdleReleaseMinutes: (value: string) => void;
+  // Worker launch config (bundled)
+  launchConfig: WorkerLaunchConfigValues;
+  launchSetters: WorkerLaunchConfigSetters;
   // Tab state
   activeInstallTab: string;
   setActiveInstallTab: (value: string) => void;

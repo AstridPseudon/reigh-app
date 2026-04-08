@@ -20,6 +20,7 @@ import { useTextCase } from "@/shared/hooks/useTextCase";
 import { useAIInputMode } from "@/shared/contexts/AIInputModeContext";
 import { dispatchAppEvent } from '@/shared/lib/typedEvents';
 import { GenerationSection } from "./sections/GenerationSection";
+import { useWorkerLaunchConfig } from "./hooks/useWorkerLaunchConfig";
 import { PreferencesSection } from "./sections/PreferencesSection";
 import { TransactionsSection } from "./sections/TransactionsSection";
 import type { SettingsModalProps } from "./types";
@@ -49,23 +50,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   // Installation tab preference (persistent)
   const [activeInstallTab, setActiveInstallTab] = usePersistentState<string>("settings-install-tab", "need-install");
 
-  // Computer type preference (persistent)
-  const [computerType, setComputerType] = usePersistentState<string>("computer-type", "linux");
-
-  // GPU type preference (persistent)
-  const [gpuType, setGpuType] = usePersistentState<string>("gpu-type", "nvidia-30-40");
-
-  // Debug logs preference (persistent)
-  const [showDebugLogs, setShowDebugLogs] = usePersistentState<boolean>("show-debug-logs", false);
-
-  // Memory profile preference (persistent)
-  const [memoryProfile, setMemoryProfile] = usePersistentState<string>("memory-profile", "4");
-
-  // Windows shell type preference (persistent) - default to PowerShell as most users use it now
-  const [windowsShell, setWindowsShell] = usePersistentState<string>("windows-shell", "powershell");
-
-  // Idle-release window in minutes (persistent). "0" disables; default 15 matches the worker default.
-  const [idleReleaseMinutes, setIdleReleaseMinutes] = usePersistentState<string>("idle-release-minutes", "15");
+  // Local-worker launch settings (6 persistent values bundled into one hook)
+  const { config: launchConfig, setters: launchSetters } = useWorkerLaunchConfig();
 
   // Settings section toggle (Generation vs Transactions vs Preferences)
   const [settingsSection, setSettingsSection] = useState<'app' | 'transactions' | 'preferences'>('app');
@@ -234,18 +220,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               handleGenerateToken={handleGenerateToken}
               isGenerating={isGenerating}
               getActiveToken={getActiveToken}
-              computerType={computerType}
-              setComputerType={setComputerType}
-              gpuType={gpuType}
-              setGpuType={setGpuType}
-              memoryProfile={memoryProfile}
-              setMemoryProfile={setMemoryProfile}
-              windowsShell={windowsShell}
-              setWindowsShell={setWindowsShell}
-              showDebugLogs={showDebugLogs}
-              setShowDebugLogs={setShowDebugLogs}
-              idleReleaseMinutes={idleReleaseMinutes}
-              setIdleReleaseMinutes={setIdleReleaseMinutes}
+              launchConfig={launchConfig}
+              launchSetters={launchSetters}
               activeInstallTab={activeInstallTab}
               setActiveInstallTab={setActiveInstallTab}
               creditsTab={creditsTab}

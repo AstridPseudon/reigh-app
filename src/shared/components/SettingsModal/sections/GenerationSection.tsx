@@ -18,18 +18,8 @@ const GenerationSection: React.FC<GenerationSectionProps> = ({
   handleGenerateToken,
   isGenerating,
   getActiveToken,
-  computerType,
-  setComputerType,
-  gpuType,
-  setGpuType,
-  memoryProfile,
-  setMemoryProfile,
-  windowsShell,
-  setWindowsShell,
-  showDebugLogs,
-  setShowDebugLogs,
-  idleReleaseMinutes,
-  setIdleReleaseMinutes,
+  launchConfig,
+  launchSetters,
   activeInstallTab,
   setActiveInstallTab,
   creditsTab = "purchase",
@@ -144,26 +134,19 @@ const GenerationSection: React.FC<GenerationSectionProps> = ({
             ) : (
               <GenerationTokenPanel
                 isMobile={isMobile}
-                config={{
-                  computerType,
-                  gpuType,
-                  memoryProfile,
-                  windowsShell,
-                  showDebugLogs,
-                  idleReleaseMinutes,
-                }}
+                config={launchConfig}
                 state={{
                   generatedToken,
                   activeInstallTab,
                 }}
                 actions={{
                   getActiveToken,
-                  setComputerType,
-                  setGpuType,
-                  setMemoryProfile,
-                  setWindowsShell,
-                  setShowDebugLogs,
-                  setIdleReleaseMinutes,
+                  setComputerType: launchSetters.setComputerType,
+                  setGpuType: launchSetters.setGpuType,
+                  setMemoryProfile: launchSetters.setMemoryProfile,
+                  setWindowsShell: launchSetters.setWindowsShell,
+                  setShowDebugLogs: launchSetters.setShowDebugLogs,
+                  setIdleReleaseMinutes: launchSetters.setIdleReleaseMinutes,
                   setActiveInstallTab,
                   updateGenerationMethodsWithNotification,
                 }}

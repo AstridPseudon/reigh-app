@@ -9,13 +9,32 @@ export const safeCopy = (text: string): Promise<boolean> => {
 };
 
 /**
+ * Build the `python run_worker.py ...` line that launches the worker.
+ *
+ * Sole producer of the worker launch line — both `getInstallationCommand`
+ * and `getRunCommand` consume this for all OS branches, so a new flag is
+ * added in exactly one place.
+ *
+ * --idle-release-minutes is always appended (including '0', which the
+ * worker treats as disabled). --debug is conditional on showDebugLogs.
+ */
+export const buildWorkerLaunchLine = (config: CommandConfig): string => {
+  const { memoryProfile, showDebugLogs, idleReleaseMinutes, token } = config;
+  const flags = [
+    `--reigh-access-token ${token}`,
+    showDebugLogs ? '--debug' : null,
+    `--wgp-profile ${memoryProfile}`,
+    `--idle-release-minutes ${idleReleaseMinutes}`,
+  ].filter((f): f is string => Boolean(f));
+  return `python run_worker.py ${flags.join(' ')}`;
+};
+
+/**
  * Generate the installation command based on system configuration
  */
 export const getInstallationCommand = (config: CommandConfig): string => {
-  const { computerType, gpuType, memoryProfile, windowsShell, showDebugLogs, idleReleaseMinutes, token } = config;
-  const debugFlag = showDebugLogs ? ' --debug' : '';
-  const profileFlag = ` --wgp-profile ${memoryProfile}`;
-  const idleReleaseFlag = ` --idle-release-minutes ${idleReleaseMinutes}`;
+  const { computerType, gpuType, windowsShell } = config;
+  const launchLine = buildWorkerLaunchLine(config);
 
   // PyTorch install: 50 series needs cu128, ≤40 series uses cu124
   // Don't pin version - let pip grab the latest available in each index
@@ -40,7 +59,7 @@ python -m pip install --no-cache-dir -r requirements.txt
 ${torchInstall}
 echo Checking CUDA availability...
 python -c "import torch; assert torch.cuda.is_available(), 'ERROR: CUDA not available! Reinstall PyTorch with CUDA support.'; print('CUDA OK:', torch.cuda.get_device_name(0))"
-python run_worker.py --reigh-access-token ${token}${debugFlag}${profileFlag}${idleReleaseFlag}`;
+${launchLine}`;
   } else {
     // Linux command
     // Install torch LAST to ensure CUDA version doesn't get overwritten by requirements
@@ -53,7 +72,7 @@ python -m pip install --no-cache-dir -r Wan2GP/requirements.txt && \\
 python -m pip install --no-cache-dir -r requirements.txt && \\
 ${torchInstall} && \\
 python -c "import torch; assert torch.cuda.is_available(), 'ERROR: CUDA not available! Reinstall PyTorch with CUDA support.'; print('CUDA OK:', torch.cuda.get_device_name(0))" && \\
-python run_worker.py --reigh-access-token ${token}${debugFlag}${profileFlag}${idleReleaseFlag}`;
+${launchLine}`;
   }
 };
 
@@ -61,10 +80,8 @@ python run_worker.py --reigh-access-token ${token}${debugFlag}${profileFlag}${id
  * Generate the run command for an already installed worker
  */
 export const getRunCommand = (config: CommandConfig): string => {
-  const { computerType, memoryProfile, windowsShell, showDebugLogs, idleReleaseMinutes, token } = config;
-  const debugFlag = showDebugLogs ? ' --debug' : '';
-  const profileFlag = ` --wgp-profile ${memoryProfile}`;
-  const idleReleaseFlag = ` --idle-release-minutes ${idleReleaseMinutes}`;
+  const { computerType, windowsShell } = config;
+  const launchLine = buildWorkerLaunchLine(config);
 
   if (computerType === "windows") {
     // Shell-specific activation and directory check
@@ -78,13 +95,13 @@ export const getRunCommand = (config: CommandConfig): string => {
     return `${cdCheck}
 git pull
 ${activateCmd}
-python run_worker.py --reigh-access-token ${token}${debugFlag}${profileFlag}${idleReleaseFlag}`;
+${launchLine}`;
   } else {
     // Linux / Mac command - auto-cd if not in correct folder
     return `[ ! -f "run_worker.py" ] && cd Reigh-Worker
 git pull && \\
 source venv/bin/activate && \\
-python run_worker.py --reigh-access-token ${token}${debugFlag}${profileFlag}${idleReleaseFlag}`;
+${launchLine}`;
   }
 };
 
