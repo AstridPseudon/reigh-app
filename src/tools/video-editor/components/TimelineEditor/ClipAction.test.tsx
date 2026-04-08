@@ -149,6 +149,21 @@ describe('ClipAction', () => {
     expect(screen.queryByTitle('Jump to shot')).not.toBeInTheDocument();
   });
 
+  it('shows a duplicate action for generation-backed clips and calls it with the clip id', () => {
+    mockUseWaveformData();
+    const props = buildProps({
+      selectedClipIds: ['clip-1'],
+      isGenerationAsset: true,
+      onDuplicateGeneration: vi.fn(),
+    });
+    const { container } = render(<ClipAction {...props} />);
+
+    fireEvent.contextMenu(container.querySelector('[data-clip-id="clip-1"]') as HTMLElement);
+    fireEvent.click(screen.getByText('Duplicate generation'));
+
+    expect(props.onDuplicateGeneration).toHaveBeenCalledWith('clip-1');
+  });
+
   it('does not open a context menu for pinned-shot-group clips when no asset-state actions are available', () => {
     mockUseWaveformData();
     const props = buildProps({

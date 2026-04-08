@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { ArrowRight, Clapperboard, Film, FolderPlus, ImageIcon, Layers, Loader2, Music2, RefreshCw, Scissors, Trash2, Type, X } from 'lucide-react';
+import { ArrowRight, Clapperboard, Copy, Film, FolderPlus, ImageIcon, Layers, Loader2, Music2, RefreshCw, Scissors, Trash2, Type, X } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import type { Shot } from '@/domains/generation/types';
 import { usePortalMousedownGuard } from '@/shared/hooks/usePortalMousedownGuard';
@@ -40,6 +40,8 @@ interface ClipActionProps {
   isVariantStale?: boolean;
   /** True when the clip is linked to a generation (enables "Update to current variant" in menu) */
   isGenerationAsset?: boolean;
+  isDuplicatingGeneration?: boolean;
+  onDuplicateGeneration?: (clipId: string) => void | Promise<void>;
   onUpdateVariant?: () => void;
   onDismissStale?: () => void;
   canCreateShotFromSelection?: boolean;
@@ -55,7 +57,7 @@ const menuItemClassName = 'relative flex w-full cursor-default select-none items
 const destructiveMenuItemClassName = `${menuItemClassName} hover:bg-destructive hover:text-destructive-foreground`;
 const disabledMenuItemClassName = 'disabled:cursor-wait disabled:opacity-60';
 
-type ClipContextMenuProps = Pick<ClipActionProps, 'isGenerationAsset' | 'onUpdateVariant' | 'isVariantStale' | 'onDismissStale' | 'onSplitHere' | 'onToggleMuteClips' | 'onSplitClipsAtPlayhead' | 'onCreateShotFromSelection' | 'onGenerateVideoFromSelection' | 'onNavigateToShot' | 'onOpenGenerateVideo' | 'isCreatingShot' | 'onDeleteClip' | 'onDeleteClips' | 'isInPinnedShotGroup'> & { actionId: string; contextMenu: ContextMenuState; menuRef: React.RefObject<HTMLDivElement>; closeMenu: () => void; hasBatchSelection: boolean; selectedClipIds: string[]; showShotActions: boolean; hasActionsBeforeShotSection: boolean; existingShots?: Shot[]; };
+type ClipContextMenuProps = Pick<ClipActionProps, 'isGenerationAsset' | 'isDuplicatingGeneration' | 'onDuplicateGeneration' | 'onUpdateVariant' | 'isVariantStale' | 'onDismissStale' | 'onSplitHere' | 'onToggleMuteClips' | 'onSplitClipsAtPlayhead' | 'onCreateShotFromSelection' | 'onGenerateVideoFromSelection' | 'onNavigateToShot' | 'onOpenGenerateVideo' | 'isCreatingShot' | 'onDeleteClip' | 'onDeleteClips' | 'isInPinnedShotGroup'> & { actionId: string; contextMenu: ContextMenuState; menuRef: React.RefObject<HTMLDivElement>; closeMenu: () => void; hasBatchSelection: boolean; selectedClipIds: string[]; showShotActions: boolean; hasActionsBeforeShotSection: boolean; existingShots?: Shot[]; };
 type ClipContextMenuItemProps = { icon: React.ComponentType<{ className?: string }>; onClick: () => void; children: React.ReactNode; disabled?: boolean; destructive?: boolean; suffix?: React.ReactNode; };
 
 function ClipContextMenuItem({ icon: Icon, onClick, children, disabled = false, destructive = false, suffix }: ClipContextMenuItemProps) {
@@ -136,8 +138,14 @@ function ClipContextMenu(props: ClipContextMenuProps) {
   const pos = adjusted ?? props.contextMenu;
   const visibleExistingShots = (props.existingShots ?? []).filter((shot) => shot.id !== createdShot?.id);
   const hasAssetStateActions = !props.hasBatchSelection && Boolean(
-    (props.isGenerationAsset && props.onUpdateVariant)
+    (!props.isInPinnedShotGroup && props.isGenerationAsset && props.onDuplicateGeneration)
+    || (props.isGenerationAsset && props.onUpdateVariant)
     || (props.isVariantStale && props.onDismissStale),
+  );
+  const hasGenerationActions = !props.hasBatchSelection && Boolean(
+    !props.isInPinnedShotGroup && props.isGenerationAsset && (
+      props.onDuplicateGeneration || props.onUpdateVariant
+    ),
   );
   const hasLowerShotActions = Boolean(
     (!createdShot && (props.onCreateShotFromSelection || props.onGenerateVideoFromSelection))
@@ -150,6 +158,18 @@ function ClipContextMenu(props: ClipContextMenuProps) {
       className="fixed z-50 min-w-[10rem] overflow-hidden rounded-md border bg-popover p-1 text-popover-foreground shadow-md animate-in fade-in-0 zoom-in-95"
       style={{ left: pos.x, top: pos.y, visibility: adjusted ? 'visible' : 'hidden' }}
     >
+      {!props.hasBatchSelection && !props.isInPinnedShotGroup && props.isGenerationAsset && props.onDuplicateGeneration && (
+        <ClipContextMenuItem
+          icon={props.isDuplicatingGeneration ? Loader2 : Copy}
+          onClick={() => {
+            props.closeMenu();
+            void props.onDuplicateGeneration?.(props.actionId);
+          }}
+          disabled={props.isDuplicatingGeneration}
+        >
+          {props.isDuplicatingGeneration ? 'Duplicating generation…' : 'Duplicate generation'}
+        </ClipContextMenuItem>
+      )}
       {!props.hasBatchSelection && props.isGenerationAsset && props.onUpdateVariant && (
         <ClipContextMenuItem icon={RefreshCw} onClick={() => { props.onUpdateVariant?.(); props.closeMenu(); }}>
           Update to current variant
@@ -180,7 +200,7 @@ function ClipContextMenu(props: ClipContextMenuProps) {
               Split {props.selectedClipIds.length} clips at playhead
             </ClipContextMenuItem>
           )}
-          {props.showShotActions && props.hasActionsBeforeShotSection && <div className="my-1 h-px bg-border" />}
+          {props.showShotActions && (props.hasActionsBeforeShotSection || hasGenerationActions) && <div className="my-1 h-px bg-border" />}
           {props.showShotActions && visibleExistingShots.map((shot) => (
             <div key={shot.id} className="flex w-full items-center gap-1 rounded-sm px-2 py-1.5 text-sm">
               <span className="min-w-0 flex-1 truncate">{shot.name}</span>
@@ -265,6 +285,8 @@ function ClipActionComponent({
   isTaskActive,
   isVariantStale,
   isGenerationAsset,
+  isDuplicatingGeneration = false,
+  onDuplicateGeneration,
   onUpdateVariant,
   onDismissStale,
   canCreateShotFromSelection = false,
@@ -346,7 +368,8 @@ function ClipActionComponent({
     typeof onCreateShotFromSelection === 'function' || typeof onGenerateVideoFromSelection === 'function'
   ));
   const hasActionsBeforeShotSection = Boolean(
-    (!hasBatchSelection && isGenerationAsset && onUpdateVariant)
+    (!hasBatchSelection && isGenerationAsset && !isInPinnedShotGroup && onDuplicateGeneration)
+    || (!hasBatchSelection && isGenerationAsset && onUpdateVariant)
     || (!hasBatchSelection && isVariantStale && onDismissStale)
     || (!hasBatchSelection && onSplitHere)
     || (hasBatchSelection && onToggleMuteClips)
@@ -413,10 +436,10 @@ function ClipActionComponent({
             </div>
           )}
         </div>
-        {isTaskActive ? (
+        {isTaskActive || isDuplicatingGeneration ? (
           <div
             className="absolute right-1 top-1 z-20 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-white"
-            title="Task in progress"
+            title={isDuplicatingGeneration ? 'Duplicating generation' : 'Task in progress'}
           >
             <Loader2 className="h-2.5 w-2.5 animate-spin" />
           </div>
@@ -449,6 +472,8 @@ function ClipActionComponent({
           selectedClipIds={selectedClipIds}
           isInPinnedShotGroup={isInPinnedShotGroup}
           isGenerationAsset={isGenerationAsset}
+          isDuplicatingGeneration={isDuplicatingGeneration}
+          onDuplicateGeneration={onDuplicateGeneration}
           onUpdateVariant={onUpdateVariant}
           isVariantStale={isVariantStale}
           onDismissStale={onDismissStale}
@@ -486,6 +511,7 @@ function areClipActionPropsEqual(prev: ClipActionProps, next: ClipActionProps): 
   if (prev.isTaskActive !== next.isTaskActive) return false;
   if (prev.isVariantStale !== next.isVariantStale) return false;
   if (prev.isGenerationAsset !== next.isGenerationAsset) return false;
+  if (prev.isDuplicatingGeneration !== next.isDuplicatingGeneration) return false;
   if (prev.canCreateShotFromSelection !== next.canCreateShotFromSelection) return false;
   if (prev.isCreatingShot !== next.isCreatingShot) return false;
   if (prevSelectedClipIds.length !== nextSelectedClipIds.length) return false;
@@ -514,6 +540,7 @@ function areClipActionPropsEqual(prev: ClipActionProps, next: ClipActionProps): 
     && prev.onDeleteClip === next.onDeleteClip
     && prev.onDeleteClips === next.onDeleteClips
     && prev.onToggleMuteClips === next.onToggleMuteClips
+    && prev.onDuplicateGeneration === next.onDuplicateGeneration
     && prev.onCreateShotFromSelection === next.onCreateShotFromSelection
     && prev.onGenerateVideoFromSelection === next.onGenerateVideoFromSelection
     && prev.onNavigateToShot === next.onNavigateToShot
