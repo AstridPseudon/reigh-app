@@ -47,6 +47,20 @@ const SHELL_LABELS: Record<string, string> = {
   powershell: 'PowerShell',
 };
 
+const IDLE_RELEASE_OPTIONS: Array<{ value: string; label: string }> = [
+  { value: '0', label: 'Never' },
+  { value: '15', label: '15 min' },
+  { value: '30', label: '30 min' },
+  { value: '45', label: '45 min' },
+  { value: '60', label: '60 min' },
+  { value: '75', label: '75 min' },
+  { value: '90', label: '90 min' },
+];
+
+const IDLE_RELEASE_LABELS: Record<string, string> = Object.fromEntries(
+  IDLE_RELEASE_OPTIONS.map(({ value, label }) => [value, label]),
+);
+
 function useCopyFeedback() {
   const [copiedInstallCommand, setCopiedInstallCommand] = useState(false);
   const [copiedRunCommand, setCopiedRunCommand] = useState(false);
@@ -73,6 +87,7 @@ interface GenerationTokenPanelConfig {
   memoryProfile: string;
   windowsShell: string;
   showDebugLogs: boolean;
+  idleReleaseMinutes: string;
 }
 
 interface GenerationTokenPanelState {
@@ -87,6 +102,7 @@ interface GenerationTokenPanelActions {
   setMemoryProfile: (value: string) => void;
   setWindowsShell: (value: string) => void;
   setShowDebugLogs: (value: boolean) => void;
+  setIdleReleaseMinutes: (value: string) => void;
   setActiveInstallTab: (value: string) => void;
   updateGenerationMethodsWithNotification: (patch: { onComputer?: boolean; inCloud?: boolean }) => void;
 }
@@ -110,6 +126,7 @@ export const GenerationTokenPanel: React.FC<GenerationTokenPanelProps> = ({
     memoryProfile,
     windowsShell,
     showDebugLogs,
+    idleReleaseMinutes,
   } = config;
   const {
     generatedToken,
@@ -122,6 +139,7 @@ export const GenerationTokenPanel: React.FC<GenerationTokenPanelProps> = ({
     setMemoryProfile,
     setWindowsShell,
     setShowDebugLogs,
+    setIdleReleaseMinutes,
     setActiveInstallTab,
     updateGenerationMethodsWithNotification,
   } = actions;
@@ -152,8 +170,9 @@ export const GenerationTokenPanel: React.FC<GenerationTokenPanelProps> = ({
     memoryProfile,
     windowsShell,
     showDebugLogs,
+    idleReleaseMinutes,
     token: generatedToken || getActiveToken()?.token || 'your-api-token',
-  }), [computerType, gpuType, memoryProfile, windowsShell, showDebugLogs, generatedToken, getActiveToken]);
+  }), [computerType, gpuType, memoryProfile, windowsShell, showDebugLogs, idleReleaseMinutes, generatedToken, getActiveToken]);
 
   const handleCopyInstallCommand = useCallback(async () => {
     const ok = await safeCopy(getInstallationCommand(getCommandConfig()));
@@ -179,7 +198,7 @@ export const GenerationTokenPanel: React.FC<GenerationTokenPanelProps> = ({
   return (
     <div className="space-y-4">
       <div className="space-y-4">
-        <div className={`grid ${isMobile ? 'grid-cols-2' : computerType === 'windows' ? 'grid-cols-5' : 'grid-cols-4'} gap-2`}>
+        <div className={`grid ${isMobile ? 'grid-cols-2' : computerType === 'windows' ? 'grid-cols-6' : 'grid-cols-5'} gap-2`}>
           <div>
             <Label className="text-xs text-blue-600 dark:text-blue-400 mb-1 block">Computer:</Label>
             <Select
@@ -323,6 +342,29 @@ export const GenerationTokenPanel: React.FC<GenerationTokenPanelProps> = ({
                 {showDebugLogs ? 'ON' : 'OFF'}
               </span>
             </button>
+          </div>
+
+          <div>
+            <Label className="text-xs text-cyan-600 dark:text-cyan-400 mb-1 block">Free GPU:</Label>
+            <Select
+              value={idleReleaseMinutes}
+              onValueChange={(value) => {
+                if (value) {
+                  setIdleReleaseMinutes(value);
+                }
+              }}
+            >
+              <SelectTrigger variant="retro" size="sm" colorScheme="cyan" className="w-full h-9">
+                <SelectValue>{(v: string | null) => IDLE_RELEASE_LABELS[v ?? ""] ?? v}</SelectValue>
+              </SelectTrigger>
+              <SelectContent variant="retro">
+                {IDLE_RELEASE_OPTIONS.map(({ value, label }) => (
+                  <SelectItem key={value} variant="retro" value={value} label={label}>
+                    {label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 

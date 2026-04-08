@@ -15,6 +15,7 @@ export interface CommandConfig {
   memoryProfile: string;
   windowsShell: string;
   showDebugLogs: boolean;
+  idleReleaseMinutes: string;
   token: string;
 }
 
@@ -42,6 +43,8 @@ export interface GenerationSectionProps {
   setWindowsShell: (value: string) => void;
   showDebugLogs: boolean;
   setShowDebugLogs: (value: boolean) => void;
+  idleReleaseMinutes: string;
+  setIdleReleaseMinutes: (value: string) => void;
   // Tab state
   activeInstallTab: string;
   setActiveInstallTab: (value: string) => void;

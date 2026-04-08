@@ -64,6 +64,9 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
   // Windows shell type preference (persistent) - default to PowerShell as most users use it now
   const [windowsShell, setWindowsShell] = usePersistentState<string>("windows-shell", "powershell");
 
+  // Idle-release window in minutes (persistent). "0" disables; default 15 matches the worker default.
+  const [idleReleaseMinutes, setIdleReleaseMinutes] = usePersistentState<string>("idle-release-minutes", "15");
+
   // Settings section toggle (Generation vs Transactions vs Preferences)
   const [settingsSection, setSettingsSection] = useState<'app' | 'transactions' | 'preferences'>('app');
 
@@ -241,6 +244,8 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
               setWindowsShell={setWindowsShell}
               showDebugLogs={showDebugLogs}
               setShowDebugLogs={setShowDebugLogs}
+              idleReleaseMinutes={idleReleaseMinutes}
+              setIdleReleaseMinutes={setIdleReleaseMinutes}
               activeInstallTab={activeInstallTab}
               setActiveInstallTab={setActiveInstallTab}
               creditsTab={creditsTab}

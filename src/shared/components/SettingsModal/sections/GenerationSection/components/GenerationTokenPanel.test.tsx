@@ -103,6 +103,7 @@ function buildProps(overrides: Record<string, unknown> = {}) {
       memoryProfile: '3',
       windowsShell: 'cmd',
       showDebugLogs: false,
+      idleReleaseMinutes: '15',
     },
     state: {
       generatedToken: null,
@@ -115,6 +116,7 @@ function buildProps(overrides: Record<string, unknown> = {}) {
       setMemoryProfile: vi.fn(),
       setWindowsShell: vi.fn(),
       setShowDebugLogs: vi.fn(),
+      setIdleReleaseMinutes: vi.fn(),
       setActiveInstallTab: vi.fn(),
       updateGenerationMethodsWithNotification: vi.fn(),
     },

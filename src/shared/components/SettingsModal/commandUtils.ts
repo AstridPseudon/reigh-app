@@ -12,9 +12,10 @@ export const safeCopy = (text: string): Promise<boolean> => {
  * Generate the installation command based on system configuration
  */
 export const getInstallationCommand = (config: CommandConfig): string => {
-  const { computerType, gpuType, memoryProfile, windowsShell, showDebugLogs, token } = config;
+  const { computerType, gpuType, memoryProfile, windowsShell, showDebugLogs, idleReleaseMinutes, token } = config;
   const debugFlag = showDebugLogs ? ' --debug' : '';
   const profileFlag = ` --wgp-profile ${memoryProfile}`;
+  const idleReleaseFlag = ` --idle-release-minutes ${idleReleaseMinutes}`;
 
   // PyTorch install: 50 series needs cu128, ≤40 series uses cu124
   // Don't pin version - let pip grab the latest available in each index
@@ -39,7 +40,7 @@ python -m pip install --no-cache-dir -r requirements.txt
 ${torchInstall}
 echo Checking CUDA availability...
 python -c "import torch; assert torch.cuda.is_available(), 'ERROR: CUDA not available! Reinstall PyTorch with CUDA support.'; print('CUDA OK:', torch.cuda.get_device_name(0))"
-python worker.py --reigh-access-token ${token}${debugFlag}${profileFlag}`;
+python run_worker.py --reigh-access-token ${token}${debugFlag}${profileFlag}${idleReleaseFlag}`;
   } else {
     // Linux command
     // Install torch LAST to ensure CUDA version doesn't get overwritten by requirements
@@ -52,7 +53,7 @@ python -m pip install --no-cache-dir -r Wan2GP/requirements.txt && \\
 python -m pip install --no-cache-dir -r requirements.txt && \\
 ${torchInstall} && \\
 python -c "import torch; assert torch.cuda.is_available(), 'ERROR: CUDA not available! Reinstall PyTorch with CUDA support.'; print('CUDA OK:', torch.cuda.get_device_name(0))" && \\
-python worker.py --reigh-access-token ${token}${debugFlag}${profileFlag}`;
+python run_worker.py --reigh-access-token ${token}${debugFlag}${profileFlag}${idleReleaseFlag}`;
   }
 };
 
@@ -60,15 +61,16 @@ python worker.py --reigh-access-token ${token}${debugFlag}${profileFlag}`;
  * Generate the run command for an already installed worker
  */
 export const getRunCommand = (config: CommandConfig): string => {
-  const { computerType, memoryProfile, windowsShell, showDebugLogs, token } = config;
+  const { computerType, memoryProfile, windowsShell, showDebugLogs, idleReleaseMinutes, token } = config;
   const debugFlag = showDebugLogs ? ' --debug' : '';
   const profileFlag = ` --wgp-profile ${memoryProfile}`;
+  const idleReleaseFlag = ` --idle-release-minutes ${idleReleaseMinutes}`;
 
   if (computerType === "windows") {
     // Shell-specific activation and directory check
     const cdCheck = windowsShell === "powershell"
-      ? `if (!(Test-Path worker.py)) { cd Reigh-Worker }`
-      : `if not exist worker.py cd Reigh-Worker`;
+      ? `if (!(Test-Path run_worker.py)) { cd Reigh-Worker }`
+      : `if not exist run_worker.py cd Reigh-Worker`;
     const activateCmd = windowsShell === "powershell"
       ? `.\\venv\\Scripts\\Activate.ps1`
       : `venv\\Scripts\\activate.bat`;
@@ -76,13 +78,13 @@ export const getRunCommand = (config: CommandConfig): string => {
     return `${cdCheck}
 git pull
 ${activateCmd}
-python worker.py --reigh-access-token ${token}${debugFlag}${profileFlag}`;
+python run_worker.py --reigh-access-token ${token}${debugFlag}${profileFlag}${idleReleaseFlag}`;
   } else {
     // Linux / Mac command - auto-cd if not in correct folder
-    return `[ ! -f "worker.py" ] && cd Reigh-Worker
+    return `[ ! -f "run_worker.py" ] && cd Reigh-Worker
 git pull && \\
 source venv/bin/activate && \\
-python worker.py --reigh-access-token ${token}${debugFlag}${profileFlag}`;
+python run_worker.py --reigh-access-token ${token}${debugFlag}${profileFlag}${idleReleaseFlag}`;
   }
 };
 

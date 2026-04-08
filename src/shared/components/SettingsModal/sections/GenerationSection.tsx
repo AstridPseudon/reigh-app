@@ -28,6 +28,8 @@ const GenerationSection: React.FC<GenerationSectionProps> = ({
   setWindowsShell,
   showDebugLogs,
   setShowDebugLogs,
+  idleReleaseMinutes,
+  setIdleReleaseMinutes,
   activeInstallTab,
   setActiveInstallTab,
   creditsTab = "purchase",
@@ -148,6 +150,7 @@ const GenerationSection: React.FC<GenerationSectionProps> = ({
                   memoryProfile,
                   windowsShell,
                   showDebugLogs,
+                  idleReleaseMinutes,
                 }}
                 state={{
                   generatedToken,
@@ -160,6 +163,7 @@ const GenerationSection: React.FC<GenerationSectionProps> = ({
                   setMemoryProfile,
                   setWindowsShell,
                   setShowDebugLogs,
+                  setIdleReleaseMinutes,
                   setActiveInstallTab,
                   updateGenerationMethodsWithNotification,
                 }}

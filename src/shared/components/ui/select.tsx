@@ -64,6 +64,7 @@ const selectTriggerVariants = cva(
         emerald: "!border-emerald-400/60 hover:!border-emerald-500 hover:!bg-emerald-400/15 dark:!border-emerald-500 dark:hover:!bg-emerald-500/20 !text-emerald-600 dark:!text-emerald-400 hover:!shadow-[0_2px_6px_-2px_rgba(16,185,129,0.15)] dark:hover:!shadow-[-1px_1px_0_0_rgba(20,30,30,0.4)] focus:!ring-emerald-400/30",
         amber: "!border-amber-400/60 hover:!border-amber-500 hover:!bg-amber-400/15 dark:!border-amber-500 dark:hover:!bg-amber-500/20 !text-amber-600 dark:!text-amber-400 hover:!shadow-[0_2px_6px_-2px_rgba(245,158,11,0.15)] dark:hover:!shadow-[-1px_1px_0_0_rgba(20,30,30,0.4)] focus:!ring-amber-400/30",
         rose: "!border-rose-400/60 hover:!border-rose-500 hover:!bg-rose-400/15 dark:!border-rose-500 dark:hover:!bg-rose-500/20 !text-rose-600 dark:!text-rose-400 hover:!shadow-[0_2px_6px_-2px_rgba(244,63,94,0.15)] dark:hover:!shadow-[-1px_1px_0_0_rgba(20,30,30,0.4)] focus:!ring-rose-400/30",
+        cyan: "!border-cyan-400/60 hover:!border-cyan-500 hover:!bg-cyan-400/15 dark:!border-cyan-500 dark:hover:!bg-cyan-500/20 !text-cyan-600 dark:!text-cyan-400 hover:!shadow-[0_2px_6px_-2px_rgba(6,182,212,0.15)] dark:hover:!shadow-[-1px_1px_0_0_rgba(20,30,30,0.4)] focus:!ring-cyan-400/30",
         // Zinc scheme for dark panes - subtle secondary style
         zinc: "!bg-zinc-800/70 !border-zinc-700 !text-zinc-400 hover:!bg-zinc-700/70 hover:!text-zinc-300 focus:!ring-zinc-600/30",
       },
