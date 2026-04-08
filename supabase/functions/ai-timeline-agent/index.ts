@@ -38,7 +38,25 @@ serve((req) => withEdgeRequest<AgentInvocationBody>(
 
     const session = normalizeSessionRow(rawSession);
     if (session.user_id !== auth.userId) return jsonResponse({ error: "Forbidden" }, 403);
-    if (session.status === "cancelled") return jsonResponse({ error: "Session cancelled", status: "cancelled" }, 409);
+    if (session.status === "cancelled") {
+      logger.warn("Rejected invoke for cancelled session", {
+        session_id: session.id,
+        user_id: auth.userId,
+        status: session.status,
+        cancelled_at: session.cancelled_at,
+        cancelled_by: session.cancelled_by,
+        cancel_source: session.cancel_source,
+        cancel_reason: session.cancel_reason,
+      });
+      return jsonResponse({
+        error: "Session cancelled",
+        status: "cancelled",
+        cancelled_at: session.cancelled_at,
+        cancelled_by: session.cancelled_by,
+        cancel_source: session.cancel_source,
+        cancel_reason: session.cancel_reason,
+      }, 409);
+    }
 
     const lastTurn = session.turns[session.turns.length - 1];
     const nextUserMessage = userMessage && lastTurn?.role === "user" && lastTurn.content === userMessage ? undefined : userMessage;

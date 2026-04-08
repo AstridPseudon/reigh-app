@@ -428,6 +428,10 @@ export async function runAgentLoop(
 
       const currentStatus = await loadSessionStatus(supabaseAdmin, session.id);
       if (currentStatus === "cancelled") {
+        logger.info("Detected cancelled session during agent loop", {
+          session_id: session.id,
+          status: currentStatus,
+        });
         status = "cancelled";
         break;
       }

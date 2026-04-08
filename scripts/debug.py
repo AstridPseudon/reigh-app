@@ -156,7 +156,9 @@ def create_parser() -> argparse.ArgumentParser:
     # Logs command
     logs_parser = subparsers.add_parser('logs', help='View system logs')
     logs_parser.add_argument('--source', help='Filter by source type (browser, worker, edge_function, orchestrator_gpu, orchestrator_api)')
-    logs_parser.add_argument('--session', help='Filter by session ID (source_id)')
+    logs_parser.add_argument('--session', help='Legacy alias for source_id filter')
+    logs_parser.add_argument('--source-id', help='Filter by system_logs.source_id (for example ai-timeline-agent or browser session id)')
+    logs_parser.add_argument('--metadata-session', help='Filter by metadata.session_id (useful for ai-timeline-agent session UUIDs)')
     logs_parser.add_argument('--latest', action='store_true', help='Show logs from most recent browser session')
     logs_parser.add_argument('--sessions', action='store_true', help='List recent browser sessions')
     logs_parser.add_argument('--tag', help='Filter by tag in message (e.g., TaskPoller, ShotNav, console)')
@@ -211,6 +213,10 @@ def main():
         options['source'] = args.source
     if hasattr(args, 'session') and args.session:
         options['session'] = args.session
+    if hasattr(args, 'source_id') and args.source_id:
+        options['source_id'] = args.source_id
+    if hasattr(args, 'metadata_session') and args.metadata_session:
+        options['metadata_session'] = args.metadata_session
     if hasattr(args, 'latest') and args.latest:
         options['latest'] = True
     if hasattr(args, 'sessions') and args.sessions:

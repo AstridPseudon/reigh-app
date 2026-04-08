@@ -277,6 +277,8 @@ class DebugClient:
         limit: Optional[int] = None,  # None = fetch all (paginated)
         source_type: Optional[str] = None,
         session_id: Optional[str] = None,
+        source_id: Optional[str] = None,
+        metadata_session_id: Optional[str] = None,
         level: Optional[str] = None,
         hours: Optional[int] = None,
         latest_session: bool = False,
@@ -301,8 +303,11 @@ class DebugClient:
             
             if source_type:
                 query = query.eq('source_type', source_type)
-            if session_id:
-                query = query.eq('source_id', session_id)
+            effective_source_id = source_id or session_id
+            if effective_source_id:
+                query = query.eq('source_id', effective_source_id)
+            if metadata_session_id:
+                query = query.contains('metadata', {'session_id': metadata_session_id})
             if level:
                 query = query.eq('log_level', level.upper())
             if hours:
@@ -343,7 +348,8 @@ class DebugClient:
         
         return {
             'logs': all_logs,
-            'session_id': session_id,
+            'source_id': source_id or session_id,
+            'metadata_session_id': metadata_session_id,
             'total_count': len(all_logs),
             'tag_filter': tag
         }

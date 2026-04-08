@@ -176,4 +176,29 @@ describe('AgentChat', () => {
 
     expect(gallerySelection.clearGallerySelection).toHaveBeenCalledTimes(1);
   });
+
+  it('disables sending when the active session has been cancelled', async () => {
+    mocks.useAgentSession.mockReturnValue({
+      data: {
+        id: 'session-1',
+        status: 'cancelled',
+        turns: [],
+      },
+      isLoading: false,
+    });
+
+    render(<AgentChat timelineId="timeline-1" />);
+
+    fireEvent.click(screen.getByTitle('Timeline Agent (Cmd+Shift+R to talk)'));
+
+    expect(await screen.findByText('Session stopped. Start a new conversation to continue.')).toBeInTheDocument();
+
+    const input = screen.getByPlaceholderText('Type or press Cmd+Shift+R to talk...');
+    const voiceButton = screen.getByTitle('Voice input (Cmd+Shift+R)');
+    const sendButton = screen.getByTitle('Send');
+
+    expect(input).toBeDisabled();
+    expect(voiceButton).toBeDisabled();
+    expect(sendButton).toBeDisabled();
+  });
 });

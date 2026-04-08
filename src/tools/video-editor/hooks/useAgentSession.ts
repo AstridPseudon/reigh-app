@@ -79,6 +79,10 @@ function normalizeSession(row: unknown): AgentSession {
     turns: normalizeTurns(record.turns),
     model: typeof record.model === 'string' ? record.model : 'groq',
     summary: typeof record.summary === 'string' ? record.summary : null,
+    cancelled_at: typeof record.cancelled_at === 'string' ? record.cancelled_at : null,
+    cancelled_by: typeof record.cancelled_by === 'string' ? record.cancelled_by : null,
+    cancel_source: typeof record.cancel_source === 'string' ? record.cancel_source : null,
+    cancel_reason: typeof record.cancel_reason === 'string' ? record.cancel_reason : null,
     created_at: typeof record.created_at === 'string' ? record.created_at : '',
     updated_at: typeof record.updated_at === 'string' ? record.updated_at : '',
   };
@@ -284,7 +288,23 @@ export function useSendMessage(sessionId: string | null | undefined, timelineId?
           // Supabase functions.invoke returns a generic "Edge Function returned a non-2xx status code"
           // message in `error`, but the actual error details are in `data`.
           const detail = typeof data === 'object' && data !== null
-            ? (data as Record<string, unknown>).error ?? (data as Record<string, unknown>).details ?? (data as Record<string, unknown>).message
+            ? (() => {
+              const record = data as Record<string, unknown>;
+              if (record.status === 'cancelled') {
+                const reason = typeof record.cancel_reason === 'string' ? record.cancel_reason : null;
+                const source = typeof record.cancel_source === 'string' ? record.cancel_source : null;
+                const cancelledAt = typeof record.cancelled_at === 'string' ? record.cancelled_at : null;
+                const parts = [
+                  reason,
+                  source ? `source=${source}` : null,
+                  cancelledAt ? `at=${cancelledAt}` : null,
+                ].filter((part): part is string => Boolean(part));
+                if (parts.length > 0) {
+                  return `Session cancelled (${parts.join(', ')})`;
+                }
+              }
+              return record.error ?? record.details ?? record.message;
+            })()
             : undefined;
           if (detail && typeof detail === 'string') {
             throw new Error(detail);
@@ -360,20 +380,55 @@ export function useCancelSession(sessionId: string | null | undefined) {
         throw new Error('sessionId is required');
       }
 
+      let userId: string | null = null;
+      try {
+        const { data: authData, error: authError } = await getSupabaseClient().auth.getUser();
+        if (authError) {
+          console.warn('[AgentChatCancel] Failed to resolve authenticated user before cancelling session', {
+            sessionId,
+            error: authError.message,
+          });
+        } else {
+          userId = authData.user?.id ?? null;
+        }
+      } catch (error) {
+        console.warn('[AgentChatCancel] Unexpected auth lookup failure before cancelling session', {
+          sessionId,
+          error: toErrorMessage(error),
+        });
+      }
+
+      console.warn('[AgentChatCancel] Cancelling session from AgentChat UI', {
+        sessionId,
+        userId,
+        path: typeof window !== 'undefined' ? window.location.pathname : null,
+      });
+
       const supabase = getSupabaseClient() as any;
       const { error } = await supabase
         .from(TIMELINE_AGENT_SESSIONS_TABLE as never)
         .update({
           status: 'cancelled',
+          cancelled_at: new Date().toISOString(),
+          cancelled_by: userId,
+          cancel_source: 'agent_chat_ui',
+          cancel_reason: 'user_stop_button',
           updated_at: new Date().toISOString(),
         })
         .eq('id', sessionId);
 
       if (error) {
+        console.warn('[AgentChatCancel] Session cancellation update failed', {
+          sessionId,
+          error: error.message,
+        });
         throw error;
       }
     },
     onSuccess: () => {
+      console.warn('[AgentChatCancel] Session cancellation update succeeded', {
+        sessionId,
+      });
       void queryClient.invalidateQueries({ queryKey: agentSessionQueryKey(sessionId) });
       void queryClient.invalidateQueries({ queryKey: ['timeline-agent-sessions'] });
     },

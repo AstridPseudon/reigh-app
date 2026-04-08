@@ -150,6 +150,7 @@ export function AgentChat({ timelineId }: AgentChatProps) {
     [activeSession.data?.turns],
   );
   const activeStatus = activeSession.data?.status;
+  const isCancelled = activeStatus === 'cancelled';
   const isProcessing = activeStatus === 'processing' || activeStatus === 'continue';
   const showKillSwitch = activeStatus === 'processing' || activeStatus === 'continue';
 
@@ -161,7 +162,22 @@ export function AgentChat({ timelineId }: AgentChatProps) {
     }
 
     setActiveSessionId((current) => {
-      if (current && sessionOptions.some((s) => s.id === current)) return current;
+      const currentSession = current
+        ? sessionOptions.find((session) => session.id === current) ?? null
+        : null;
+      if (currentSession && currentSession.status !== 'cancelled') {
+        return current;
+      }
+
+      const preferredSession = sessionOptions.find((session) => session.status !== 'cancelled');
+      if (preferredSession) {
+        return preferredSession.id;
+      }
+
+      if (currentSession) {
+        return currentSession.id;
+      }
+
       return sessionOptions[0]?.id ?? null;
     });
   }, [sessionOptions]);
@@ -454,7 +470,13 @@ export function AgentChat({ timelineId }: AgentChatProps) {
             </div>
           )}
 
-          {!isProcessing && !sendMessage.isPending && (sendMessage.localError || activeStatus === 'error') && (
+          {!isProcessing && !sendMessage.isPending && isCancelled && (
+            <div className="mb-2 rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-xs text-muted-foreground">
+              Session stopped. Start a new conversation to continue.
+            </div>
+          )}
+
+          {!isProcessing && !sendMessage.isPending && !isCancelled && (sendMessage.localError || activeStatus === 'error') && (
             <div className="mb-2 rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
               {sendMessage.localError ?? 'Agent error. Try again or start a new conversation.'}
             </div>
@@ -468,7 +490,7 @@ export function AgentChat({ timelineId }: AgentChatProps) {
               onChange={(event) => setDraft(event.target.value)}
               placeholder={voice.isRecording ? 'Recording...' : 'Type or press Cmd+Shift+R to talk...'}
               className="h-10 flex-1 rounded-xl border border-border/70 bg-card px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary/50"
-              disabled={!activeSessionId || isProcessing || voice.isRecording || voice.isProcessing}
+              disabled={!activeSessionId || isCancelled || isProcessing || voice.isRecording || voice.isProcessing}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && !event.shiftKey) {
                   event.preventDefault();
@@ -484,7 +506,7 @@ export function AgentChat({ timelineId }: AgentChatProps) {
                 variant={voice.isRecording ? 'destructive' : 'outline'}
                 className="h-10 w-10 rounded-xl"
                 onClick={() => voice.isRecording ? voice.stopRecording() : voice.startRecording()}
-                disabled={!activeSessionId || voice.isProcessing || sendMessage.isPending}
+                disabled={!activeSessionId || isCancelled || voice.isProcessing || sendMessage.isPending}
                 title={voice.isRecording ? 'Stop recording' : 'Voice input (Cmd+Shift+R)'}
               >
                 {voice.isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
@@ -508,7 +530,7 @@ export function AgentChat({ timelineId }: AgentChatProps) {
               size="icon"
               className="h-10 w-10 shrink-0 rounded-xl"
               onClick={() => void handleSend()}
-              disabled={!draft.trim() || !activeSessionId || isProcessing || sendMessage.isPending}
+              disabled={!draft.trim() || !activeSessionId || isCancelled || isProcessing || sendMessage.isPending}
               title="Send"
             >
               <Send className="h-4 w-4" />

@@ -19,4 +19,17 @@ DEPLOY_RAILWAY.md
 
 # Build artifacts that might confuse detection
 dist/
-node_modules/ 
+node_modules/
+
+# VCS and local tooling state
+.git/
+.megaplan/
+.desloppify/
+.venv*/
+.ruff_cache/
+
+# Local diagnostics and artifacts
+localhost-*.log
+findings*.json
+perfile_findings.json
+without-intro.mp4

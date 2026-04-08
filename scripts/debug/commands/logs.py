@@ -23,6 +23,8 @@ def run(client: DebugClient, options: dict):
             limit=limit,
             source_type=options.get('source'),
             session_id=options.get('session'),
+            source_id=options.get('source_id'),
+            metadata_session_id=options.get('metadata_session'),
             level=options.get('level'),
             hours=options.get('hours'),
             latest_session=options.get('latest', False),
@@ -46,19 +48,24 @@ def run(client: DebugClient, options: dict):
 def _print_logs_text(result: dict, options: dict):
     """Print logs in human-readable format."""
     logs = result.get('logs', [])
-    session_id = result.get('session_id')
+    source_id = result.get('source_id')
+    metadata_session_id = result.get('metadata_session_id')
     tag_filter = result.get('tag_filter')
     
     print("=" * 80)
     
-    if session_id:
-        print(f"📜 BROWSER SESSION: {session_id}")
+    if options.get('latest'):
+        print(f"📜 BROWSER SESSION: {source_id}")
+    elif source_id:
+        print(f"📜 SOURCE ID: {source_id}")
     else:
         source = options.get('source', 'all')
         print(f"📜 SYSTEM LOGS ({source})")
     
     if tag_filter:
         print(f"🏷️  Tag filter: [{tag_filter}*]")
+    if metadata_session_id:
+        print(f"🧵 Metadata session_id: {metadata_session_id}")
     
     print("=" * 80)
     
@@ -116,7 +123,7 @@ def _print_logs_text(result: dict, options: dict):
     print("\n" + "=" * 80)
     
     # Show hint for browser sessions
-    if options.get('source') == 'browser' and not session_id:
+    if options.get('source') == 'browser' and not source_id:
         print("\n💡 Tip: Use --latest for most recent session, or --sessions to list sessions")
 
 
@@ -160,5 +167,5 @@ def _print_sessions(sessions: list, format_type: str):
         print()
     
     print("=" * 80)
-    print("\n💡 To view a session: debug.py logs --session <session_id>")
+    print("\n💡 To view a session: debug.py logs --source-id <session_id>")
     print("   Or for latest:     debug.py logs --latest")

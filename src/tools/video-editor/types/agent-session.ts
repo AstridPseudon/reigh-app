@@ -29,6 +29,10 @@ export type AgentSession = {
   turns: AgentTurn[];
   model: string;
   summary: string | null;
+  cancelled_at?: string | null;
+  cancelled_by?: string | null;
+  cancel_source?: string | null;
+  cancel_reason?: string | null;
   created_at: string;
   updated_at: string;
 };
