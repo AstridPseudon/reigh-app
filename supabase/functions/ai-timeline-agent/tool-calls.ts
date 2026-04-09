@@ -12,6 +12,15 @@ export type ExtractedToolCall = {
 };
 
 const COMMAND_VERBS = /^(?:view|move|split|trim|delete|rm|set|set-text|settext|add-text|addtext|text|swap|duplicate|dup|clone|query|undo|find-issues|findissues|issues|generate|gen)\b/;
+const FALLBACK_TOOL_NAMES = new Set([
+  "run",
+  "create_task",
+  "duplicate_generation",
+  "search_loras",
+  "set_lora",
+  "create_shot",
+  "get_tasks",
+]);
 
 function cleanCommand(raw: string): string {
   return raw
@@ -19,6 +28,141 @@ function cleanCommand(raw: string): string {
     .replace(/\\'/g, "'")
     .replace(/^["']+|["']+$/g, "")
     .trim();
+}
+
+function extractBalancedBlock(
+  text: string,
+  startIndex: number,
+  openChar: string,
+  closeChar: string,
+): { content: string; endIndex: number } | null {
+  if (text[startIndex] !== openChar) {
+    return null;
+  }
+
+  let depth = 0;
+  let inString = false;
+  let stringQuote = "";
+  let escaped = false;
+
+  for (let index = startIndex; index < text.length; index += 1) {
+    const char = text[index];
+
+    if (inString) {
+      if (escaped) {
+        escaped = false;
+        continue;
+      }
+      if (char === "\\") {
+        escaped = true;
+        continue;
+      }
+      if (char === stringQuote) {
+        inString = false;
+        stringQuote = "";
+      }
+      continue;
+    }
+
+    if (char === "\"" || char === "'") {
+      inString = true;
+      stringQuote = char;
+      continue;
+    }
+
+    if (char === openChar) {
+      depth += 1;
+      continue;
+    }
+
+    if (char !== closeChar) {
+      continue;
+    }
+
+    depth -= 1;
+    if (depth === 0) {
+      return {
+        content: text.slice(startIndex, index + 1),
+        endIndex: index + 1,
+      };
+    }
+  }
+
+  return null;
+}
+
+function buildToolCall(name: string, rawArguments: string): ExtractedToolCall {
+  const { args, error } = parseToolArgsSafely(rawArguments);
+  return {
+    id: crypto.randomUUID(),
+    name,
+    args,
+    parseError: error,
+  };
+}
+
+function extractTextFormattedToolCalls(text: string): ExtractedToolCall[] {
+  const toolCalls: ExtractedToolCall[] = [];
+
+  const toolCallHeaderRe = /Tool call\s+([a-z_]+)\s*:/gi;
+  let headerMatch: RegExpExecArray | null;
+  while ((headerMatch = toolCallHeaderRe.exec(text)) !== null) {
+    const name = headerMatch[1];
+    if (!FALLBACK_TOOL_NAMES.has(name)) {
+      continue;
+    }
+
+    const jsonStart = text.indexOf("{", headerMatch.index + headerMatch[0].length);
+    if (jsonStart < 0) {
+      continue;
+    }
+
+    const balancedJson = extractBalancedBlock(text, jsonStart, "{", "}");
+    if (!balancedJson) {
+      continue;
+    }
+
+    toolCalls.push(buildToolCall(name, balancedJson.content));
+    toolCallHeaderRe.lastIndex = balancedJson.endIndex;
+  }
+  if (toolCalls.length > 0) {
+    return toolCalls;
+  }
+
+  const invocationRe = /\b([a-z_]+)\s*\(\s*/gi;
+  let invocationMatch: RegExpExecArray | null;
+  while ((invocationMatch = invocationRe.exec(text)) !== null) {
+    const name = invocationMatch[1];
+    if (!FALLBACK_TOOL_NAMES.has(name)) {
+      continue;
+    }
+
+    const argsStart = invocationRe.lastIndex;
+    const firstNonSpaceIndex = text.slice(argsStart).search(/\S/);
+    if (firstNonSpaceIndex < 0) {
+      continue;
+    }
+
+    const jsonStart = argsStart + firstNonSpaceIndex;
+    if (text[jsonStart] !== "{") {
+      continue;
+    }
+
+    const balancedJson = extractBalancedBlock(text, jsonStart, "{", "}");
+    if (!balancedJson) {
+      continue;
+    }
+
+    const closingParenIndex = text.slice(balancedJson.endIndex).search(/\)/);
+    if (closingParenIndex < 0) {
+      continue;
+    }
+
+    toolCalls.push(buildToolCall(name, balancedJson.content));
+    invocationRe.lastIndex = balancedJson.endIndex + closingParenIndex + 1;
+  }
+
+  return toolCalls;
 }
 
 export function extractToolCalls(responseMessage: Record<string, unknown>): ExtractedToolCall[] {
@@ -41,6 +185,9 @@ export function extractToolCalls(responseMessage: Record<string, unknown>): Extr
 
   const text = extractAssistantText(responseMessage);
   if (!text) return [];
+
+  const textFormattedToolCalls = extractTextFormattedToolCalls(text);
+  if (textFormattedToolCalls.length > 0) return textFormattedToolCalls;
 
   const toolCalls: ExtractedToolCall[] = [];
   const runRe = /run\s*\(\s*(?:command\s*=\s*)?["']([^"']+)["']\s*\)/g;

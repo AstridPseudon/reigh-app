@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { addMediaClip } from "./timeline.ts";
+import { addMediaClip, viewTimeline } from "./timeline.ts";
 import type { AssetRegistry, TimelineConfig } from "../../../../src/tools/video-editor/types/index.ts";
 
 function makeConfig(tracks: { id: string; label: string; kind: string }[] = []): TimelineConfig {
@@ -87,5 +87,50 @@ describe("addMediaClip", () => {
 
     expect(result.config).toBeUndefined();
     expect(result.result).toContain("requires");
+  });
+});
+
+describe("viewTimeline", () => {
+  it("includes clip-level shot context and a shot-groups section with resolved names or shot-id fallback", () => {
+    const config = {
+      output: { file: "out.mp4", fps: 30, resolution: "1920x1080" },
+      tracks: [{ id: "V1", label: "V1", kind: "visual" }],
+      clips: [
+        {
+          id: "clip-1",
+          asset: "asset-1",
+          at: 0,
+          track: "V1",
+          clipType: "hold",
+          hold: 2,
+        },
+        {
+          id: "clip-2",
+          asset: "asset-2",
+          at: 2,
+          track: "V1",
+          clipType: "hold",
+          hold: 3,
+        },
+      ],
+      pinnedShotGroups: [
+        { shotId: "shot-1", trackId: "V1", clipIds: ["clip-1"], mode: "images" },
+        { shotId: "shot-2", trackId: "V1", clipIds: ["clip-2"], mode: "video" },
+      ],
+    } as unknown as TimelineConfig;
+
+    const result = viewTimeline(config, makeRegistry({
+      "asset-1": { duration: 2 },
+      "asset-2": { duration: 3 },
+    }), {
+      "shot-1": "Hero Shot",
+    });
+
+    expect(result.result).toContain("Clips:");
+    expect(result.result).toContain("- id=clip-1 | track=V1 | at=0s | duration=2s | type=hold | asset=asset-1 | shot=Hero Shot | shotId=shot-1");
+    expect(result.result).toContain("- id=clip-2 | track=V1 | at=2s | duration=3s | type=hold | asset=asset-2 | shot=shot-2 | shotId=shot-2");
+    expect(result.result).toContain("Shot groups:");
+    expect(result.result).toContain("- shot=Hero Shot | shotId=shot-1 | trackId=V1 | clipIds=clip-1 | mode=images");
+    expect(result.result).toContain("- shot=shot-2 | shotId=shot-2 | trackId=V1 | clipIds=clip-2 | mode=video");
   });
 });

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy } from '@dnd-kit/sortable';
 import type { ShotImageManagerProps, ShotLightboxSelectionProps } from './types';
@@ -184,6 +185,19 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
     readOnly,
   };
 
+  const dragOverlayContent = dragAndDrop.activeImage ? (
+    selection.selectedIds.length > 1 &&
+    dragAndDrop.activeId !== null &&
+    selection.selectedIds.includes(dragAndDrop.activeId) ? (
+      <MultiImagePreview
+        count={selection.selectedIds.length}
+        image={dragAndDrop.activeImage}
+      />
+    ) : (
+      <SingleImagePreview image={dragAndDrop.activeImage} />
+    )
+  ) : null;
+
   return (
     <>
       <DesktopScrubbingPreview
@@ -266,20 +280,9 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
               />
             </SortableContext>
 
-            <DragOverlay>
-              {dragAndDrop.activeImage && (
-                selection.selectedIds.length > 1 &&
-                dragAndDrop.activeId !== null &&
-                selection.selectedIds.includes(dragAndDrop.activeId) ? (
-                  <MultiImagePreview
-                    count={selection.selectedIds.length}
-                    image={dragAndDrop.activeImage}
-                  />
-                ) : (
-                  <SingleImagePreview image={dragAndDrop.activeImage} />
-                )
-              )}
-            </DragOverlay>
+            {typeof document !== 'undefined'
+              ? createPortal(<DragOverlay>{dragOverlayContent}</DragOverlay>, document.body)
+              : <DragOverlay>{dragOverlayContent}</DragOverlay>}
 
             <DesktopLightboxOverlay
               lightbox={lightbox}

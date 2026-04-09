@@ -31,6 +31,61 @@ export const secondsToFrames = (seconds: number, fps: number): number => {
   return Math.round(seconds * fps);
 };
 
+export const getSanitizedMediaTrimProps = (
+  clip: Pick<TimelineClip, 'from' | 'to'>,
+  fps: number,
+): { trimBefore: number; trimAfter?: number } => {
+  const trimBeforeSeconds = typeof clip.from === 'number' && Number.isFinite(clip.from)
+    ? Math.max(0, clip.from)
+    : 0;
+  const trimAfterSeconds = typeof clip.to === 'number' && Number.isFinite(clip.to) && clip.to > trimBeforeSeconds
+    ? clip.to
+    : undefined;
+
+  return {
+    trimBefore: secondsToFrames(trimBeforeSeconds, fps),
+    ...(trimAfterSeconds === undefined ? {} : { trimAfter: secondsToFrames(trimAfterSeconds, fps) }),
+  };
+};
+
+export const getSanitizedPlaybackRate = (speed: TimelineClip['speed']): number => {
+  return typeof speed === 'number' && Number.isFinite(speed) && speed > 0 ? speed : 1;
+};
+
+export const getSanitizedVolume = (volume: number | undefined, fallback = 1): number => {
+  return typeof volume === 'number' && Number.isFinite(volume)
+    ? Math.max(0, volume)
+    : fallback;
+};
+
+export const getSanitizedAssetFile = (file: string | undefined): string | null => {
+  return typeof file === 'string' && file.trim().length > 0 ? file.trim() : null;
+};
+
+export const getSanitizedMediaSrc = (src: string | undefined): string | null => {
+  if (typeof src !== 'string') {
+    return null;
+  }
+
+  const trimmed = src.trim();
+  if (trimmed.length === 0) {
+    return null;
+  }
+
+  if (/^(?:https?:\/\/|\/)/.test(trimmed)) {
+    try {
+      const url = new URL(trimmed, 'http://localhost');
+      if (url.pathname.endsWith('/')) {
+        return null;
+      }
+    } catch {
+      return null;
+    }
+  }
+
+  return trimmed;
+};
+
 export const getClipDurationInFrames = (clip: TimelineClip, fps: number): number => {
   return Math.max(1, secondsToFrames(getClipTimelineDuration(clip), fps));
 };
@@ -115,9 +170,33 @@ export const resolveTimelineConfig = async (
 
   await Promise.all(
     Object.entries(registry.assets ?? {}).map(async ([assetId, entry]) => {
+      const sanitizedFile = getSanitizedAssetFile(entry.file);
+      if (!sanitizedFile) {
+        console.warn(`Asset '${assetId}' has no file path - skipping`);
+        return;
+      }
+
+      let resolvedSrc: string;
+      try {
+        resolvedSrc = isRemoteUrl(sanitizedFile) ? sanitizedFile : await resolveUrl(sanitizedFile);
+      } catch (error) {
+        console.warn(`Asset '${assetId}' failed to resolve URL - skipping`, error);
+        return;
+      }
+
+      const sanitizedSrc = getSanitizedMediaSrc(resolvedSrc);
+      if (!sanitizedSrc) {
+        console.warn(`Asset '${assetId}' resolved to an invalid media URL - skipping`, {
+          file: sanitizedFile,
+          src: resolvedSrc,
+        });
+        return;
+      }
+
       resolvedRegistry[assetId] = {
         ...entry,
-        src: isRemoteUrl(entry.file) ? entry.file : await resolveUrl(entry.file),
+        file: sanitizedFile,
+        src: sanitizedSrc,
       };
     }),
   );

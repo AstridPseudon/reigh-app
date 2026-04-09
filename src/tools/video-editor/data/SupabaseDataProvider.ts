@@ -190,15 +190,20 @@ export class SupabaseDataProvider implements DataProvider {
   }
 
   async resolveAssetUrl(file: string): Promise<string> {
-    if (/^https?:\/\//.test(file)) {
-      return file;
+    const sanitizedFile = file.trim();
+    if (sanitizedFile.length === 0) {
+      throw new Error('Cannot resolve asset URL for an empty file path');
+    }
+
+    if (/^https?:\/\//.test(sanitizedFile)) {
+      return sanitizedFile;
     }
 
     const supabase = getSupabaseClient() as any;
     const { data } = supabase
       .storage
       .from(TIMELINE_ASSETS_BUCKET)
-      .getPublicUrl(file);
+      .getPublicUrl(sanitizedFile);
 
     return data.publicUrl;
   }

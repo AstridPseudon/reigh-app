@@ -52,6 +52,12 @@ export function buildSelectedClipsPrompt(
     const generationText = typeof clip.generation_id === "string" && clip.generation_id.trim()
       ? ` | generation_id=${clip.generation_id}`
       : "";
+    const shotIdText = typeof clip.shot_id === "string" && clip.shot_id.trim()
+      ? ` | shot_id=${clip.shot_id}`
+      : "";
+    const shotNameText = typeof clip.shot_name === "string" && clip.shot_name.trim()
+      ? ` | shot_name="${formatSelectedClipPrompt(clip.shot_name)}"`
+      : "";
     const promptText = typeof clip.prompt === "string" && clip.prompt.trim() && !isPlaceholderSelectedClipPrompt(clip.prompt)
       ? ` | prompt="${formatSelectedClipPrompt(clip.prompt)}"`
       : "";
@@ -60,8 +66,8 @@ export function buildSelectedClipsPrompt(
       : "";
 
     return timelineContext
-      ? `- ${clip.clip_id} (${clip.media_type}, ${clip.url})${generationText} | timeline=${timelineContext}${promptText}${uploadHint}`
-      : `- ${clip.clip_id} (${clip.media_type}, ${clip.url})${generationText}${promptText}${uploadHint}`;
+      ? `- ${clip.clip_id} (${clip.media_type}, ${clip.url})${generationText}${shotIdText}${shotNameText} | timeline=${timelineContext}${promptText}${uploadHint}`
+      : `- ${clip.clip_id} (${clip.media_type}, ${clip.url})${generationText}${shotIdText}${shotNameText}${promptText}${uploadHint}`;
   });
 
   return `\n\nUser has selected the following clips:\n${selectedClipLines.join("\n")}\nThese clips are the focus of the user's request.`;
@@ -76,6 +82,8 @@ export function buildTimelineAgentSystemPrompt(
     activeReference?: ResolvedReference | null;
     travelSettings?: AgentVideoTravelSettings | null;
     imageLorasByCategory?: ImageLorasByCategory | null;
+    sharedShotId?: string | null;
+    sharedShotName?: string | null;
   },
 ): string {
   const preferredModelLine = options.defaultModel
@@ -127,6 +135,16 @@ export function buildTimelineAgentSystemPrompt(
 - Image generation: ${formatImageLoras(options.imageLorasByCategory)}
 Use search_loras to find LoRAs and set_lora to add/remove them.`
     : "";
+  const sharedShotLine = options.sharedShotId
+    ? [
+      "Selected clips already share shot context.",
+      `shot_id=${options.sharedShotId}`,
+      options.sharedShotName
+        ? `shot_name="${formatSelectedClipPrompt(options.sharedShotName)}"`
+        : null,
+      "Reuse this shot for related edits, duplicate flows, travel defaults, and reference lookups unless the user asks for a new shot.",
+    ].filter((line): line is string => Boolean(line)).join(" ")
+    : "";
 
   return `Timeline editor. Use run(command="...") for edits. Plain text for conversation.
 
@@ -147,6 +165,9 @@ Use duplicate_generation({"generation_id":"..."}) to copy an existing generation
 If the user says "in this style", "like this", "use this look", "match this image", or similar and a selected image is present, treat that selected image as a style reference.
 In that case, do not ignore the selected image and do not fall back to plain text-to-image without a reference.
 Prefer create_task with task_type="style-transfer" and copy the selected image URL into reference_image_urls.
+If the user says "of it", "same subject", "same thing", "this exact image", "new angle of this", "from above", "from another angle", "edit this", or similar and a selected image is present, treat that selected image as the source subject rather than a style reference.
+If the user also says "without style", "w/o style", "no style transfer", or asks for a new view/composition of the selected image, prefer create_task with task_type="image-to-image" and copy the selected image URL into reference_image_urls.
+In that case, do not ignore the selected image, do not convert it into style-transfer, and do not fall back to plain text-to-image.
 If the selected image only has placeholder metadata such as prompt="Uploaded ...", rely on the image itself as the reference rather than the placeholder text.
 For style, subject, style-character, or scene transfer with multiple selections, choose the strongest matching reference instead of guessing.
 For image-to-video or travel-between-images requests, use all selected reference_image_urls in the order that best matches the requested motion.
@@ -171,6 +192,7 @@ Model guide:
 ${preferredModelLine ? `- ${preferredModelLine}` : ""}
 ${activeReferenceLine ? `- ${activeReferenceLine}` : ""}
 ${activeTravelDefaultsLine ? `- ${activeTravelDefaultsLine}` : ""}
+${sharedShotLine ? `- ${sharedShotLine}` : ""}
 ${activeLorasSection ? `${activeLorasSection}
 ` : ""}
 

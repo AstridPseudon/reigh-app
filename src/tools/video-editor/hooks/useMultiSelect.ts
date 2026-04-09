@@ -7,6 +7,7 @@ export interface SelectClipOptions {
 export interface UseMultiSelectResult {
   selectedClipIds: ReadonlySet<string>;
   selectedClipIdsRef: React.MutableRefObject<Set<string>>;
+  additiveSelectionRef: React.MutableRefObject<boolean>;
   primaryClipId: string | null;
   selectClip: (clipId: string, opts?: SelectClipOptions) => void;
   selectClips: (clipIds: Iterable<string>) => void;
@@ -64,6 +65,7 @@ export function useMultiSelect(): UseMultiSelectResult {
   const [primaryClipIdState, setPrimaryClipIdState] = useState<string | null>(null);
 
   const selectedClipIdsRef = useRef<Set<string>>(selectedClipIdsState);
+  const additiveSelectionRef = useRef(false);
   const primaryClipIdRef = useRef<string | null>(primaryClipIdState);
 
   useLayoutEffect(() => {
@@ -71,8 +73,13 @@ export function useMultiSelect(): UseMultiSelectResult {
     primaryClipIdRef.current = primaryClipIdState;
   }, [primaryClipIdState, selectedClipIdsState]);
 
-  const commitSelection = useCallback((nextSelection: Set<string>, nextPrimaryClipId: string | null) => {
+  const commitSelection = useCallback((
+    nextSelection: Set<string>,
+    nextPrimaryClipId: string | null,
+    nextIsAdditiveSelection: boolean,
+  ) => {
     selectedClipIdsRef.current = nextSelection;
+    additiveSelectionRef.current = nextIsAdditiveSelection;
     primaryClipIdRef.current = nextPrimaryClipId;
     setSelectedClipIdsState(nextSelection);
     setPrimaryClipIdState(nextPrimaryClipId);
@@ -83,12 +90,12 @@ export function useMultiSelect(): UseMultiSelectResult {
       return;
     }
 
-    commitSelection(new Set(), null);
+    commitSelection(new Set(), null, false);
   }, [commitSelection]);
 
   const selectClip = useCallback((clipId: string, opts?: SelectClipOptions) => {
     if (!opts?.toggle) {
-      commitSelection(new Set([clipId]), clipId);
+      commitSelection(new Set([clipId]), clipId, false);
       return;
     }
 
@@ -101,17 +108,18 @@ export function useMultiSelect(): UseMultiSelectResult {
           nextSelection,
           primaryClipIdRef.current === clipId ? null : primaryClipIdRef.current,
         ),
+        nextSelection.size > 1,
       );
       return;
     }
 
     nextSelection.add(clipId);
-    commitSelection(nextSelection, clipId);
+    commitSelection(nextSelection, clipId, nextSelection.size > 1);
   }, [commitSelection]);
 
   const selectClips = useCallback((clipIds: Iterable<string>) => {
     const nextSelection = buildSelectionSet(clipIds);
-    commitSelection(nextSelection, getPrimaryClipId(nextSelection, null));
+    commitSelection(nextSelection, getPrimaryClipId(nextSelection, null), false);
   }, [commitSelection]);
 
   const addToSelection = useCallback((clipIds: Iterable<string>) => {
@@ -128,7 +136,7 @@ export function useMultiSelect(): UseMultiSelectResult {
       return;
     }
 
-    commitSelection(nextSelection, nextPrimaryClipId);
+    commitSelection(nextSelection, nextPrimaryClipId, nextSelection.size > 1);
   }, [commitSelection]);
 
   const isClipSelected = useCallback((clipId: string) => {
@@ -151,12 +159,13 @@ export function useMultiSelect(): UseMultiSelectResult {
       return;
     }
 
-    commitSelection(nextSelection, nextPrimaryClipId);
+    commitSelection(nextSelection, nextPrimaryClipId, additiveSelectionRef.current && nextSelection.size > 1);
   }, [commitSelection]);
 
   return {
     selectedClipIds: selectedClipIdsState,
     selectedClipIdsRef,
+    additiveSelectionRef,
     primaryClipId: primaryClipIdState,
     selectClip,
     selectClips,

@@ -148,6 +148,38 @@ describe('setGenerationDragData / getGenerationDropData round-trip', () => {
     expect(result).toEqual(data);
   });
 
+  it('trims whitespace-only URLs out of generation payloads', () => {
+    const event = createMockDragEvent({
+      data: {
+        'application/x-generation': JSON.stringify({
+          generationId: ' gen-123 ',
+          imageUrl: '   ',
+          thumbUrl: ' https://example.com/thumb.png ',
+        }),
+      },
+    });
+
+    expect(getGenerationDropData(event)).toBeNull();
+  });
+
+  it('normalizes trimmed generation URLs from the payload', () => {
+    const event = createMockDragEvent({
+      data: {
+        'application/x-generation': JSON.stringify({
+          generationId: ' gen-123 ',
+          imageUrl: ' https://example.com/video.mp4 ',
+          thumbUrl: ' https://example.com/thumb.png ',
+        }),
+      },
+    });
+
+    expect(getGenerationDropData(event)).toEqual({
+      generationId: 'gen-123',
+      imageUrl: 'https://example.com/video.mp4',
+      thumbUrl: 'https://example.com/thumb.png',
+    });
+  });
+
   it('detects generation drags from prefixed text/plain payloads', () => {
     const event = createMockDragEvent({
       types: ['text/plain'],

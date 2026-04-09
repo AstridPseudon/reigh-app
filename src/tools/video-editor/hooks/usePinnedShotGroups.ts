@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useRef } from 'react';
 import type { Shot } from '@/domains/generation/types';
+import { getMediaUrl, getThumbnailUrl } from '@/shared/lib/media/mediaTypeHelpers';
+import { selectTimelineImages } from '@/shared/lib/shotImageSelectors';
 import { buildAssetDropEdit, type UseAssetManagementResult } from '@/tools/video-editor/hooks/useAssetManagement';
 import type { TimelineApplyEdit, TimelineDataRef } from '@/tools/video-editor/hooks/timeline-state-types';
 import { orderClipIdsByAt } from '@/tools/video-editor/lib/pinned-group-projection';
@@ -42,13 +44,7 @@ function clonePinnedShotGroup(group: PinnedShotGroup): PinnedShotGroup {
 }
 
 function getSyncableShotImages(shot: Shot | undefined) {
-  return (shot?.images ?? []).filter((image) => {
-    // Only include positioned image-type generations
-    const contentType = image.contentType ?? image.type ?? '';
-    if (contentType.startsWith('video') || contentType === 'video') return false;
-    if (image.timeline_frame == null) return false;
-    return true;
-  });
+  return selectTimelineImages(shot?.images ?? []);
 }
 
 function areStringArraysEqual(left: string[], right: string[]) {
@@ -284,7 +280,11 @@ export function usePinnedGroupSync({
 
         for (const desiredImage of desiredImages) {
           const desiredGenerationId = desiredImage.generation_id;
+          const imageUrl = getMediaUrl(desiredImage);
           if (typeof desiredGenerationId !== 'string' || desiredGenerationId.length === 0) {
+            continue;
+          }
+          if (!imageUrl) {
             continue;
           }
 
@@ -318,8 +318,8 @@ export function usePinnedGroupSync({
           const assetKey = registerGenerationAsset({
             generationId: desiredGenerationId,
             variantType: 'image',
-            imageUrl: desiredImage.imageUrl ?? desiredImage.location ?? '',
-            thumbUrl: desiredImage.thumbUrl ?? (desiredImage as { thumbnail_url?: string }).thumbnail_url ?? desiredImage.imageUrl ?? desiredImage.location ?? '',
+            imageUrl,
+            thumbUrl: getThumbnailUrl(desiredImage) ?? imageUrl,
             metadata: {
               content_type: desiredImage.contentType ?? desiredImage.type ?? 'image/png',
             },

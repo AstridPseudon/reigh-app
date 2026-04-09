@@ -169,6 +169,15 @@ export function setShotDragData(e: React.DragEvent, data: ShotDropData): void {
   }
 }
 
+function sanitizeOptionalString(value: unknown): string | undefined {
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+}
+
 function parseGenerationDropData(dataString: string): GenerationDropData | null {
   if (!dataString) {
     return null;
@@ -184,11 +193,19 @@ function parseGenerationDropData(dataString: string): GenerationDropData | null 
     return null;
   }
 
-  if (!data.generationId || !data.imageUrl) {
+  const generationId = sanitizeOptionalString(data.generationId);
+  const imageUrl = sanitizeOptionalString(data.imageUrl);
+
+  if (!generationId || !imageUrl) {
     return null;
   }
 
-  return data;
+  return {
+    ...data,
+    generationId,
+    imageUrl,
+    ...(sanitizeOptionalString(data.thumbUrl) ? { thumbUrl: sanitizeOptionalString(data.thumbUrl) } : {}),
+  };
 }
 
 function parseMultiGenerationDropData(dataString: string): GenerationDropData[] | null {

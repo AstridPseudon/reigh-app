@@ -2,14 +2,43 @@ type CounterState = { count: number; start: number; fired: boolean };
 type RafState = CounterState & { last: number };
 
 const now = () => (typeof performance === 'undefined' ? Date.now() : performance.now());
-const logPerf = (message: string) => console.error(`[PERF] ${message}`);
+const PERF_DIAGNOSTICS_STORAGE_KEY = 'reigh:perf-diagnostics';
+const PERF_DIAGNOSTICS_GLOBAL_FLAG = '__REIGH_PERF_DIAGNOSTICS__';
+
+function arePerfDiagnosticsEnabled() {
+  const globalScope = globalThis as typeof globalThis & {
+    [PERF_DIAGNOSTICS_GLOBAL_FLAG]?: unknown;
+  };
+
+  if (globalScope[PERF_DIAGNOSTICS_GLOBAL_FLAG] === true) {
+    return true;
+  }
+
+  if (typeof localStorage !== 'undefined') {
+    try {
+      return localStorage.getItem(PERF_DIAGNOSTICS_STORAGE_KEY) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  return false;
+}
+
+const logPerf = (message: string, ...args: unknown[]) => {
+  if (!arePerfDiagnosticsEnabled()) {
+    return;
+  }
+
+  console.error(`[PERF] ${message}`, ...args);
+};
 
 // One-time confirmation that diagnostics loaded
 let _booted = false;
 export function bootDiagnostics() {
-  if (_booted) return;
+  if (_booted || !arePerfDiagnosticsEnabled()) return;
   _booted = true;
-  console.error('[PERF] diagnostics active');
+  logPerf('diagnostics active');
 
   // Report long tasks via PerformanceObserver (catches any JS blocking >50ms)
   if (typeof PerformanceObserver !== 'undefined') {
@@ -17,7 +46,7 @@ export function bootDiagnostics() {
       const observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
           if (entry.duration > 50) {
-            console.error(`[PERF] long-task: ${Math.round(entry.duration)}ms`, entry.toJSON());
+            logPerf(`long-task: ${Math.round(entry.duration)}ms`, entry.toJSON());
           }
         }
       });
@@ -34,7 +63,7 @@ export function bootDiagnostics() {
         for (const entry of list.getEntries()) {
           const res = entry as PerformanceResourceTiming;
           if (res.duration > 2000 && (res.name.includes('supabase') || res.name.includes('storage'))) {
-            console.error(`[PERF] slow-resource: ${Math.round(res.duration)}ms | ${res.initiatorType} | ${res.name.slice(0, 120)}`);
+            logPerf(`slow-resource: ${Math.round(res.duration)}ms | ${res.initiatorType} | ${res.name.slice(0, 120)}`);
           }
         }
       });
@@ -55,6 +84,10 @@ const createWindowDetector = (
 
   return {
     track(id: string) {
+      if (!arePerfDiagnosticsEnabled()) {
+        return;
+      }
+
       const time = now();
       const map = states ?? (states = new Map());
       let state = map.get(id);
@@ -81,6 +114,10 @@ let rafStates: Map<string, RafState> | undefined;
 
 export const RafLoopDetector = {
   track(id: string) {
+    if (!arePerfDiagnosticsEnabled()) {
+      return;
+    }
+
     const time = now();
     const map = rafStates ?? (rafStates = new Map());
     let state = map.get(id);
@@ -115,6 +152,10 @@ let growthSamples = 0;
 let memoryFired = false;
 
 const sampleHeap = () => {
+  if (!arePerfDiagnosticsEnabled()) {
+    return;
+  }
+
   if (typeof performance === 'undefined' || !('memory' in performance)) {
     return;
   }
@@ -140,6 +181,10 @@ const sampleHeap = () => {
 };
 
 const startMemoryPressure = () => {
+  if (!arePerfDiagnosticsEnabled()) {
+    return;
+  }
+
   if (memoryInterval !== undefined || typeof performance === 'undefined' || !('memory' in performance)) {
     return;
   }

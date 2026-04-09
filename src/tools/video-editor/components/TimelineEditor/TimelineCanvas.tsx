@@ -129,6 +129,8 @@ const CURSOR_WIDTH = 2;
 const RESIZE_HANDLE_WIDTH = 8;
 const MIN_ACTION_WIDTH_PX = 24;
 const SNAP_THRESHOLD_PX = 8;
+const SHOT_GROUP_LABEL_HEIGHT = 18;
+const TIME_RULER_HEIGHT = 30;
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
@@ -571,6 +573,7 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
   const playRateRef = useRef(1);
   const scrollMetricsRef = useRef<ScrollMetrics>({ scrollLeft: 0, scrollTop: 0 });
   const [scrollLeft, setScrollLeft] = useState(0);
+  const [scrollTop, setScrollTop] = useState(0);
   const [resizeClampedActionId, setResizeClampedActionId] = useState<string | null>(null);
   const [shotGroupMenu, setShotGroupMenu] = useState<ShotGroupMenuState>(null);
   const shotGroupMenuRef = useRef<HTMLDivElement>(null);
@@ -599,6 +602,7 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
   const { pixelsPerSecond, pixelToTime, timeToPixel } = useTimelineScale({ scale, scaleWidth, startLeft });
   const minDuration = MIN_ACTION_WIDTH_PX / pixelsPerSecond;
   const actionHeight = Math.max(12, rowHeight - ACTION_VERTICAL_MARGIN * 2);
+  const scrollContentHeight = (rows.length + 1) * rowHeight;
   const maxEnd = useMemo(() => rows.reduce(
     (currentMax, row) => row.actions.reduce((rowMax, action) => Math.max(rowMax, action.end), currentMax),
     0,
@@ -727,6 +731,9 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
     scrollMetricsRef.current = nextMetrics;
     if (nextMetrics.scrollLeft !== scrollLeft) {
       setScrollLeft(nextMetrics.scrollLeft);
+    }
+    if (nextMetrics.scrollTop !== scrollTop) {
+      setScrollTop(nextMetrics.scrollTop);
     }
     syncCursor();
     onScroll?.(nextMetrics);
@@ -1009,6 +1016,91 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
         onClickTimeArea={onClickTimeArea}
         onCursorDrag={onCursorDrag}
       />
+      {!hideShotGroups && positionedShotGroups.map((group) => (
+        <div
+          key={`${group.key}:label`}
+          className="absolute rounded-t-sm opacity-0 transition-opacity hover:opacity-100 cursor-pointer select-none"
+          title={group.shotName}
+          data-action-id="shot-group-label"
+          data-shot-group-drag-anchor-clip-id={group.clipIds[0] ?? ''}
+          data-shot-group-drag-anchor-row-id={group.rowId}
+          onPointerDown={(event) => {
+            event.stopPropagation();
+          }}
+          onClick={(event) => {
+            event.stopPropagation();
+            onSelectClips?.(group.clipIds);
+          }}
+          onDoubleClick={(event) => {
+            event.stopPropagation();
+            if (onShotGroupNavigate) {
+              onShotGroupNavigate(group.shotId);
+              return;
+            }
+            onSelectClips?.(group.clipIds);
+          }}
+          onContextMenu={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            openShotGroupMenu(event.clientX, event.clientY, group);
+          }}
+          style={{
+            left: group.left - scrollLeft,
+            top: TIME_RULER_HEIGHT + group.top - SHOT_GROUP_LABEL_HEIGHT - scrollTop,
+            width: group.width,
+            height: SHOT_GROUP_LABEL_HEIGHT,
+            zIndex: 25,
+            pointerEvents: 'auto',
+            background: `color-mix(in srgb, ${group.color} 78%, transparent)`,
+          }}
+        >
+          <span
+            className="pointer-events-none absolute inset-x-2 top-1/2 -translate-y-1/2 truncate text-[10px] font-medium"
+            style={{ color: `color-mix(in srgb, white 92%, ${group.color})` }}
+          >
+            {group.shotName}
+          </span>
+          <div className="pointer-events-none absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-1">
+            {group.hasFinalVideo && (
+              <button
+                type="button"
+                className="pointer-events-auto flex h-4 w-4 items-center justify-center rounded-full bg-sky-500 text-white shadow-sm transition-transform hover:scale-110 hover:bg-sky-400"
+                title="Final video available"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  openShotGroupMenu(event.clientX, event.clientY, { ...group, hasFinalVideo: true });
+                }}
+              >
+                <Video className="h-2.5 w-2.5" />
+              </button>
+            )}
+            {group.hasStaleVideo && !group.hasActiveTask && (
+              <button
+                type="button"
+                className="pointer-events-auto flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-white shadow-sm transition-transform hover:scale-110 hover:bg-amber-400"
+                title="New video available"
+                onClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  openShotGroupMenu(event.clientX, event.clientY, group);
+                }}
+              >
+                <RefreshCw className="h-2.5 w-2.5" />
+              </button>
+            )}
+            {group.hasActiveTask && (
+              <div
+                className="flex h-4 w-4 items-center justify-center rounded-full shadow-sm"
+                title="Task in progress"
+                style={{ backgroundColor: 'rgba(255,255,255,0.9)' }}
+              >
+                <Loader2 className="h-2.5 w-2.5 animate-spin" style={{ color: group.color }} />
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
       <div
         ref={scrollContainerRef}
         className="timeline-canvas-edit-area timeline-scroll relative min-h-0 flex-1 overflow-auto overscroll-contain bg-background/70"
@@ -1059,89 +1151,6 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
                 `handleResizePointerDown`, providing a single unified
                 affordance.
               */}
-              <div
-                className="absolute rounded-t-sm opacity-0 transition-opacity hover:opacity-100 cursor-pointer select-none"
-                title={group.shotName}
-                data-action-id="shot-group-label"
-                onPointerDown={(e) => {
-                  e.stopPropagation();
-                }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openShotGroupMenu(e.clientX, e.clientY, group);
-                }}
-                onDoubleClick={(e) => {
-                  e.stopPropagation();
-                  onSelectClips?.(group.clipIds);
-                }}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  e.stopPropagation();
-                  openShotGroupMenu(e.clientX, e.clientY, group);
-                }}
-                style={{
-                  left: group.left,
-                  top: group.top - 18,
-                  width: group.width,
-                  height: 18,
-                  zIndex: 8,
-                  pointerEvents: 'auto',
-                  background: `color-mix(in srgb, ${group.color} 78%, transparent)`,
-                }}
-              >
-                <span
-                  className="pointer-events-none absolute inset-x-2 top-1/2 -translate-y-1/2 truncate text-[10px] font-medium"
-                  style={{ color: `color-mix(in srgb, white 92%, ${group.color})` }}
-                >
-                  {group.shotName}
-                </span>
-                {/*
-                  Status badges live INSIDE the label strip (above the clip
-                  area) so they don't intercept pointer events on the clip's
-                  outer-edge resize handles. Previously they sat at
-                  `top: group.top + group.height/2 - 10` (vertically over
-                  the clip body) at z-9, blocking the resize hit area.
-                */}
-                <div className="pointer-events-none absolute right-1 top-1/2 flex -translate-y-1/2 items-center gap-1">
-                  {group.hasFinalVideo && (
-                    <button
-                      type="button"
-                      className="pointer-events-auto flex h-4 w-4 items-center justify-center rounded-full bg-sky-500 text-white shadow-sm transition-transform hover:scale-110 hover:bg-sky-400"
-                      title="Final video available"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        openShotGroupMenu(event.clientX, event.clientY, { ...group, hasFinalVideo: true });
-                      }}
-                    >
-                      <Video className="h-2.5 w-2.5" />
-                    </button>
-                  )}
-                  {group.hasStaleVideo && !group.hasActiveTask && (
-                    <button
-                      type="button"
-                      className="pointer-events-auto flex h-4 w-4 items-center justify-center rounded-full bg-amber-500 text-white shadow-sm transition-transform hover:scale-110 hover:bg-amber-400"
-                      title="New video available"
-                      onClick={(event) => {
-                        event.preventDefault();
-                        event.stopPropagation();
-                        openShotGroupMenu(event.clientX, event.clientY, group);
-                      }}
-                    >
-                      <RefreshCw className="h-2.5 w-2.5" />
-                    </button>
-                  )}
-                  {group.hasActiveTask && (
-                    <div
-                      className="flex h-4 w-4 items-center justify-center rounded-full shadow-sm"
-                      title="Task in progress"
-                      style={{ backgroundColor: 'rgba(255,255,255,0.9)' }}
-                    >
-                      <Loader2 className="h-2.5 w-2.5 animate-spin" style={{ color: group.color }} />
-                    </div>
-                  )}
-                </div>
-              </div>
             </React.Fragment>
           ))}
           <ShotGroupContextMenu
@@ -1229,9 +1238,11 @@ export const TimelineCanvas = forwardRef<TimelineCanvasHandle, TimelineCanvasPro
         </div>
         <div
           ref={cursorRef}
-          className="pointer-events-none absolute inset-y-0 top-0 z-[5] bg-sky-400/95 shadow-[0_0_10px_rgba(56,189,248,0.5)]"
+          data-testid="timeline-playhead"
+          className="pointer-events-none absolute left-0 top-0 z-[5] bg-sky-400/95 shadow-[0_0_10px_rgba(56,189,248,0.5)]"
           style={{
             width: CURSOR_WIDTH,
+            height: scrollContentHeight,
             transform: `translateX(${startLeft}px)`,
           }}
         />

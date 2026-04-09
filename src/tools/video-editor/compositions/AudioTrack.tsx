@@ -1,7 +1,15 @@
 import { memo, type FC } from 'react';
-import { Sequence } from 'remotion';
-import { Audio } from '@remotion/media';
-import { getClipDurationInFrames, secondsToFrames } from '@/tools/video-editor/lib/config-utils';
+import { Audio as Html5Audio, Sequence, useRemotionEnvironment } from 'remotion';
+import { Audio as MediaAudio } from '@remotion/media';
+import {
+  getClipDurationInFrames,
+  getSanitizedMediaSrc,
+  getSanitizedMediaTrimProps,
+  getSanitizedPlaybackRate,
+  getSanitizedVolume,
+  secondsToFrames,
+} from '@/tools/video-editor/lib/config-utils';
+import { MediaErrorBoundary } from '@/tools/video-editor/compositions/MediaErrorBoundary';
 import type { ResolvedTimelineClip, TrackDefinition } from '@/tools/video-editor/types';
 
 const AudioTrackComponent: FC<{
@@ -9,10 +17,18 @@ const AudioTrackComponent: FC<{
   clips: ResolvedTimelineClip[];
   fps: number;
 }> = ({ track, clips, fps }) => {
+  const environment = useRemotionEnvironment();
+  const AudioComponent = environment.isRendering || environment.isClientSideRendering
+    ? MediaAudio
+    : Html5Audio;
+
   return (
     <>
       {clips.map((clip) => {
-        const effectiveVolume = track.muted ? 0 : (track.volume ?? 1) * (clip.volume ?? 1);
+        const mediaSrc = getSanitizedMediaSrc(clip.assetEntry?.src);
+        const effectiveVolume = track.muted ? 0 : getSanitizedVolume(track.volume) * getSanitizedVolume(clip.volume);
+        const playbackRate = getSanitizedPlaybackRate(clip.speed);
+        const trimProps = getSanitizedMediaTrimProps(clip, fps);
 
         return (
           <Sequence
@@ -22,14 +38,21 @@ const AudioTrackComponent: FC<{
             from={secondsToFrames(clip.at, fps)}
             durationInFrames={getClipDurationInFrames(clip, fps)}
           >
-            {clip.assetEntry ? (
-              <Audio
-                src={clip.assetEntry.src}
-                trimBefore={secondsToFrames(clip.from ?? 0, fps)}
-                trimAfter={clip.to ? secondsToFrames(clip.to, fps) : undefined}
-                playbackRate={clip.speed ?? 1}
-                volume={effectiveVolume}
-              />
+            {mediaSrc ? (
+              <MediaErrorBoundary
+                clipId={clip.id}
+                resetKey={`${clip.id}:${mediaSrc}:${trimProps.trimBefore}:${trimProps.trimAfter ?? 'none'}:${playbackRate}:${effectiveVolume}:audio`}
+                fallback={null}
+              >
+                <AudioComponent
+                  src={mediaSrc}
+                  trimBefore={trimProps.trimBefore}
+                  trimAfter={trimProps.trimAfter}
+                  playbackRate={playbackRate}
+                  volume={effectiveVolume}
+                  pauseWhenBuffering={!environment.isRendering && !environment.isClientSideRendering}
+                />
+              </MediaErrorBoundary>
             ) : null}
           </Sequence>
         );

@@ -26,7 +26,10 @@ vi.mock('@/tools/video-editor/hooks/useTimelineState', () => ({
   useTimelineState: () => ({
     editor: {
       selectedClipId: 'clip-1',
+      additiveSelectionRef: { current: false },
       selectClip: vi.fn(),
+      selectClips: vi.fn(),
+      replaceTimelineSelection: vi.fn(),
     },
     chrome: { saveStatus: 'saved' },
     playback: { currentTime: 12.5 },
@@ -42,7 +45,9 @@ function Consumer() {
   return (
     <div>
       <span>{editorData.selectedClipId}</span>
+      <span>{typeof editorData.additiveSelectionRef?.current}</span>
       <span>{typeof editorOps.selectClip}</span>
+      <span>{typeof editorOps.replaceTimelineSelection}</span>
       <span>{chrome.saveStatus}</span>
       <span>{playback.currentTime}</span>
     </div>
@@ -89,7 +94,8 @@ describe('VideoEditorProvider', () => {
     );
 
     expect(screen.getByText('clip-1')).toBeInTheDocument();
-    expect(screen.getByText('function')).toBeInTheDocument();
+    expect(screen.getByText('boolean')).toBeInTheDocument();
+    expect(screen.getAllByText('function')).toHaveLength(2);
     expect(screen.getByText('saved')).toBeInTheDocument();
     expect(screen.getByText('12.5')).toBeInTheDocument();
   });

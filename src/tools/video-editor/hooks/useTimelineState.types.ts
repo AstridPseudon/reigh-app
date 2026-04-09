@@ -51,6 +51,7 @@ export interface TimelineEditorDataContextValue {
   selectedClipId: string | null;
   selectedClipIds: UseMultiSelectResult['selectedClipIds'];
   selectedClipIdsRef: UseMultiSelectResult['selectedClipIdsRef'];
+  additiveSelectionRef: UseMultiSelectResult['additiveSelectionRef'];
   selectedTrackId: string | null;
   primaryClipId: UseMultiSelectResult['primaryClipId'];
   selectedClip: TimelineSelectedClip;
@@ -77,6 +78,7 @@ export interface TimelineEditorOpsContextValue {
   isClipSelected: UseMultiSelectResult['isClipSelected'];
   selectClip: UseMultiSelectResult['selectClip'];
   selectClips: UseMultiSelectResult['selectClips'];
+  replaceTimelineSelection: UseMultiSelectResult['selectClips'];
   addToSelection: UseMultiSelectResult['addToSelection'];
   clearSelection: UseMultiSelectResult['clearSelection'];
   setSelectedTrackId: TimelineSetSelectedTrackId;

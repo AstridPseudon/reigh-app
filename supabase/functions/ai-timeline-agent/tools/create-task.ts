@@ -6,7 +6,7 @@ import type {
   ToolResult,
 } from "../types.ts";
 import { asPositiveNumber, asStringArray, asTrimmedString } from "../utils.ts";
-import { createShotWithGenerations, findShotForGenerations, resolveClipGenerationIds } from "./clips.ts";
+import { createShotWithGenerations, resolveClipGenerationIds, resolveSelectedClipShot } from "./clips.ts";
 import { createGenerationTask, type CreateGenerationTaskArgs } from "./generation.ts";
 
 const APPEND_SHOT_POSITION = 2_147_483_647;
@@ -235,7 +235,9 @@ export async function executeCreateTask(
     ? [...selectedReferenceClips, selectedVideoClip]
     : selectedReferenceClips;
   const generationIds = resolveClipGenerationIds(selectedClipsForShot, timelineState.registry, timelineState.config);
-  let shotId = generationIds.length ? await findShotForGenerations(supabaseAdmin, generationIds) : null;
+  let shotId = (
+    await resolveSelectedClipShot(supabaseAdmin, timelineState, selectedClipsForShot)
+  ).shotId;
   let shotNote = "";
   const shotName = asTrimmedString(args.shot_name);
   const needsAutoShot = !shotId && generationIds.length > 0 && taskType === "image-to-video";

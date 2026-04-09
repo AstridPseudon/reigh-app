@@ -55,14 +55,29 @@ interface MediaWithUrls {
   imageUrl?: string | null;
 }
 
+function getFirstNonEmptyUrl(...urls: Array<string | null | undefined>): string | undefined {
+  for (const url of urls) {
+    if (typeof url !== 'string') {
+      continue;
+    }
+
+    const trimmed = url.trim();
+    if (trimmed.length > 0) {
+      return trimmed;
+    }
+  }
+
+  return undefined;
+}
+
 export function getMediaUrl(media: MediaWithUrls | null | undefined): string | undefined {
   if (!media) return undefined;
-  return media.location || media.url || media.imageUrl || undefined;
+  return getFirstNonEmptyUrl(media.location, media.url, media.imageUrl);
 }
 
 export function getThumbnailUrl(media: MediaWithUrls | null | undefined): string | undefined {
   if (!media) return undefined;
-  return media.thumbnail_url || media.thumbUrl || undefined;
+  return getFirstNonEmptyUrl(media.thumbnail_url, media.thumbUrl);
 }
 
 /** Transform a variant to a GenerationRow shape for lightbox display. */

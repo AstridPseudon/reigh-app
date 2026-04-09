@@ -45,7 +45,7 @@ describe('useSendMessage', () => {
     });
   });
 
-  it('includes generation_id only for attachments that provide it', async () => {
+  it('includes optional generation and shot metadata only for attachments that provide it', async () => {
     const { result } = renderHook(
       () => useSendMessage('session-1', 'timeline-1'),
       { wrapper: createWrapper() },
@@ -60,6 +60,9 @@ describe('useSendMessage', () => {
             url: 'https://example.com/image.png',
             mediaType: 'image',
             generationId: 'gen-1',
+            shotId: 'shot-1',
+            shotName: 'Hero Shot',
+            shotSelectionClipCount: 4,
           },
           {
             clipId: 'clip-2',
@@ -80,6 +83,9 @@ describe('useSendMessage', () => {
             url: 'https://example.com/image.png',
             media_type: 'image',
             generation_id: 'gen-1',
+            shot_id: 'shot-1',
+            shot_name: 'Hero Shot',
+            shot_selection_clip_count: 4,
           },
           {
             clip_id: 'clip-2',

@@ -36,11 +36,30 @@ const RemotionPreviewComponent = forwardRef<PreviewHandle, RemotionPreviewProps>
   // The timeline canvas shows immediate visual feedback; the Player catches up after 150ms idle.
   const [deferredConfig, setDeferredConfig] = useState(config);
   const deferTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  useEffect(() => {
+  const pendingConfigRef = useRef<ResolvedTimelineConfig | null>(null);
+  const flushDeferredConfig = (nextConfig: ResolvedTimelineConfig, delayMs: number) => {
     if (deferTimerRef.current) clearTimeout(deferTimerRef.current);
-    deferTimerRef.current = setTimeout(() => setDeferredConfig(config), 150);
-    return () => { if (deferTimerRef.current) clearTimeout(deferTimerRef.current); };
-  }, [config]);
+    if (delayMs <= 0) {
+      setDeferredConfig(nextConfig);
+      return;
+    }
+    deferTimerRef.current = setTimeout(() => setDeferredConfig(nextConfig), delayMs);
+  };
+
+  useEffect(() => {
+    if (isPlaying) {
+      pendingConfigRef.current = config;
+      return;
+    }
+
+    const nextConfig = pendingConfigRef.current ?? config;
+    const delayMs = pendingConfigRef.current ? 0 : 150;
+    pendingConfigRef.current = null;
+    flushDeferredConfig(nextConfig, delayMs);
+    return () => {
+      if (deferTimerRef.current) clearTimeout(deferTimerRef.current);
+    };
+  }, [config, isPlaying]);
 
   const inputProps = useMemo(() => ({ config: deferredConfig }), [deferredConfig]);
   const metadata = useMemo(() => {

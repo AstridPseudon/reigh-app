@@ -42,6 +42,13 @@ export function normalizeSelectedClips(value: unknown): SelectedClipPayload[] {
     const clipId = typeof item.clip_id === "string" ? item.clip_id.trim() : "";
     const generationId = typeof item.generation_id === "string" ? item.generation_id.trim() : "";
     const prompt = typeof item.prompt === "string" && item.prompt.trim() ? item.prompt.trim() : undefined;
+    const shotId = typeof item.shot_id === "string" && item.shot_id.trim() ? item.shot_id.trim() : undefined;
+    const shotName = typeof item.shot_name === "string" && item.shot_name.trim() ? item.shot_name.trim() : undefined;
+    const shotSelectionClipCount = typeof item.shot_selection_clip_count === "number"
+      && Number.isFinite(item.shot_selection_clip_count)
+      && item.shot_selection_clip_count > 0
+      ? item.shot_selection_clip_count
+      : undefined;
     const normalizedClipId = clipId || (generationId ? `gallery-${generationId}` : "");
     const url = typeof item.url === "string" ? item.url.trim() : "";
     const mediaType = item.media_type;
@@ -56,6 +63,9 @@ export function normalizeSelectedClips(value: unknown): SelectedClipPayload[] {
       media_type: mediaType,
       ...(generationId ? { generation_id: generationId } : {}),
       ...(prompt ? { prompt } : {}),
+      ...(shotId ? { shot_id: shotId } : {}),
+      ...(shotName ? { shot_name: shotName } : {}),
+      ...(shotSelectionClipCount ? { shot_selection_clip_count: shotSelectionClipCount } : {}),
     }];
   });
 }

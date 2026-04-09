@@ -11,7 +11,7 @@ import type {
   ToolResult,
 } from "../types.ts";
 import { asTrimmedString } from "../utils.ts";
-import { findShotForGenerations, resolveClipGenerationIds } from "./clips.ts";
+import { resolveSelectedClipShot } from "./clips.ts";
 
 type SetLoraAction = "add" | "remove" | "update_strength";
 type SetLoraTarget = "video-travel" | "image-generation";
@@ -108,19 +108,6 @@ async function resolveCatalogLoraMatch(
   return null;
 }
 
-function resolveVideoTravelShotId(
-  timelineState: TimelineState,
-  selectedClips: SelectedClipPayload[] | undefined,
-  supabaseAdmin: SupabaseAdmin,
-): Promise<string | null> {
-  const generationIds = resolveClipGenerationIds(
-    selectedClips ?? [],
-    timelineState.registry,
-    timelineState.config,
-  );
-  return generationIds.length > 0 ? findShotForGenerations(supabaseAdmin, generationIds) : Promise.resolve(null);
-}
-
 export async function executeSearchLoras(
   args: Record<string, unknown>,
   supabaseAdmin: SupabaseAdmin,
@@ -179,7 +166,7 @@ export async function executeSetLora(
   }
 
   if (target === "video-travel") {
-    const shotId = await resolveVideoTravelShotId(timelineState, selectedClips, supabaseAdmin);
+    const { shotId } = await resolveSelectedClipShot(supabaseAdmin, timelineState, selectedClips);
     if (!shotId) {
       return { result: "No shot context. Select clips first." };
     }

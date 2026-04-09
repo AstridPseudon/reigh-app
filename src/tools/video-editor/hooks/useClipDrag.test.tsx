@@ -220,6 +220,44 @@ function makePinnedGroupData(): TimelineData {
   });
 }
 
+function makePinnedGroupDataWithExtraSelection(): TimelineData {
+  const base = makePinnedGroupData();
+
+  return canonicalizeTimelineData({
+    ...base,
+    config: {
+      ...base.config,
+      clips: [
+        ...base.config.clips,
+        { id: 'clip-3', at: 0, track: 'V2', clipType: 'hold', hold: 2 },
+      ],
+    },
+    resolvedConfig: {
+      ...base.resolvedConfig,
+      clips: [
+        ...base.resolvedConfig.clips,
+        { id: 'clip-3', at: 0, track: 'V2', clipType: 'hold', hold: 2 },
+      ],
+    },
+    rows: [
+      base.rows[0],
+      {
+        id: 'V2',
+        actions: [{ id: 'clip-3', start: 0, end: 2, effectId: 'effect-clip-3' }],
+      },
+    ],
+    meta: {
+      ...base.meta,
+      'clip-3': { track: 'V2', clipType: 'hold', hold: 2 },
+    },
+    effects: {
+      ...base.effects,
+      'effect-clip-3': { id: 'effect-clip-3' },
+    },
+    clipOrder: { V1: ['clip-1', 'clip-2'], V2: ['clip-3'] },
+  });
+}
+
 function setupDom(clipId = 'clip-1', rowId = 'V1') {
   const wrapper = document.createElement('div');
   wrapper.className = 'timeline-wrapper';
@@ -251,6 +289,32 @@ function setupDom(clipId = 'clip-1', rowId = 'V1') {
   };
 }
 
+function setupPinnedGroupLabelDom(anchorClipId = 'clip-1', rowId = 'V1') {
+  const base = setupDom(anchorClipId, rowId);
+  const label = document.createElement('div');
+  label.dataset.shotGroupDragAnchorClipId = anchorClipId;
+  label.dataset.shotGroupDragAnchorRowId = rowId;
+  label.dataset.actionId = 'shot-group-label';
+  label.title = 'Pinned Shot';
+  label.getBoundingClientRect = () => ({
+    x: 0,
+    y: -18,
+    left: 0,
+    top: -18,
+    right: 120,
+    bottom: 0,
+    width: 120,
+    height: 18,
+    toJSON: () => ({}),
+  });
+  base.wrapper.appendChild(label);
+
+  return {
+    ...base,
+    label,
+  };
+}
+
 afterEach(() => {
   document.body.innerHTML = '';
 });
@@ -272,6 +336,7 @@ describe('useClipDrag', () => {
         selectClip: vi.fn(),
         selectClips: vi.fn(),
         selectedClipIdsRef: { current: new Set<string>() },
+        additiveSelectionRef: { current: false },
         applyEdit: vi.fn(),
         coordinator: makeCoordinator(),
         rowHeight: 48,
@@ -319,6 +384,7 @@ describe('useClipDrag', () => {
         selectClip: vi.fn(),
         selectClips: vi.fn(),
         selectedClipIdsRef: { current: new Set<string>() },
+        additiveSelectionRef: { current: false },
         applyEdit: vi.fn(),
         coordinator: makeCoordinator(),
         rowHeight: 48,
@@ -368,6 +434,7 @@ describe('useClipDrag', () => {
         selectClip: vi.fn(),
         selectClips: vi.fn(),
         selectedClipIdsRef: { current: new Set<string>() },
+        additiveSelectionRef: { current: false },
         applyEdit: vi.fn(),
         coordinator: makeCoordinator(),
         rowHeight: 48,
@@ -457,6 +524,7 @@ describe('useClipDrag', () => {
         selectClip: vi.fn(),
         selectClips,
         selectedClipIdsRef: { current: new Set<string>(['clip-1', 'clip-2']) },
+        additiveSelectionRef: { current: true },
         applyEdit,
         coordinator,
         rowHeight: 48,
@@ -508,6 +576,48 @@ describe('useClipDrag', () => {
     }
   });
 
+  it('drags only the clicked clip when a stale multi-selection was not built additively', () => {
+    const pendingOpsRef = { current: 0 };
+    const { clip, wrapper, cleanup } = setupDom('clip-2', 'V2');
+    const timelineWrapperRef = { current: wrapper };
+    const dataRef = { current: makeMultiClipData() };
+
+    try {
+      const { result } = renderHook(() => useClipDrag({
+        timelineWrapperRef,
+        dataRef,
+        pendingOpsRef,
+        moveClipToRow: vi.fn(),
+        createTrackAndMoveClip: vi.fn(),
+        selectClip: vi.fn(),
+        selectClips: vi.fn(),
+        selectedClipIdsRef: { current: new Set<string>(['clip-1', 'clip-2']) },
+        additiveSelectionRef: { current: false },
+        applyEdit: vi.fn(),
+        coordinator: makeCoordinator(),
+        rowHeight: 48,
+        scale: 1,
+        scaleWidth: 100,
+        startLeft: 0,
+      }));
+
+      act(() => {
+        fireEvent.pointerDown(clip, {
+          button: 0,
+          pointerId: 10,
+          clientX: 24,
+          clientY: 60,
+        });
+      });
+
+      expect(result.current.dragSessionRef.current?.clipId).toBe('clip-2');
+      expect(result.current.dragSessionRef.current?.draggedClipIds).toEqual(['clip-2']);
+      expect(result.current.dragSessionRef.current?.groupDragEntry).toBeNull();
+    } finally {
+      cleanup();
+    }
+  });
+
   it('records a group drag entry when pointerdown starts on a pinned-group member', () => {
     const pendingOpsRef = { current: 0 };
     const { clip, wrapper, cleanup } = setupDom('clip-1', 'V1');
@@ -524,6 +634,7 @@ describe('useClipDrag', () => {
         selectClip: vi.fn(),
         selectClips: vi.fn(),
         selectedClipIdsRef: { current: new Set<string>() },
+        additiveSelectionRef: { current: false },
         applyEdit: vi.fn(),
         coordinator: makeCoordinator(),
         rowHeight: 48,
@@ -550,6 +661,156 @@ describe('useClipDrag', () => {
         originStart: 0,
         originTrackId: 'V1',
       });
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('drags only the clicked pinned group when a stale multi-selection was not built additively', () => {
+    const pendingOpsRef = { current: 0 };
+    const { label, wrapper, cleanup } = setupPinnedGroupLabelDom('clip-1', 'V1');
+    const timelineWrapperRef = { current: wrapper };
+    const dataRef = { current: makePinnedGroupDataWithExtraSelection() };
+
+    try {
+      const { result } = renderHook(() => useClipDrag({
+        timelineWrapperRef,
+        dataRef,
+        pendingOpsRef,
+        moveClipToRow: vi.fn(),
+        createTrackAndMoveClip: vi.fn(),
+        selectClip: vi.fn(),
+        selectClips: vi.fn(),
+        selectedClipIdsRef: { current: new Set<string>(['clip-1', 'clip-2', 'clip-3']) },
+        additiveSelectionRef: { current: false },
+        applyEdit: vi.fn(),
+        coordinator: makeCoordinator(),
+        rowHeight: 48,
+        scale: 1,
+        scaleWidth: 100,
+        startLeft: 0,
+      }));
+
+      act(() => {
+        fireEvent.pointerDown(label, {
+          button: 0,
+          pointerId: 11,
+          clientX: 24,
+          clientY: -9,
+        });
+      });
+
+      expect(result.current.dragSessionRef.current?.clipId).toBe('clip-1');
+      expect(result.current.dragSessionRef.current?.draggedClipIds).toEqual(['clip-1', 'clip-2']);
+      expect(result.current.dragSessionRef.current?.groupDragEntry).toEqual({
+        groupKey: {
+          shotId: 'shot-1',
+          trackId: 'V1',
+        },
+        originStart: 0,
+        originTrackId: 'V1',
+      });
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('records a group drag entry when pointerdown starts on a pinned-group label', () => {
+    const pendingOpsRef = { current: 0 };
+    const { label, wrapper, cleanup } = setupPinnedGroupLabelDom('clip-1', 'V1');
+    const timelineWrapperRef = { current: wrapper };
+    const dataRef = { current: makePinnedGroupData() };
+
+    try {
+      const { result } = renderHook(() => useClipDrag({
+        timelineWrapperRef,
+        dataRef,
+        pendingOpsRef,
+        moveClipToRow: vi.fn(),
+        createTrackAndMoveClip: vi.fn(),
+        selectClip: vi.fn(),
+        selectClips: vi.fn(),
+        selectedClipIdsRef: { current: new Set<string>() },
+        additiveSelectionRef: { current: false },
+        applyEdit: vi.fn(),
+        coordinator: makeCoordinator(),
+        rowHeight: 48,
+        scale: 1,
+        scaleWidth: 100,
+        startLeft: 0,
+      }));
+
+      act(() => {
+        fireEvent.pointerDown(label, {
+          button: 0,
+          pointerId: 7,
+          clientX: 24,
+          clientY: -9,
+        });
+      });
+
+      expect(result.current.dragSessionRef.current?.clipId).toBe('clip-1');
+      expect(result.current.dragSessionRef.current?.draggedClipIds).toEqual(['clip-1', 'clip-2']);
+      expect(result.current.dragSessionRef.current?.groupDragEntry).toEqual({
+        groupKey: {
+          shotId: 'shot-1',
+          trackId: 'V1',
+        },
+        originStart: 0,
+        originTrackId: 'V1',
+      });
+    } finally {
+      cleanup();
+    }
+  });
+
+  it('adjusts label-start drags downward into the associated clip row before updating the coordinator', () => {
+    const pendingOpsRef = { current: 0 };
+    const coordinator = makeCoordinator();
+    const { label, wrapper, cleanup } = setupPinnedGroupLabelDom('clip-1', 'V1');
+    const timelineWrapperRef = { current: wrapper };
+    const dataRef = { current: makePinnedGroupData() };
+
+    try {
+      renderHook(() => useClipDrag({
+        timelineWrapperRef,
+        dataRef,
+        pendingOpsRef,
+        moveClipToRow: vi.fn(),
+        createTrackAndMoveClip: vi.fn(),
+        selectClip: vi.fn(),
+        selectClips: vi.fn(),
+        selectedClipIdsRef: { current: new Set<string>() },
+        additiveSelectionRef: { current: false },
+        applyEdit: vi.fn(),
+        coordinator,
+        rowHeight: 48,
+        scale: 1,
+        scaleWidth: 100,
+        startLeft: 0,
+      }));
+
+      act(() => {
+        fireEvent.pointerDown(label, {
+          button: 0,
+          pointerId: 8,
+          clientX: 24,
+          clientY: -9,
+        });
+      });
+
+      act(() => {
+        fireEvent.pointerMove(window, {
+          pointerId: 8,
+          clientX: 32,
+          clientY: -5,
+        });
+      });
+
+      expect(coordinator.update).toHaveBeenCalledWith(expect.objectContaining({
+        clientX: 32,
+        clientY: 13,
+      }));
     } finally {
       cleanup();
     }
@@ -588,6 +849,7 @@ describe('useClipDrag', () => {
         selectClip: vi.fn(),
         selectClips,
         selectedClipIdsRef: { current: new Set<string>() },
+        additiveSelectionRef: { current: false },
         applyEdit,
         coordinator,
         rowHeight: 48,
@@ -695,6 +957,7 @@ describe('useClipDrag', () => {
         selectClip: vi.fn(),
         selectClips: vi.fn(),
         selectedClipIdsRef: { current: new Set<string>() },
+        additiveSelectionRef: { current: false },
         applyEdit,
         coordinator,
         rowHeight: 48,

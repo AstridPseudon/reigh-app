@@ -31,6 +31,7 @@ export interface UseTimelineSelectionArgs {
 export interface UseTimelineSelectionResult {
   selectedClipIds: UseMultiSelectResult['selectedClipIds'];
   selectedClipIdsRef: UseMultiSelectResult['selectedClipIdsRef'];
+  additiveSelectionRef: UseMultiSelectResult['additiveSelectionRef'];
   primaryClipId: UseMultiSelectResult['primaryClipId'];
   selectedClip: TimelineSelectedClip;
   selectedTrack: TimelineSelectedTrack;
@@ -38,6 +39,7 @@ export interface UseTimelineSelectionResult {
   resolvedConfig: TimelineResolvedConfig;
   addToSelection: UseMultiSelectResult['addToSelection'];
   clearSelection: UseMultiSelectResult['clearSelection'];
+  replaceTimelineSelection: UseMultiSelectResult['selectClips'];
   isClipSelected: UseMultiSelectResult['isClipSelected'];
   pruneSelection: UseMultiSelectResult['pruneSelection'];
   selectClip: UseMultiSelectResult['selectClip'];
@@ -83,6 +85,7 @@ export function useTimelineSelection({
     selectClips: selectClipsState,
     selectedClipIds,
     selectedClipIdsRef,
+    additiveSelectionRef,
   } = multiSelect;
   const selectionDerived = useDerivedTimeline(data, primaryClipId, selectedTrackId);
 
@@ -138,6 +141,16 @@ export function useTimelineSelection({
     setSelectionState(null);
   }, [clearGallerySelection, clearSelectionState, setSelectionState]);
 
+  const replaceTimelineSelection = useCallback((clipIds: Iterable<string>) => {
+    const nextSelection = new Set<string>();
+    for (const clipId of clipIds) {
+      nextSelection.add(clipId);
+    }
+
+    selectClipsState(nextSelection);
+    setSelectionState(getPrimaryClipId(nextSelection, null));
+  }, [selectClipsState, setSelectionState]);
+
   const clearTimelineOnly = useCallback(() => {
     clearSelectionState();
     setSelectionState(null);
@@ -175,6 +188,7 @@ export function useTimelineSelection({
   return {
     selectedClipIds,
     selectedClipIdsRef,
+    additiveSelectionRef,
     primaryClipId,
     selectedClip: selectionDerived.selectedClip,
     selectedTrack: selectionDerived.selectedTrack,
@@ -182,6 +196,7 @@ export function useTimelineSelection({
     resolvedConfig: selectionDerived.resolvedConfig,
     addToSelection,
     clearSelection,
+    replaceTimelineSelection,
     isClipSelected,
     pruneSelection,
     selectClip,

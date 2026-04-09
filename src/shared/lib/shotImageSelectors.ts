@@ -1,9 +1,10 @@
 import type { GenerationRow } from '@/domains/generation/types';
+import { getMediaUrl } from '@/shared/lib/media/mediaTypeHelpers';
 
 const PLACEHOLDER_LOCATION = '/placeholder.svg';
 
-function hasValidImageLocation(generation: GenerationRow): boolean {
-  const location = generation.imageUrl || generation.location;
+export function hasValidImageLocation(generation: GenerationRow): boolean {
+  const location = getMediaUrl(generation);
   return Boolean(location && location !== PLACEHOLDER_LOCATION);
 }
 

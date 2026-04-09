@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import type { GenerationDropData } from '@/shared/lib/dnd/dragDrop';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { getMediaUrl, getThumbnailUrl } from '@/shared/lib/media/mediaTypeHelpers';
 import { uploadBlobToStorage, uploadImageToStorage } from '@/shared/lib/media/imageUploader';
 import { extractVideoMetadata } from '@/shared/lib/media/videoMetadata';
 import { extractVideoPosterFrame } from '@/shared/lib/media/videoPosterExtractor';
@@ -247,6 +248,17 @@ export function useAssetManagement({
       return null;
     }
 
+    const imageUrl = getMediaUrl(generationData);
+    if (!imageUrl) {
+      console.warn('[video-editor] Skipping generation asset registration because media URL is empty', {
+        generationId: generationData.generationId,
+        variantId: generationData.variantId,
+        variantType: generationData.variantType,
+      });
+      return null;
+    }
+    const thumbnailUrl = getThumbnailUrl(generationData) ?? imageUrl;
+
     const mimeType = (() => {
       const metadataContentType = typeof generationData.metadata?.content_type === 'string'
         ? generationData.metadata.content_type
@@ -254,10 +266,10 @@ export function useAssetManagement({
       if (metadataContentType?.includes('/')) {
         return metadataContentType;
       }
-      if (metadataContentType === 'video' || generationData.variantType === 'video' || /\.(mp4|mov|webm|m4v)$/i.test(generationData.imageUrl)) {
+      if (metadataContentType === 'video' || generationData.variantType === 'video' || /\.(mp4|mov|webm|m4v)$/i.test(imageUrl)) {
         return 'video/mp4';
       }
-      if (metadataContentType === 'audio' || /\.(mp3|wav|aac|m4a)$/i.test(generationData.imageUrl)) {
+      if (metadataContentType === 'audio' || /\.(mp3|wav|aac|m4a)$/i.test(imageUrl)) {
         return 'audio/mpeg';
       }
       return 'image/png';
@@ -265,19 +277,19 @@ export function useAssetManagement({
 
     const assetId = generateUUID();
     const entry: AssetRegistryEntry = {
-      file: generationData.imageUrl,
+      file: imageUrl,
       type: mimeType,
       ...(typeof generationData.durationSeconds === 'number'
         ? { duration: generationData.durationSeconds }
         : {}),
       generationId: generationData.generationId,
       variantId: generationData.variantId,
-      ...(generationData.thumbUrl && generationData.thumbUrl !== generationData.imageUrl
-        ? { thumbnailUrl: generationData.thumbUrl }
+      ...(thumbnailUrl !== imageUrl
+        ? { thumbnailUrl }
         : {}),
     };
 
-    patchRegistry(assetId, entry, generationData.imageUrl);
+    patchRegistry(assetId, entry, imageUrl);
     void registerAsset(assetId, entry).catch((error) => {
       console.error('[video-editor] Failed to persist generation asset:', error);
     });

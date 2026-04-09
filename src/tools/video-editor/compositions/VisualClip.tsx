@@ -1,9 +1,18 @@
 import type { CSSProperties, FC, ReactNode } from 'react';
 import { AbsoluteFill, Img, Sequence, interpolate, useCurrentFrame, useVideoConfig } from 'remotion';
 import { Video } from '@remotion/media';
-import { getClipDurationInFrames, parseResolution, secondsToFrames } from '@/tools/video-editor/lib/config-utils';
+import {
+  getClipDurationInFrames,
+  getSanitizedMediaSrc,
+  getSanitizedMediaTrimProps,
+  getSanitizedPlaybackRate,
+  getSanitizedVolume,
+  parseResolution,
+  secondsToFrames,
+} from '@/tools/video-editor/lib/config-utils';
 import { wrapWithClipEffects } from '@/tools/video-editor/effects';
 import { transitions } from '@/tools/video-editor/effects/transitions';
+import { MediaErrorBoundary } from '@/tools/video-editor/compositions/MediaErrorBoundary';
 import { computeViewportMediaLayout } from '@/tools/video-editor/lib/render-bounds';
 import type { ResolvedTimelineClip, TrackDefinition } from '@/tools/video-editor/types';
 
@@ -84,8 +93,15 @@ const VisualAsset: FC<VisualClipProps> = ({ clip, track, fps }) => {
     return null;
   }
 
-  const clipVolume = clip.volume ?? 1;
-  const effectiveVolume = (track.muted ? 0 : (track.volume ?? 1)) * clipVolume;
+  const mediaSrc = getSanitizedMediaSrc(clip.assetEntry.src);
+  if (!mediaSrc) {
+    return null;
+  }
+
+  const clipVolume = getSanitizedVolume(clip.volume);
+  const effectiveVolume = track.muted ? 0 : getSanitizedVolume(track.volume) * clipVolume;
+  const playbackRate = getSanitizedPlaybackRate(clip.speed);
+  const trimProps = getSanitizedMediaTrimProps(clip, fps);
   const isImage = clip.assetEntry.type?.startsWith('image');
   const hasPositionOverride = (
     clip.x !== undefined
@@ -108,19 +124,25 @@ const VisualAsset: FC<VisualClipProps> = ({ clip, track, fps }) => {
     };
 
     if (isImage) {
-      return <Img src={clip.assetEntry.src} style={sharedStyle} crossOrigin="anonymous" />;
+      return <Img src={mediaSrc} style={sharedStyle} crossOrigin="anonymous" />;
     }
 
     return (
-      <Video
-        src={clip.assetEntry.src}
-        trimBefore={secondsToFrames(clip.from ?? 0, fps)}
-        trimAfter={clip.to ? secondsToFrames(clip.to, fps) : undefined}
-        playbackRate={clip.speed ?? 1}
-        volume={effectiveVolume}
-        muted={effectiveVolume <= 0}
-        style={sharedStyle}
-      />
+      <MediaErrorBoundary
+        clipId={clip.id}
+        resetKey={`${clip.id}:${mediaSrc}:${trimProps.trimBefore}:${trimProps.trimAfter ?? 'none'}:${playbackRate}:${effectiveVolume}`}
+        fallback={null}
+      >
+        <Video
+          src={mediaSrc}
+          trimBefore={trimProps.trimBefore}
+          trimAfter={trimProps.trimAfter}
+          playbackRate={playbackRate}
+          volume={effectiveVolume}
+          muted={effectiveVolume <= 0}
+          style={sharedStyle}
+        />
+      </MediaErrorBoundary>
     );
   }
 
@@ -176,22 +198,28 @@ const VisualAsset: FC<VisualClipProps> = ({ clip, track, fps }) => {
   if (isImage) {
     return (
       <div style={viewportStyle}>
-        <Img src={clip.assetEntry.src} style={mediaStyle} crossOrigin="anonymous" />
+        <Img src={mediaSrc} style={mediaStyle} crossOrigin="anonymous" />
       </div>
     );
   }
 
   return (
     <div style={viewportStyle}>
-      <Video
-        src={clip.assetEntry.src}
-        trimBefore={secondsToFrames(clip.from ?? 0, fps)}
-        trimAfter={clip.to ? secondsToFrames(clip.to, fps) : undefined}
-        playbackRate={clip.speed ?? 1}
-        volume={effectiveVolume}
-        muted={effectiveVolume <= 0}
-        style={mediaStyle}
-      />
+      <MediaErrorBoundary
+        clipId={clip.id}
+        resetKey={`${clip.id}:${mediaSrc}:${trimProps.trimBefore}:${trimProps.trimAfter ?? 'none'}:${playbackRate}:${effectiveVolume}:viewport`}
+        fallback={null}
+      >
+        <Video
+          src={mediaSrc}
+          trimBefore={trimProps.trimBefore}
+          trimAfter={trimProps.trimAfter}
+          playbackRate={playbackRate}
+          volume={effectiveVolume}
+          muted={effectiveVolume <= 0}
+          style={mediaStyle}
+        />
+      </MediaErrorBoundary>
     </div>
   );
 };

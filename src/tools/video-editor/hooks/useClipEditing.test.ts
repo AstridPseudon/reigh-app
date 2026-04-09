@@ -841,6 +841,58 @@ describe('usePinnedGroupSync', () => {
     vi.useRealTimers();
   });
 
+  it('skips pinned image sync entries that have no usable media URL', () => {
+    vi.useFakeTimers();
+    const applyEdit = vi.fn();
+    const registerGenerationAsset = vi.fn();
+    const dataRef = {
+      current: makeConfigTimelineData(
+        {
+          output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
+          tracks: [{ id: 'V1', kind: 'visual', label: 'V1' }],
+          clips: [
+            { id: 'clip-1', at: 0, track: 'V1', clipType: 'hold', asset: 'asset-1', hold: 5 },
+          ],
+          pinnedShotGroups: [makePinnedGroup({
+            shotId: 'shot-1',
+            trackId: 'V1',
+            clipIds: ['clip-1'],
+            mode: 'images',
+          })],
+        },
+        {
+          assets: {
+            'asset-1': { file: 'one.png', type: 'image/png', generationId: 'gen-1' },
+          },
+        },
+      ),
+    };
+
+    renderHook(() => usePinnedGroupSync({
+      data: dataRef.current,
+      dataRef,
+      applyEdit,
+      shots: [{
+        id: 'shot-1',
+        name: 'Shot 1',
+        images: [
+          { generation_id: 'gen-1', imageUrl: 'https://example.com/one.png', type: 'image/png', timeline_frame: 0 },
+          { generation_id: 'gen-2', imageUrl: '   ', type: 'image/png', timeline_frame: 1 },
+        ],
+      } as Shot],
+      registerGenerationAsset,
+      debounceMs: 25,
+    }));
+
+    act(() => {
+      vi.advanceTimersByTime(25);
+    });
+
+    expect(registerGenerationAsset).not.toHaveBeenCalled();
+    expect(applyEdit).not.toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
   it('re-arms sync while interactions are active and rebuilds clipIds from the live row order once it applies', () => {
     vi.useFakeTimers();
     const applyEdit = vi.fn();

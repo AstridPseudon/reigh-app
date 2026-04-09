@@ -32,6 +32,7 @@ import {
   recoverSelectedClipsFromTurns,
 } from "./loop.ts";
 import { buildSelectedClipsPrompt, buildTimelineAgentSystemPrompt } from "./prompts.ts";
+import { extractToolCalls } from "./tool-calls.ts";
 
 describe("loop helpers", () => {
   beforeEach(() => {
@@ -199,6 +200,9 @@ describe("loop helpers", () => {
           mediaType: "image",
           generationId: "gen-new",
           prompt: "new prompt",
+          shotId: "shot-new",
+          shotName: "Hero Shot",
+          shotSelectionClipCount: 4,
         }],
         timestamp: "2026-04-04T00:00:02.000Z",
       },
@@ -210,15 +214,20 @@ describe("loop helpers", () => {
       media_type: "image",
       generation_id: "gen-new",
       prompt: "new prompt",
+      shot_id: "shot-new",
+      shot_name: "Hero Shot",
+      shot_selection_clip_count: 4,
     }]);
   });
 
-  it("includes prompt text in the selected clips prompt only when present", () => {
+  it("includes prompt text, shot metadata, and timeline context in the selected clips prompt", () => {
     const prompt = buildSelectedClipsPrompt([
       {
         clip_id: "clip-1",
         url: "https://example.com/1.png",
         media_type: "image",
+        shot_id: "shot-1",
+        shot_name: 'Hero "Shot"',
         prompt: 'moody "reference" lighting',
       },
       {
@@ -227,11 +236,14 @@ describe("loop helpers", () => {
         media_type: "video",
       },
     ], [
-      "- id=clip-1 track=V1",
+      "- id=clip-1 | track=V1 | shot=Hero Shot | shotId=shot-1",
       "- id=clip-2 track=V2",
     ].join("\n"));
 
     expect(prompt).toContain('prompt="moody \\"reference\\" lighting"');
+    expect(prompt).toContain('shot_id=shot-1');
+    expect(prompt).toContain('shot_name="Hero \\"Shot\\""');
+    expect(prompt).toContain('timeline=id=clip-1 | track=V1 | shot=Hero Shot | shotId=shot-1');
     expect(prompt).not.toContain("prompt=undefined");
   });
 
@@ -265,5 +277,73 @@ describe("loop helpers", () => {
     expect(systemPrompt).toContain('If the user says "in this style"');
     expect(systemPrompt).toContain('Prefer create_task with task_type="style-transfer"');
     expect(systemPrompt).toContain("do not fall back to plain text-to-image without a reference");
+  });
+
+  it("extracts text-formatted create_task blocks from assistant text", () => {
+    const toolCalls = extractToolCalls({
+      role: "assistant",
+      content: `Tool call create_task:
+{
+  "count": 5,
+  "model": "z-image",
+  "prompt": "Orbital satellite perspective directly overhead",
+  "task_type": "text-to-image"
+}`,
+    });
+
+    expect(toolCalls).toEqual([
+      {
+        id: expect.any(String),
+        name: "create_task",
+        args: {
+          count: 5,
+          model: "z-image",
+          prompt: "Orbital satellite perspective directly overhead",
+          task_type: "text-to-image",
+        },
+        parseError: null,
+      },
+    ]);
+  });
+
+  it("tells the agent to treat 'of it' and 'without style' as image-to-image requests", () => {
+    const systemPrompt = buildTimelineAgentSystemPrompt({
+      projectId: "project-1",
+      timelineSummary: "- id=clip-1 track=V1",
+      selectedClips: [{
+        clip_id: "clip-1",
+        url: "https://example.com/reference.png",
+        media_type: "image",
+        prompt: "Uploaded reference.png",
+      }],
+      defaultModel: "z-image",
+    });
+
+    expect(systemPrompt).toContain('If the user says "of it"');
+    expect(systemPrompt).toContain('"without style"');
+    expect(systemPrompt).toContain('prefer create_task with task_type="image-to-image"');
+    expect(systemPrompt).toContain("do not convert it into style-transfer");
+    expect(systemPrompt).toContain("do not fall back to plain text-to-image");
+  });
+
+  it("surfaces shared shot context in the system prompt when selected clips already share a shot", () => {
+    const systemPrompt = buildTimelineAgentSystemPrompt({
+      projectId: "project-1",
+      timelineSummary: "- id=clip-1 | track=V1 | shot=Hero Shot | shotId=shot-1",
+      selectedClips: [{
+        clip_id: "clip-1",
+        url: "https://example.com/reference.png",
+        media_type: "image",
+        shot_id: "shot-1",
+        shot_name: "Hero Shot",
+      }],
+      sharedShotId: "shot-1",
+      sharedShotName: "Hero Shot",
+    });
+
+    expect(systemPrompt).toContain("Selected clips already share shot context.");
+    expect(systemPrompt).toContain("shot_id=shot-1");
+    expect(systemPrompt).toContain('shot_name="Hero Shot"');
+    expect(systemPrompt).toContain("Reuse this shot for related edits, duplicate flows, travel defaults, and reference lookups");
   });
 });

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { AgentChatMessage } from './AgentChatMessage';
+import { AgentChatAttachmentStrip, AgentChatMessage } from './AgentChatMessage';
 
 describe('AgentChatMessage', () => {
   it('renders attachment summaries for gallery-style attachments that include generationId', () => {
@@ -59,6 +59,28 @@ describe('AgentChatMessage', () => {
     expect(screen.getByText('5 images attached')).toBeInTheDocument();
   });
 
+  it('renders shot-aware attachment summaries when a whole shot was attached', () => {
+    render(
+      <AgentChatMessage
+        turn={{
+          role: 'user',
+          content: 'Use this shot and these extras.',
+          attachments: [
+            { clipId: 'shot-1-a', url: 'https://example.com/1.png', mediaType: 'image', shotId: 'shot-1', shotSelectionClipCount: 4 },
+            { clipId: 'shot-1-b', url: 'https://example.com/2.png', mediaType: 'image', shotId: 'shot-1', shotSelectionClipCount: 4 },
+            { clipId: 'shot-1-c', url: 'https://example.com/3.png', mediaType: 'image', shotId: 'shot-1', shotSelectionClipCount: 4 },
+            { clipId: 'shot-1-d', url: 'https://example.com/4.png', mediaType: 'image', shotId: 'shot-1', shotSelectionClipCount: 4 },
+            { clipId: 'clip-5', url: 'https://example.com/5.png', mediaType: 'image' },
+            { clipId: 'clip-6', url: 'https://example.com/6.png', mediaType: 'image' },
+          ],
+          timestamp: '2026-04-04T12:00:00.000Z',
+        }}
+      />,
+    );
+
+    expect(screen.getByText('1 shot (4 images) and 2 more images attached')).toBeInTheDocument();
+  });
+
   it('calls the attachment click handler for clickable previews', () => {
     const onAttachmentClick = vi.fn();
 
@@ -88,6 +110,53 @@ describe('AgentChatMessage', () => {
       url: 'https://example.com/image.png',
       mediaType: 'image',
       generationId: 'gen-1',
+    });
+  });
+
+  it('renders full-shot selections inside a grouped bounding box', () => {
+    render(
+      <AgentChatAttachmentStrip
+        attachments={[
+          { clipId: 'shot-1-a', url: 'https://example.com/1.png', mediaType: 'image', shotId: 'shot-1', shotName: 'Hero Shot', shotSelectionClipCount: 2 },
+          { clipId: 'shot-1-b', url: 'https://example.com/2.png', mediaType: 'image', shotId: 'shot-1', shotName: 'Hero Shot', shotSelectionClipCount: 2 },
+          { clipId: 'clip-3', url: 'https://example.com/3.png', mediaType: 'image' },
+        ]}
+        isUser={false}
+        maxPreviewCount={null}
+      />,
+    );
+
+    expect(screen.getByLabelText('Hero Shot group')).toBeInTheDocument();
+    expect(screen.getByText('Hero Shot (2)')).toBeInTheDocument();
+    expect(screen.getAllByLabelText(/Attached image \d/)).toHaveLength(3);
+  });
+
+  it('calls remove handlers for individual items and whole shots', () => {
+    const onRemoveAttachment = vi.fn();
+    const onRemoveShot = vi.fn();
+
+    render(
+      <AgentChatAttachmentStrip
+        attachments={[
+          { clipId: 'shot-1-a', url: 'https://example.com/1.png', mediaType: 'image', shotId: 'shot-1', shotName: 'Hero Shot', shotSelectionClipCount: 2 },
+          { clipId: 'shot-1-b', url: 'https://example.com/2.png', mediaType: 'image', shotId: 'shot-1', shotName: 'Hero Shot', shotSelectionClipCount: 2 },
+          { clipId: 'clip-3', url: 'https://example.com/3.png', mediaType: 'image' },
+        ]}
+        isUser={false}
+        onRemoveAttachment={onRemoveAttachment}
+        onRemoveShot={onRemoveShot}
+        maxPreviewCount={null}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Deselect Hero Shot' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Deselect attached image 2' }));
+
+    expect(onRemoveShot).toHaveBeenCalledWith('shot-1');
+    expect(onRemoveAttachment).toHaveBeenCalledWith({
+      clipId: 'clip-3',
+      url: 'https://example.com/3.png',
+      mediaType: 'image',
     });
   });
 });

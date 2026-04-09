@@ -31,8 +31,7 @@ import { TIMELINE_AGENT_TOOLS } from "./tool-schemas.ts";
 import { asStringArray, asTrimmedString } from "./utils.ts";
 import {
   createShotWithGenerations,
-  findShotForGenerations,
-  resolveClipGenerationIds,
+  resolveSelectedClipShot,
 } from "./tools/clips.ts";
 import { executeCreateTask } from "./tools/create-task.ts";
 import { executeDuplicateGeneration } from "./tools/duplicate-generation.ts";
@@ -83,6 +82,11 @@ function attachSelectedClips(
     mediaType: clip.media_type,
     ...(clip.generation_id ? { generationId: clip.generation_id } : {}),
     ...(clip.prompt ? { prompt: clip.prompt } : {}),
+    ...(clip.shot_id ? { shotId: clip.shot_id } : {}),
+    ...(clip.shot_name ? { shotName: clip.shot_name } : {}),
+    ...(typeof clip.shot_selection_clip_count === "number"
+      ? { shotSelectionClipCount: clip.shot_selection_clip_count }
+      : {}),
   }));
 }
 
@@ -107,6 +111,17 @@ export function recoverSelectedClipsFromTurns(turns: AgentTurn[]): SelectedClipP
       const prompt = typeof attachment.prompt === "string" && attachment.prompt.trim()
         ? attachment.prompt.trim()
         : undefined;
+      const shotId = typeof attachment.shotId === "string" && attachment.shotId.trim()
+        ? attachment.shotId.trim()
+        : undefined;
+      const shotName = typeof attachment.shotName === "string" && attachment.shotName.trim()
+        ? attachment.shotName.trim()
+        : undefined;
+      const shotSelectionClipCount = typeof attachment.shotSelectionClipCount === "number"
+        && Number.isFinite(attachment.shotSelectionClipCount)
+        && attachment.shotSelectionClipCount > 0
+        ? attachment.shotSelectionClipCount
+        : undefined;
 
       if (!clipId || !url || (mediaType !== "image" && mediaType !== "video")) {
         return [];
@@ -118,11 +133,31 @@ export function recoverSelectedClipsFromTurns(turns: AgentTurn[]): SelectedClipP
         media_type: mediaType,
         ...(generationId ? { generation_id: generationId } : {}),
         ...(prompt ? { prompt } : {}),
+        ...(shotId ? { shot_id: shotId } : {}),
+        ...(shotName ? { shot_name: shotName } : {}),
+        ...(shotSelectionClipCount ? { shot_selection_clip_count: shotSelectionClipCount } : {}),
       }];
     });
   }
 
   return [];
+}
+
+function resolveSharedShotName(
+  selectedClips: SelectedClipPayload[] | undefined,
+  shotId: string | null,
+  timelineState: TimelineState,
+): string | null {
+  if (!shotId) {
+    return null;
+  }
+
+  const explicitShotName = selectedClips?.find((clip) => clip.shot_id === shotId)?.shot_name;
+  if (typeof explicitShotName === "string" && explicitShotName.trim()) {
+    return explicitShotName.trim();
+  }
+
+  return timelineState.shotNamesById[shotId] ?? null;
 }
 
 export function cleanAssistantText(text: string): string {
@@ -378,14 +413,13 @@ export async function runAgentLoop(
 
     const timelineState = await loadTimelineState(supabaseAdmin, session.timeline_id);
     const imageSettings = await loadProjectImageSettings(supabaseAdmin, timelineState.projectId);
-    const clipGenerationIds = resolveClipGenerationIds(
-      effectiveSelectedClips ?? [],
-      timelineState.registry,
-      timelineState.config,
+    const clipShotResolution = await resolveSelectedClipShot(
+      supabaseAdmin,
+      timelineState,
+      effectiveSelectedClips,
     );
-    const clipShotId = clipGenerationIds.length > 0
-      ? await findShotForGenerations(supabaseAdmin, clipGenerationIds)
-      : null;
+    const clipShotId = clipShotResolution.shotId;
+    const clipShotName = resolveSharedShotName(effectiveSelectedClips, clipShotId, timelineState);
     const travelSettings = clipShotId
       ? await loadShotVideoTravelSettings(supabaseAdmin, clipShotId)
       : null;
@@ -402,7 +436,11 @@ export async function runAgentLoop(
         : null,
       travel: travelSettings,
     };
-    const timelineSummary = viewTimeline(timelineState.config, timelineState.registry).result;
+    const timelineSummary = viewTimeline(
+      timelineState.config,
+      timelineState.registry,
+      timelineState.shotNamesById,
+    ).result;
     const systemPrompt = buildTimelineAgentSystemPrompt({
       projectId: timelineState.projectId,
       timelineSummary,
@@ -411,6 +449,8 @@ export async function runAgentLoop(
       activeReference: generationContext.image?.activeReference ?? null,
       travelSettings,
       imageLorasByCategory: generationContext.image?.selectedLorasByCategory ?? null,
+      sharedShotId: clipShotId,
+      sharedShotName: clipShotName,
     });
     const messages = buildInitialMessages(systemPrompt, turns);
     const startedAt = Date.now();

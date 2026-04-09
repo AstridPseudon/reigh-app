@@ -6,16 +6,21 @@ export type AgentSessionStatus =
   | "cancelled"
   | "error";
 
+export type AgentTurnAttachment = {
+  clipId: string;
+  url: string;
+  mediaType: "image" | "video";
+  generationId?: string;
+  prompt?: string;
+  shotId?: string;
+  shotName?: string;
+  shotSelectionClipCount?: number;
+};
+
 export type AgentTurn = {
   role: "user" | "assistant" | "tool_call" | "tool_result";
   content: string;
-  attachments?: Array<{
-    clipId: string;
-    url: string;
-    mediaType: "image" | "video";
-    generationId?: string;
-    prompt?: string;
-  }>;
+  attachments?: AgentTurnAttachment[];
   tool_name?: string;
   tool_args?: Record<string, unknown>;
   timestamp: string;

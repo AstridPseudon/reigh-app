@@ -64,6 +64,10 @@ describe('getMediaUrl', () => {
   it('returns undefined when no URLs present', () => {
     expect(getMediaUrl({})).toBeUndefined();
   });
+
+  it('ignores blank strings and falls back to the next usable URL', () => {
+    expect(getMediaUrl({ location: '   ', url: ' https://example.com/url.mp4 ' })).toBe('https://example.com/url.mp4');
+  });
 });
 
 describe('getThumbnailUrl', () => {
@@ -82,6 +86,10 @@ describe('getThumbnailUrl', () => {
 
   it('returns undefined when no thumbnails present', () => {
     expect(getThumbnailUrl({})).toBeUndefined();
+  });
+
+  it('ignores blank thumbnail strings', () => {
+    expect(getThumbnailUrl({ thumbnail_url: '   ', thumbUrl: ' https://example.com/thumb.png ' })).toBe('https://example.com/thumb.png');
   });
 });
 

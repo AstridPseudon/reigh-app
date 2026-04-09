@@ -36,6 +36,9 @@ import { useTaskType } from "@/shared/hooks/tasks/useTaskType";
 import { useGetTask } from "@/shared/hooks/tasks/useTasks";
 import { useShareGeneration } from "@/shared/hooks/useShareGeneration";
 import { deriveGalleryInputImages } from "./MediaGallery/utils";
+import { isImageEditTaskType } from "@/shared/lib/taskParamsUtils";
+import { useMarkVariantViewed } from "@/shared/hooks/variants/useMarkVariantViewed";
+import { getGenerationId, getMediaUrl, getThumbnailUrl } from '@/shared/lib/media/mediaTypeHelpers';
 
 const MIN_PADDING = 60;
 const MAX_PADDING = 200;
@@ -84,8 +87,12 @@ function resolveAspectRatioPadding(
   return '100%';
 }
 
-function toGenerationDragData(image: GeneratedImageWithMetadata): GenerationDropData {
+function toGenerationDragData(image: GeneratedImageWithMetadata): GenerationDropData | null {
   const generationId = getGenerationId(image) ?? image.id;
+  const imageUrl = getMediaUrl(image);
+  if (!imageUrl) {
+    return null;
+  }
   const variantId = image.primary_variant_id
     ?? (typeof image.metadata?.variant_id === 'string' ? image.metadata.variant_id : undefined)
     ?? (image.generation_id ? image.id : undefined);
@@ -94,14 +101,11 @@ function toGenerationDragData(image: GeneratedImageWithMetadata): GenerationDrop
     generationId,
     variantId,
     variantType: image.type?.includes('video') || image.isVideo ? 'video' : 'image',
-    imageUrl: image.url,
-    thumbUrl: image.thumbUrl,
+    imageUrl,
+    thumbUrl: getThumbnailUrl(image),
     metadata: image.metadata,
   };
 }
-import { isImageEditTaskType } from "@/shared/lib/taskParamsUtils";
-import { useMarkVariantViewed } from "@/shared/hooks/variants/useMarkVariantViewed";
-import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
   image,
   index,
@@ -290,17 +294,31 @@ export const MediaGalleryItem: React.FC<MediaGalleryItemProps> = ({
     const selectedDragItems = isSelected && selectedItems.some((item) => item.id === image.id)
       ? selectedItems
       : [];
+    const selectedDragPayloads = selectedDragItems
+      .map(toGenerationDragData)
+      .filter((payload): payload is GenerationDropData => payload !== null);
+    const singleDragPayload = toGenerationDragData(image);
+
+    if (selectedDragItems.length > 1 && selectedDragPayloads.length === 0) {
+      e.preventDefault();
+      return;
+    }
+
+    if (selectedDragItems.length <= 1 && !singleDragPayload) {
+      e.preventDefault();
+      return;
+    }
 
     setIsDragging(true);
-    if (selectedDragItems.length > 1) {
-      setMultiGenerationDragData(e, selectedDragItems.map(toGenerationDragData));
+    if (selectedDragPayloads.length > 1) {
+      setMultiGenerationDragData(e, selectedDragPayloads);
     } else {
-      setGenerationDragData(e, toGenerationDragData(image));
+      setGenerationDragData(e, selectedDragPayloads[0] ?? singleDragPayload!);
     }
 
     const cleanup = createDragPreview(
       e,
-      selectedDragItems.length > 1 ? { badgeText: String(selectedDragItems.length) } : undefined,
+      selectedDragPayloads.length > 1 ? { badgeText: String(selectedDragPayloads.length) } : undefined,
     );
     if (cleanup) {
       setTimeout(cleanup, 0);

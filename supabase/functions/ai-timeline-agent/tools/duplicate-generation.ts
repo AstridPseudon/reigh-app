@@ -1,6 +1,6 @@
 import type { SelectedClipPayload, SupabaseAdmin, TimelineState, ToolResult } from "../types.ts";
 import { asTrimmedString, isRecord } from "../utils.ts";
-import { findShotForGenerations, resolveClipGenerationIds } from "./clips.ts";
+import { resolveSelectedClipShot } from "./clips.ts";
 
 export async function executeDuplicateGeneration(
   args: Record<string, unknown>,
@@ -11,16 +11,16 @@ export async function executeDuplicateGeneration(
   const generationId = asTrimmedString(args.generation_id);
   if (!generationId) return { result: "duplicate_generation requires generation_id." };
 
-  const selectedGenerationIds = resolveClipGenerationIds(selectedClips ?? [], timelineState.registry, timelineState.config);
-  const lookupGenerationIds = Array.from(new Set([...selectedGenerationIds, generationId]));
   let selectedShotId: string | null = null;
-  if (lookupGenerationIds.length) {
-    try {
-      selectedShotId = await findShotForGenerations(supabaseAdmin, lookupGenerationIds);
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      return { result: `Failed to resolve a source shot for ${generationId}: ${message}` };
-    }
+  try {
+    selectedShotId = (
+      await resolveSelectedClipShot(supabaseAdmin, timelineState, selectedClips, {
+        additionalGenerationIds: [generationId],
+      })
+    ).shotId;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    return { result: `Failed to resolve a source shot for ${generationId}: ${message}` };
   }
 
   const { data: shotGeneration, error: shotGenerationError } = await supabaseAdmin

@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   useAgentSession: vi.fn(),
   useSendMessage: vi.fn(),
   useCancelSession: vi.fn(),
+  useTimelineEditorOps: vi.fn(),
   useSelectedMediaClips: vi.fn(),
   useGallerySelection: vi.fn(),
   useAgentVoice: vi.fn(),
@@ -42,6 +43,10 @@ vi.mock('@/shared/contexts/PanesContext', () => ({
   usePanes: () => ({ isTasksPaneLocked: false, tasksPaneWidth: 0, isGenerationsPaneLocked: false, isGenerationsPaneOpen: false, effectiveGenerationsPaneHeight: 0 }),
 }));
 
+vi.mock('@/tools/video-editor/contexts/TimelineEditorContext', () => ({
+  useTimelineEditorOps: (...args: unknown[]) => mocks.useTimelineEditorOps(...args),
+}));
+
 vi.mock('@/tools/video-editor/hooks/useAgentVoice', () => ({
   useAgentVoice: (...args: unknown[]) => mocks.useAgentVoice(...args),
 }));
@@ -60,19 +65,43 @@ vi.mock('./AgentChatMessage', () => ({
   AgentChatAttachmentStrip: ({
     attachments,
     onAttachmentClick,
+    onRemoveAttachment,
+    onRemoveShot,
   }: {
     attachments: Array<{ clipId: string; mediaType: string }>;
     onAttachmentClick?: (attachment: { clipId: string; mediaType: string }) => void;
+    onRemoveAttachment?: (attachment: { clipId: string; mediaType: string }) => void;
+    onRemoveShot?: (shotId: string) => void;
   }) => (
     <div>
-      {attachments.map((attachment, index) => (
+      {Array.from(new Set(
+        attachments
+          .map((attachment) => ('shotId' in attachment ? attachment.shotId : undefined))
+          .filter((shotId): shotId is string => typeof shotId === 'string'),
+      )).map((shotId) => (
         <button
-          key={attachment.clipId}
+          key={`shot-${shotId}`}
           type="button"
-          onClick={() => onAttachmentClick?.(attachment)}
+          onClick={() => onRemoveShot?.(shotId)}
         >
-          {`preview-${index + 1}-${attachment.mediaType}`}
+          {`remove-shot-${shotId}`}
         </button>
+      ))}
+      {attachments.map((attachment, index) => (
+        <div key={attachment.clipId}>
+          <button
+            type="button"
+            onClick={() => onAttachmentClick?.(attachment)}
+          >
+            {`preview-${index + 1}-${attachment.mediaType}`}
+          </button>
+          <button
+            type="button"
+            onClick={() => onRemoveAttachment?.(attachment)}
+          >
+            {`remove-${index + 1}-${attachment.mediaType}`}
+          </button>
+        </div>
       ))}
     </div>
   ),
@@ -115,6 +144,9 @@ describe('AgentChat', () => {
       mutate: vi.fn(),
       isPending: false,
     });
+    mocks.useTimelineEditorOps.mockReturnValue({
+      replaceTimelineSelection: vi.fn(),
+    });
     mocks.useSendMessage.mockReturnValue({
       mutateAsync: vi.fn().mockResolvedValue(undefined),
       isPending: false,
@@ -127,6 +159,8 @@ describe('AgentChat', () => {
           assetKey: 'asset-1',
           url: 'https://example.com/shared.png',
           mediaType: 'image',
+          shotId: 'shot-1',
+          shotName: 'Hero Shot',
         },
       ],
       summary: 'attaching 1 image',
@@ -153,6 +187,7 @@ describe('AgentChat', () => {
       ],
       selectGalleryItem: vi.fn(),
       selectGalleryItems: vi.fn(),
+      deselectGalleryItems: vi.fn(),
       clearGallerySelection: vi.fn(),
     });
     mocks.useAgentVoice.mockReturnValue({
@@ -205,6 +240,8 @@ describe('AgentChat', () => {
             url: 'https://example.com/shared.png',
             mediaType: 'image',
             generationId: 'gen-1',
+            shotId: 'shot-1',
+            shotName: 'Hero Shot',
           },
           {
             clipId: 'gallery-gen-2',
@@ -235,6 +272,226 @@ describe('AgentChat', () => {
     });
 
     expect(await screen.findByTestId('media-lightbox')).toHaveTextContent('gen-1');
+  });
+
+  it('renders a shot-aware composer summary for whole-shot selections plus extra media', async () => {
+    mocks.useSelectedMediaClips.mockReturnValue({
+      clips: [
+        {
+          clipId: 'shot-clip-1',
+          assetKey: 'asset-1',
+          url: 'https://example.com/shot-1.png',
+          mediaType: 'image',
+          shotId: 'shot-1',
+          shotName: 'Hero Shot',
+          shotSelectionClipCount: 4,
+        },
+        {
+          clipId: 'shot-clip-2',
+          assetKey: 'asset-2',
+          url: 'https://example.com/shot-2.png',
+          mediaType: 'image',
+          shotId: 'shot-1',
+          shotName: 'Hero Shot',
+          shotSelectionClipCount: 4,
+        },
+        {
+          clipId: 'shot-clip-3',
+          assetKey: 'asset-3',
+          url: 'https://example.com/shot-3.png',
+          mediaType: 'image',
+          shotId: 'shot-1',
+          shotName: 'Hero Shot',
+          shotSelectionClipCount: 4,
+        },
+        {
+          clipId: 'shot-clip-4',
+          assetKey: 'asset-4',
+          url: 'https://example.com/shot-4.png',
+          mediaType: 'image',
+          shotId: 'shot-1',
+          shotName: 'Hero Shot',
+          shotSelectionClipCount: 4,
+        },
+      ],
+      summary: 'attaching 1 shot (4 images)',
+    });
+    mocks.useGallerySelection.mockReturnValue({
+      selectedGalleryIds: new Set(['gallery-gen-2', 'gallery-gen-3']),
+      gallerySelectionMap: new Map(),
+      gallerySummary: 'attaching 2 images',
+      selectedGalleryClips: [
+        {
+          clipId: 'gallery-gen-2',
+          assetKey: '',
+          url: 'https://example.com/extra-1.png',
+          mediaType: 'image',
+          generationId: 'gen-2',
+        },
+        {
+          clipId: 'gallery-gen-3',
+          assetKey: '',
+          url: 'https://example.com/extra-2.png',
+          mediaType: 'image',
+          generationId: 'gen-3',
+        },
+      ],
+      selectGalleryItem: vi.fn(),
+      selectGalleryItems: vi.fn(),
+      deselectGalleryItems: vi.fn(),
+      clearGallerySelection: vi.fn(),
+    });
+
+    render(<AgentChat timelineId="timeline-1" />);
+
+    fireEvent.click(screen.getByTitle('Timeline Agent (Cmd+Shift+R to talk)'));
+
+    expect(await screen.findByText('attaching 1 shot (4 images) and 2 more images')).toBeInTheDocument();
+  });
+
+  it('deselects an individual attachment from both timeline and gallery selection in the composer', async () => {
+    const replaceTimelineSelection = vi.fn();
+    const deselectGalleryItems = vi.fn();
+
+    mocks.useTimelineEditorOps.mockReturnValue({
+      replaceTimelineSelection,
+    });
+    mocks.useSelectedMediaClips.mockReturnValue({
+      clips: [
+        {
+          clipId: 'timeline-clip-1',
+          assetKey: 'asset-1',
+          url: 'https://example.com/shared.png',
+          mediaType: 'image',
+          generationId: 'gen-1',
+          shotId: 'shot-1',
+          shotName: 'Hero Shot',
+        },
+        {
+          clipId: 'timeline-clip-2',
+          assetKey: 'asset-2',
+          url: 'https://example.com/other.png',
+          mediaType: 'image',
+        },
+      ],
+      summary: 'attaching 2 images',
+    });
+    mocks.useGallerySelection.mockReturnValue({
+      selectedGalleryIds: new Set(['gallery-item-1']),
+      gallerySelectionMap: new Map([
+        ['gallery-item-1', {
+          url: 'https://example.com/shared.png',
+          mediaType: 'image',
+          generationId: 'gen-1',
+        }],
+      ]),
+      gallerySummary: 'attaching 1 image',
+      selectedGalleryClips: [
+        {
+          clipId: 'gallery-gen-1',
+          assetKey: '',
+          url: 'https://example.com/shared.png',
+          mediaType: 'image',
+          generationId: 'gen-1',
+        },
+      ],
+      selectGalleryItem: vi.fn(),
+      selectGalleryItems: vi.fn(),
+      deselectGalleryItems,
+      clearGallerySelection: vi.fn(),
+    });
+
+    render(<AgentChat timelineId="timeline-1" />);
+
+    fireEvent.click(screen.getByTitle('Timeline Agent (Cmd+Shift+R to talk)'));
+    fireEvent.click(await screen.findByRole('button', { name: 'remove-1-image' }));
+
+    expect(replaceTimelineSelection).toHaveBeenCalledWith(['timeline-clip-2']);
+    expect(deselectGalleryItems).toHaveBeenCalledWith(['gallery-item-1']);
+  });
+
+  it('deselects a whole shot without clearing unrelated selected extras', async () => {
+    const replaceTimelineSelection = vi.fn();
+    const deselectGalleryItems = vi.fn();
+
+    mocks.useTimelineEditorOps.mockReturnValue({
+      replaceTimelineSelection,
+    });
+    mocks.useSelectedMediaClips.mockReturnValue({
+      clips: [
+        {
+          clipId: 'shot-clip-1',
+          assetKey: 'asset-1',
+          url: 'https://example.com/shot-1.png',
+          mediaType: 'image',
+          generationId: 'gen-shot-1',
+          shotId: 'shot-1',
+          shotName: 'Hero Shot',
+          shotSelectionClipCount: 2,
+        },
+        {
+          clipId: 'shot-clip-2',
+          assetKey: 'asset-2',
+          url: 'https://example.com/shot-2.png',
+          mediaType: 'image',
+          generationId: 'gen-shot-2',
+          shotId: 'shot-1',
+          shotName: 'Hero Shot',
+          shotSelectionClipCount: 2,
+        },
+        {
+          clipId: 'timeline-extra',
+          assetKey: 'asset-3',
+          url: 'https://example.com/extra.png',
+          mediaType: 'image',
+        },
+      ],
+      summary: 'attaching 1 shot (2 images) and 1 more image',
+    });
+    mocks.useGallerySelection.mockReturnValue({
+      selectedGalleryIds: new Set(['gallery-item-1', 'gallery-item-2']),
+      gallerySelectionMap: new Map([
+        ['gallery-item-1', {
+          url: 'https://example.com/shot-1.png',
+          mediaType: 'image',
+          generationId: 'gen-shot-1',
+        }],
+        ['gallery-item-2', {
+          url: 'https://example.com/extra-gallery.png',
+          mediaType: 'image',
+          generationId: 'gen-extra',
+        }],
+      ]),
+      gallerySummary: 'attaching 2 images',
+      selectedGalleryClips: [
+        {
+          clipId: 'gallery-gen-shot-1',
+          assetKey: '',
+          url: 'https://example.com/shot-1.png',
+          mediaType: 'image',
+          generationId: 'gen-shot-1',
+        },
+        {
+          clipId: 'gallery-gen-extra',
+          assetKey: '',
+          url: 'https://example.com/extra-gallery.png',
+          mediaType: 'image',
+          generationId: 'gen-extra',
+        },
+      ],
+      selectGalleryItem: vi.fn(),
+      selectGalleryItems: vi.fn(),
+      deselectGalleryItems,
+      clearGallerySelection: vi.fn(),
+    });
+
+    render(<AgentChat timelineId="timeline-1" />);
+
+    fireEvent.click(screen.getByTitle('Timeline Agent (Cmd+Shift+R to talk)'));
+    fireEvent.click(await screen.findByRole('button', { name: 'remove-shot-shot-1' }));
+
+    expect(replaceTimelineSelection).toHaveBeenCalledWith(['timeline-extra']);
+    expect(deselectGalleryItems).toHaveBeenCalledWith(['gallery-item-1']);
   });
 
   it('disables sending when the active session has been cancelled', async () => {

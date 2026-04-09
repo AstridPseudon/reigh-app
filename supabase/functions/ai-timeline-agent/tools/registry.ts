@@ -53,6 +53,7 @@ function buildContext(state: TimelineState): ToolContext {
     config: state.config,
     registry: state.registry,
     projectId: state.projectId,
+    shotNamesById: state.shotNamesById,
   };
 }
 

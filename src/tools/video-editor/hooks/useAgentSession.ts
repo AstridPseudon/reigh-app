@@ -279,6 +279,11 @@ export function useSendMessage(sessionId: string | null | undefined, timelineId?
                 media_type: clip.mediaType,
                 ...(clip.generationId ? { generation_id: clip.generationId } : {}),
                 ...(clip.prompt ? { prompt: clip.prompt } : {}),
+                ...(clip.shotId ? { shot_id: clip.shotId } : {}),
+                ...(clip.shotName ? { shot_name: clip.shotName } : {}),
+                ...(typeof clip.shotSelectionClipCount === 'number'
+                  ? { shot_selection_clip_count: clip.shotSelectionClipCount }
+                  : {}),
               })),
             } : {}),
           },

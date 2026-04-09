@@ -18,6 +18,7 @@ export type ToolContext = {
   config: TimelineConfig;
   registry: AssetRegistry;
   projectId: string;
+  shotNamesById: Record<string, string>;
 };
 
 export type ToolHandler = (
@@ -63,6 +64,7 @@ export type TimelineState = {
   configVersion: number;
   registry: AssetRegistry;
   projectId: string;
+  shotNamesById: Record<string, string>;
 };
 
 export type LlmMessage = {
@@ -85,6 +87,9 @@ export type SelectedClipPayload = {
   media_type: "image" | "video";
   generation_id?: string;
   prompt?: string;
+  shot_id?: string;
+  shot_name?: string;
+  shot_selection_clip_count?: number;
 };
 
 export type AgentTextToImageModel = "qwen-image" | "qwen-image-2512" | "z-image";

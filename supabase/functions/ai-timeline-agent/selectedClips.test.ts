@@ -68,6 +68,26 @@ describe('normalizeSelectedClips', () => {
       prompt: 'moody portrait lighting',
     }]);
   });
+
+  it('preserves explicit shot metadata when present on the incoming payload', () => {
+    expect(normalizeSelectedClips([{
+      clip_id: 'clip-4',
+      generation_id: 'gen-4',
+      url: 'https://example.com/shot.png',
+      media_type: 'image',
+      shot_id: '  shot-4  ',
+      shot_name: '  Hero Shot  ',
+      shot_selection_clip_count: 4,
+    }])).toEqual([{
+      clip_id: 'clip-4',
+      generation_id: 'gen-4',
+      url: 'https://example.com/shot.png',
+      media_type: 'image',
+      shot_id: 'shot-4',
+      shot_name: 'Hero Shot',
+      shot_selection_clip_count: 4,
+    }]);
+  });
 });
 
 describe('enrichClipsWithPrompts', () => {

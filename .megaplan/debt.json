@@ -2262,6 +2262,91 @@
       "resolved": false,
       "resolved_by": null,
       "resolved_at": null
+    },
+    {
+      "id": "DEBT-134",
+      "subsystem": "did-the-work-fully-address-the-issue-hints-user-notes-and-approved-plan-requirements",
+      "concern": "did the work fully address the issue hints, user notes, and approved plan requirements?: checked step 3 and the accompanying assumptions against [useselectedmediaclips.ts](/users/peteromalley/documents/reigh-workspace/reigh-app/src/tools/video-editor/hooks/useselectedmediaclips.ts) and [types/index.ts](/users/peteromalley/documents/reigh-workspace/reigh-app/src/tools/video-editor/types/index.ts#l187). the revision still says timeline-selected clips can resolve shot membership from `resolvedconfig.pinnedshotgroups`, but `resolvedtimelineconfig` does not expose that field, so one of the original review findings remains only partially addressed.",
+      "flag_ids": [
+        "issue_hints"
+      ],
+      "plan_ids": [
+        "implement-first-class-shot-20260409-2052"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-09T20:07:03Z",
+      "updated_at": "2026-04-09T20:07:03Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-135",
+      "subsystem": "are-the-proposed-changes-technically-correct",
+      "concern": "are the proposed changes technically correct?: checked step 3 against the actual `useselectedmediaclips()` inputs in [useselectedmediaclips.ts](/users/peteromalley/documents/reigh-workspace/reigh-app/src/tools/video-editor/hooks/useselectedmediaclips.ts#l29). that hook currently reads only `selectedclipids` and `resolvedconfig` from editor context, so the plan's literal instruction to join `resolvedconfig.pinnedshotgroups` with `useshots()` data will not compile unless it first switches to `data?.config.pinnedshotgroups` or another real source of pinned groups.",
+      "flag_ids": [
+        "correctness"
+      ],
+      "plan_ids": [
+        "implement-first-class-shot-20260409-2052"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-09T20:07:03Z",
+      "updated_at": "2026-04-09T20:07:03Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-136",
+      "subsystem": "search-for-related-code-that-handles-the-same-concept-is-the-reported-issue-a-symptom-of-something-broader",
+      "concern": "search for related code that handles the same concept. is the reported issue a symptom of something broader?: checked the frontend shot-resolution scope in [useselectedmediaclips.ts](/users/peteromalley/documents/reigh-workspace/reigh-app/src/tools/video-editor/hooks/useselectedmediaclips.ts), [timelineeditor.tsx](/users/peteromalley/documents/reigh-workspace/reigh-app/src/tools/video-editor/components/timelineeditor/timelineeditor.tsx#l191), and [usepinnedshotgroups.ts](/users/peteromalley/documents/reigh-workspace/reigh-app/src/tools/video-editor/hooks/usepinnedshotgroups.ts#l26). the revision narrowed away from duplicate canvas work correctly, but it still scopes the timeline clip lookup to a non-existent `resolvedconfig.pinnedshotgroups` surface instead of the actual `data.config.pinnedshotgroups` path used elsewhere in the editor.",
+      "flag_ids": [
+        "scope"
+      ],
+      "plan_ids": [
+        "implement-first-class-shot-20260409-2052"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-09T20:07:03Z",
+      "updated_at": "2026-04-09T20:07:03Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-137",
+      "subsystem": "does-the-change-touch-all-locations-and-supporting-infrastructure",
+      "concern": "does the change touch all locations and supporting infrastructure?: checked the remaining frontend glue for resolving shot membership in [useselectedmediaclips.ts](/users/peteromalley/documents/reigh-workspace/reigh-app/src/tools/video-editor/hooks/useselectedmediaclips.ts#l29). even with the broader attachment plumbing fixed, the location list is still incomplete because the plan points that hook at `resolvedconfig.pinnedshotgroups`, while the actual pinned-group data lives on `data.config.pinnedshotgroups` and related helper paths such as [usepinnedshotgroups.ts](/users/peteromalley/documents/reigh-workspace/reigh-app/src/tools/video-editor/hooks/usepinnedshotgroups.ts#l26).",
+      "flag_ids": [
+        "all_locations"
+      ],
+      "plan_ids": [
+        "implement-first-class-shot-20260409-2052"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-09T20:07:03Z",
+      "updated_at": "2026-04-09T20:07:03Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
+    },
+    {
+      "id": "DEBT-138",
+      "subsystem": "find-the-callers-of-the-changed-function-what-arguments-do-they-actually-pass-does-the-fix-handle-all-of-them",
+      "concern": "find the callers of the changed function. what arguments do they actually pass? does the fix handle all of them?: checked the caller contract of `useselectedmediaclips()` via [usetimelineeditordata](/users/peteromalley/documents/reigh-workspace/reigh-app/src/tools/video-editor/hooks/useselectedmediaclips.ts#l29). this hook's caller currently provides `selectedclipids` and `resolvedconfig`, not a resolved config object with `pinnedshotgroups`, so the plan still does not handle the actual arguments passed at that call site and needs to pull pinned groups from editor `data` instead.",
+      "flag_ids": [
+        "callers"
+      ],
+      "plan_ids": [
+        "implement-first-class-shot-20260409-2052"
+      ],
+      "occurrence_count": 1,
+      "created_at": "2026-04-09T20:07:03Z",
+      "updated_at": "2026-04-09T20:07:03Z",
+      "resolved": false,
+      "resolved_by": null,
+      "resolved_at": null
     }
   ]
 }

@@ -6,6 +6,7 @@ import {
   getDragType,
 } from '@/shared/lib/dnd/dragDrop';
 import { useShots } from '@/shared/contexts/ShotsContext';
+import { getMediaUrl, getThumbnailUrl } from '@/shared/lib/media/mediaTypeHelpers';
 import { inferDragKind } from '@/tools/video-editor/lib/drop-position';
 import type { DragCoordinator } from '@/tools/video-editor/hooks/useDragCoordinator';
 import {
@@ -111,7 +112,7 @@ async function dispatchTimelineDrop({
     const shotImages = shotData.imageGenerationIds
       .map((generationId) => shot?.images?.find((image) => image.generation_id === generationId))
       .filter((image): image is NonNullable<NonNullable<typeof shot>['images']>[number] => {
-        return Boolean(image?.generation_id && (image.imageUrl || image.location));
+        return Boolean(image?.generation_id && getMediaUrl(image));
       });
     const resolvedTarget = resolveAssetDropTarget({
       dataRef,
@@ -133,12 +134,14 @@ async function dispatchTimelineDrop({
     let timeOffset = 0;
 
     for (const shotImage of shotImages) {
+      const imageUrl = getMediaUrl(shotImage);
       if (!shotImage.generation_id) continue;
+      if (!imageUrl) continue;
       const assetKey = registerGenerationAsset({
         generationId: shotImage.generation_id,
         variantType: 'image',
-        imageUrl: shotImage.imageUrl ?? shotImage.location ?? '',
-        thumbUrl: shotImage.thumbUrl ?? (shotImage as { thumbnail_url?: string }).thumbnail_url ?? shotImage.imageUrl ?? shotImage.location ?? '',
+        imageUrl,
+        thumbUrl: getThumbnailUrl(shotImage) ?? imageUrl,
         metadata: {
           content_type: shotImage.contentType ?? shotImage.type ?? 'image/png',
         },

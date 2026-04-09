@@ -46,6 +46,7 @@ type GallerySelectionContextValue = {
     items: GallerySelectionItem[],
     options?: { append?: boolean },
   ) => void;
+  deselectGalleryItems: (ids: Iterable<string>) => void;
   clearGallerySelection: () => void;
   registerPeerClear: (clearPeerSelection: (() => void) | null) => void;
 };
@@ -208,6 +209,25 @@ export function GallerySelectionProvider({ children }: { children: ReactNode }) 
     setGallerySelectionMap((previous) => (previous.size === 0 ? previous : new Map()));
   }, []);
 
+  const deselectGalleryItems = useCallback((ids: Iterable<string>) => {
+    const idsToRemove = new Set(ids);
+    if (idsToRemove.size === 0) {
+      return;
+    }
+
+    setGallerySelectionMap((previous) => {
+      let changed = false;
+      const next = new Map(previous);
+      idsToRemove.forEach((id) => {
+        if (next.delete(id)) {
+          changed = true;
+        }
+      });
+
+      return changed ? next : previous;
+    });
+  }, []);
+
   const selectedGalleryIds = useMemo<ReadonlySet<string>>(
     () => new Set(gallerySelectionMap.keys()),
     [gallerySelectionMap],
@@ -224,8 +244,7 @@ export function GallerySelectionProvider({ children }: { children: ReactNode }) 
   ), [gallerySelectionMap]);
 
   const gallerySummary = useMemo(() => {
-    const imageCount = selectedGalleryClips.filter((clip) => clip.mediaType === 'image').length;
-    return buildSummary(imageCount, selectedGalleryClips.length - imageCount);
+    return buildSummary(selectedGalleryClips);
   }, [selectedGalleryClips]);
 
   const value = useMemo<GallerySelectionContextValue>(() => ({
@@ -235,10 +254,12 @@ export function GallerySelectionProvider({ children }: { children: ReactNode }) 
     gallerySummary,
     selectGalleryItem,
     selectGalleryItems,
+    deselectGalleryItems,
     clearGallerySelection,
     registerPeerClear,
   }), [
     clearGallerySelection,
+    deselectGalleryItems,
     gallerySelectionMap,
     gallerySummary,
     registerPeerClear,

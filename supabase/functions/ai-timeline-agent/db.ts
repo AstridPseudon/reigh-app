@@ -321,11 +321,42 @@ export async function loadTimelineState(
   }
 
   const normalized = normalizeTimelineRow(data);
+  const pinnedShotIds = Array.from(new Set(
+    (normalized.config.pinnedShotGroups ?? [])
+      .map((group) => asTrimmedString(group.shotId))
+      .filter((shotId): shotId is string => shotId !== null),
+  ));
+  const shotNamesById: Record<string, string> = {};
+
+  if (pinnedShotIds.length > 0) {
+    const { data: shotsData, error: shotsError } = await supabaseAdmin
+      .from("shots")
+      .select("id, name")
+      .in("id", pinnedShotIds);
+
+    if (shotsError) {
+      throw new Error(`Failed to load shot names: ${shotsError.message}`);
+    }
+
+    for (const row of Array.isArray(shotsData) ? shotsData : []) {
+      if (!isRecord(row)) {
+        continue;
+      }
+
+      const shotId = asTrimmedString(row.id);
+      const shotName = asTrimmedString(row.name);
+      if (shotId && shotName) {
+        shotNamesById[shotId] = shotName;
+      }
+    }
+  }
+
   return {
     config: normalized.config,
     configVersion: normalized.config_version,
     registry: normalized.asset_registry,
     projectId: normalized.project_id,
+    shotNamesById,
   };
 }
 

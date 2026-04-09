@@ -7,6 +7,7 @@ import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { useGallerySelection } from '@/shared/contexts/GallerySelectionContext';
 import { usePanes } from '@/shared/contexts/PanesContext';
+import { useTimelineEditorOps } from '@/tools/video-editor/contexts/TimelineEditorContext';
 import { useAgentSession, useAgentSessions, useCancelSession, useCreateSession, useSendMessage } from '@/tools/video-editor/hooks/useAgentSession';
 import {
   buildSummary,
@@ -40,11 +41,25 @@ function mergeSelectedClips(
 
   for (const clip of [...timelineClips, ...galleryClips]) {
     const existing = clipsByUrl.get(clip.url);
+    if (existing) {
+      const preferIncoming = !existing.generationId && Boolean(clip.generationId);
+      const preferred = preferIncoming ? clip : existing;
+      const secondary = preferIncoming ? existing : clip;
+
+      clipsByUrl.set(clip.url, {
+        ...preferred,
+        generationId: preferred.generationId ?? secondary.generationId,
+        shotId: preferred.shotId ?? secondary.shotId,
+        shotName: preferred.shotName ?? secondary.shotName,
+        shotSelectionClipCount: preferred.shotSelectionClipCount ?? secondary.shotSelectionClipCount,
+        assetKey: preferred.assetKey || secondary.assetKey,
+      });
+      continue;
+    }
+
     // Prefer gallery entries when the same URL exists in both panes because they retain
     // generationId metadata that timeline clips for that asset may not carry.
-    if (!existing || (!existing.generationId && clip.generationId)) {
-      clipsByUrl.set(clip.url, clip);
-    }
+    clipsByUrl.set(clip.url, clip);
   }
 
   return Array.from(clipsByUrl.values());
@@ -129,10 +144,13 @@ export function AgentChat({ timelineId }: AgentChatProps) {
   const activeSession = useAgentSession(activeSessionId);
   const sendMessage = useSendMessage(activeSessionId, timelineId);
   const cancelSession = useCancelSession(activeSessionId);
+  const timelineEditorOps = useTimelineEditorOps();
   const sessionOptions = useMemo(() => sessions.data ?? [], [sessions.data]);
   const { clips: timelineClips } = useSelectedMediaClips();
   const {
+    gallerySelectionMap,
     selectedGalleryClips,
+    deselectGalleryItems,
     clearGallerySelection,
   } = useGallerySelection();
   const clips = useMemo(
@@ -140,8 +158,7 @@ export function AgentChat({ timelineId }: AgentChatProps) {
     [selectedGalleryClips, timelineClips],
   );
   const summary = useMemo(() => {
-    const imageCount = clips.filter((clip) => clip.mediaType === 'image').length;
-    return buildSummary(imageCount, clips.length - imageCount);
+    return buildSummary(clips);
   }, [clips]);
 
   const voice = useAgentVoice({
@@ -187,6 +204,73 @@ export function AgentChat({ timelineId }: AgentChatProps) {
     lightboxRequestIdRef.current += 1;
     setAttachmentLightboxMedia(null);
   }, []);
+
+  const replaceSelectedTimelineClips = useCallback((nextClips: SelectedMediaClip[]) => {
+    const nextClipIds = nextClips.map((clip) => clip.clipId);
+    if (typeof timelineEditorOps.replaceTimelineSelection === 'function') {
+      timelineEditorOps.replaceTimelineSelection(nextClipIds);
+      return;
+    }
+
+    timelineEditorOps.selectClips(nextClipIds);
+  }, [timelineEditorOps]);
+
+  const deselectGalleryMatches = useCallback((matcher: (clip: SelectedMediaClip) => boolean) => {
+    const idsToRemove = Array.from(gallerySelectionMap.entries())
+      .filter(([, item]) => {
+        const matchingGalleryClip = selectedGalleryClips.find((clip) => (
+          clip.url === item.url
+          && clip.mediaType === item.mediaType
+          && clip.generationId === item.generationId
+        ));
+
+        return matchingGalleryClip ? matcher(matchingGalleryClip) : false;
+      })
+      .map(([id]) => id);
+
+    if (idsToRemove.length > 0) {
+      deselectGalleryItems(idsToRemove);
+    }
+  }, [deselectGalleryItems, gallerySelectionMap, selectedGalleryClips]);
+
+  const handleRemoveAttachment = useCallback((attachment: AgentChatAttachmentPreviewItem) => {
+    replaceSelectedTimelineClips(
+      timelineClips.filter((clip) => !(
+        clip.url === attachment.url
+        && clip.mediaType === attachment.mediaType
+        && (
+          (attachment.generationId && clip.generationId === attachment.generationId)
+          || (!attachment.generationId && clip.clipId === attachment.clipId)
+          || (!attachment.generationId && clip.url === attachment.url)
+        )
+      )),
+    );
+
+    deselectGalleryMatches((clip) => (
+      clip.url === attachment.url
+      && clip.mediaType === attachment.mediaType
+      && (
+        (attachment.generationId && clip.generationId === attachment.generationId)
+        || (!attachment.generationId && clip.url === attachment.url)
+      )
+    ));
+  }, [deselectGalleryMatches, replaceSelectedTimelineClips, timelineClips]);
+
+  const handleRemoveShot = useCallback((shotId: string) => {
+    const removedShotClips = timelineClips.filter((clip) => clip.shotId === shotId);
+    const removedUrls = new Set(removedShotClips.map((clip) => clip.url));
+    const removedGenerationIds = new Set(
+      removedShotClips
+        .map((clip) => clip.generationId)
+        .filter((generationId): generationId is string => Boolean(generationId)),
+    );
+
+    replaceSelectedTimelineClips(timelineClips.filter((clip) => clip.shotId !== shotId));
+    deselectGalleryMatches((clip) => (
+      removedUrls.has(clip.url)
+      || (clip.generationId ? removedGenerationIds.has(clip.generationId) : false)
+    ));
+  }, [deselectGalleryMatches, replaceSelectedTimelineClips, timelineClips]);
 
   // Auto-select or create session
   useEffect(() => {
@@ -305,6 +389,8 @@ export function AgentChat({ timelineId }: AgentChatProps) {
       url: clip.url,
       mediaType: clip.mediaType,
       generationId: clip.generationId,
+      shotId: clip.shotId,
+      shotName: clip.shotName,
     }));
 
     if (rawText === undefined) setDraft('');
@@ -484,6 +570,9 @@ export function AgentChat({ timelineId }: AgentChatProps) {
                 isUser={false}
                 className="mt-0"
                 onAttachmentClick={handleAttachmentPreviewClick}
+                onRemoveAttachment={handleRemoveAttachment}
+                onRemoveShot={handleRemoveShot}
+                maxPreviewCount={null}
               />
               <div className="mt-2">{summary}</div>
             </div>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Terminal } from 'lucide-react';
+import { ChevronDown, ChevronRight, Terminal, X } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
+import { buildAttachedSummary } from '@/tools/video-editor/hooks/useSelectedMediaClips';
 import type { AgentTurn } from '@/tools/video-editor/types/agent-session';
 import type { ToolCallPair } from './AgentChat';
 
@@ -23,6 +24,9 @@ export type AgentChatAttachmentPreviewItem = {
   mediaType: 'image' | 'video';
   generationId?: string;
   assetKey?: string;
+  shotId?: string;
+  shotName?: string;
+  shotSelectionClipCount?: number;
 };
 
 function formatAttachmentSummary(attachments: AgentTurn['attachments']) {
@@ -30,18 +34,7 @@ function formatAttachmentSummary(attachments: AgentTurn['attachments']) {
     return null;
   }
 
-  const imageCount = attachments.filter((attachment) => attachment.mediaType === 'image').length;
-  const videoCount = attachments.length - imageCount;
-  const parts = [
-    imageCount > 0 ? `${imageCount} image${imageCount === 1 ? '' : 's'}` : null,
-    videoCount > 0 ? `${videoCount} video${videoCount === 1 ? '' : 's'}` : null,
-  ].filter((part): part is string => part !== null);
-
-  if (parts.length === 0) {
-    return null;
-  }
-
-  return `${parts.join(', ')} attached`;
+  return buildAttachedSummary(attachments);
 }
 
 function formatTimestamp(timestamp: string) {
@@ -56,65 +49,243 @@ type AgentChatAttachmentStripProps = {
   isUser: boolean;
   className?: string;
   onAttachmentClick?: (attachment: AgentChatAttachmentPreviewItem) => void;
+  onRemoveAttachment?: (attachment: AgentChatAttachmentPreviewItem) => void;
+  onRemoveShot?: (shotId: string) => void;
+  maxPreviewCount?: number | null;
 };
+
+type AttachmentGroup =
+  | {
+    kind: 'shot';
+    shotId: string;
+    shotName?: string;
+    attachments: AgentChatAttachmentPreviewItem[];
+    expectedClipCount: number;
+  }
+  | {
+    kind: 'attachment';
+    attachment: AgentChatAttachmentPreviewItem;
+  };
+
+function buildAttachmentGroups(
+  attachments: readonly AgentChatAttachmentPreviewItem[],
+): AttachmentGroup[] {
+  const shotGroups = new Map<string, {
+    attachments: AgentChatAttachmentPreviewItem[];
+    expectedClipCount: number;
+    shotName?: string;
+  }>();
+
+  attachments.forEach((attachment) => {
+    if (
+      !attachment.shotId
+      || typeof attachment.shotSelectionClipCount !== 'number'
+      || attachment.shotSelectionClipCount < 1
+    ) {
+      return;
+    }
+
+    const existing = shotGroups.get(attachment.shotId);
+    if (existing) {
+      existing.attachments.push(attachment);
+      return;
+    }
+
+    shotGroups.set(attachment.shotId, {
+      attachments: [attachment],
+      expectedClipCount: attachment.shotSelectionClipCount,
+      shotName: attachment.shotName,
+    });
+  });
+
+  const fullShotIds = new Set(
+    Array.from(shotGroups.entries())
+      .filter(([, group]) => group.attachments.length === group.expectedClipCount)
+      .map(([shotId]) => shotId),
+  );
+
+  const groups: AttachmentGroup[] = [];
+  const emittedShotIds = new Set<string>();
+
+  attachments.forEach((attachment) => {
+    if (attachment.shotId && fullShotIds.has(attachment.shotId)) {
+      if (emittedShotIds.has(attachment.shotId)) {
+        return;
+      }
+
+      const shotGroup = shotGroups.get(attachment.shotId);
+      if (!shotGroup) {
+        return;
+      }
+
+      groups.push({
+        kind: 'shot',
+        shotId: attachment.shotId,
+        shotName: shotGroup.shotName,
+        attachments: shotGroup.attachments,
+        expectedClipCount: shotGroup.expectedClipCount,
+      });
+      emittedShotIds.add(attachment.shotId);
+      return;
+    }
+
+    groups.push({
+      kind: 'attachment',
+      attachment,
+    });
+  });
+
+  return groups;
+}
 
 export function AgentChatAttachmentStrip({
   attachments,
   isUser,
   className,
   onAttachmentClick,
+  onRemoveAttachment,
+  onRemoveShot,
+  maxPreviewCount = MAX_ATTACHMENT_PREVIEW_COUNT,
 }: AgentChatAttachmentStripProps) {
-  const previewAttachments = attachments.slice(0, MAX_ATTACHMENT_PREVIEW_COUNT);
+  const previewAttachments = maxPreviewCount === null
+    ? attachments
+    : attachments.slice(0, maxPreviewCount);
   const remainingCount = attachments.length - previewAttachments.length;
+  const groups = buildAttachmentGroups(previewAttachments);
+
+  const previewSurfaceClassName = cn(
+    'h-10 w-10 overflow-hidden rounded-md border',
+    isUser
+      ? 'border-primary-foreground/20 bg-primary-foreground/10'
+      : 'border-border/70 bg-muted/40',
+  );
+
+  const removeButtonClassName = cn(
+    'absolute -right-1 -top-1 z-10 flex h-5 w-5 items-center justify-center rounded-full border shadow-sm',
+    isUser
+      ? 'border-primary-foreground/30 bg-background/95 text-foreground hover:bg-background'
+      : 'border-border/80 bg-background/95 text-foreground hover:bg-background',
+  );
+
+  const renderPreview = (
+    attachment: AgentChatAttachmentPreviewItem,
+    index: number,
+    removeLabel: string,
+  ) => {
+    const isInteractive = Boolean(onAttachmentClick && attachment.generationId);
+    const content = attachment.mediaType === 'video' ? (
+      <video
+        src={attachment.url}
+        className="h-full w-full object-cover"
+        muted
+        playsInline
+        preload="metadata"
+        aria-hidden="true"
+      />
+    ) : (
+      <img
+        src={attachment.url}
+        alt=""
+        className="h-full w-full object-cover"
+        loading="lazy"
+      />
+    );
+
+    return (
+      <div
+        key={`${attachment.clipId}:${index}`}
+        className={cn(
+          'relative',
+          isInteractive && 'transition-transform hover:scale-[1.03]',
+        )}
+      >
+        <div className={previewSurfaceClassName}>
+          {isInteractive ? (
+            <button
+              type="button"
+              className="h-full w-full cursor-pointer"
+              onClick={() => onAttachmentClick?.(attachment)}
+              aria-label={`Open attached ${attachment.mediaType} ${index + 1}`}
+            >
+              {content}
+            </button>
+          ) : (
+            <div
+              className="h-full w-full"
+              aria-label={`Attached ${attachment.mediaType} ${index + 1}`}
+            >
+              {content}
+            </div>
+          )}
+        </div>
+        {onRemoveAttachment && (
+          <button
+            type="button"
+            className={removeButtonClassName}
+            aria-label={removeLabel}
+            onClick={(event) => {
+              event.stopPropagation();
+              onRemoveAttachment(attachment);
+            }}
+          >
+            <X className="h-3 w-3" />
+          </button>
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className={cn('mt-2 flex flex-wrap gap-1.5', className)}>
-      {previewAttachments.map((attachment, index) => {
-        const isInteractive = Boolean(onAttachmentClick && attachment.generationId);
-        const previewClassName = cn(
-          'relative h-10 w-10 overflow-hidden rounded-md border',
-          isUser
-            ? 'border-primary-foreground/20 bg-primary-foreground/10'
-            : 'border-border/70 bg-muted/40',
-          isInteractive && 'cursor-pointer transition-transform hover:scale-[1.03]',
-        );
+      {groups.map((group, index) => {
+        if (group.kind === 'shot') {
+          return (
+            <div
+              key={`${group.shotId}:${index}`}
+              className={cn(
+                'relative inline-flex w-fit max-w-full flex-col self-start rounded-lg border p-1.5',
+                isUser
+                  ? 'border-primary-foreground/30 bg-primary-foreground/5'
+                  : 'border-primary/30 bg-primary/5',
+              )}
+              aria-label={`${group.shotName ?? 'Shot'} group`}
+            >
+              {onRemoveShot && (
+                <button
+                  type="button"
+                  className={removeButtonClassName}
+                  aria-label={`Deselect ${group.shotName ?? 'shot'}`}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onRemoveShot(group.shotId);
+                  }}
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+              <div
+                className="mb-1 max-w-20 truncate px-0.5 text-[10px] font-medium uppercase tracking-[0.12em] text-muted-foreground"
+                title={group.shotName ?? 'Shot'}
+              >
+                {group.shotName ?? 'Shot'} ({group.expectedClipCount})
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                {group.attachments.map((attachment, groupIndex) => (
+                  renderPreview(
+                    attachment,
+                    groupIndex,
+                    `Deselect ${attachment.mediaType} ${groupIndex + 1} from ${group.shotName ?? 'shot'}`,
+                  )
+                ))}
+              </div>
+            </div>
+          );
+        }
 
-        const preview = attachment.mediaType === 'video' ? (
-          <video
-            src={attachment.url}
-            className="h-full w-full object-cover"
-            muted
-            playsInline
-            preload="metadata"
-            aria-hidden="true"
-          />
-        ) : (
-          <img
-            src={attachment.url}
-            alt=""
-            className="h-full w-full object-cover"
-            loading="lazy"
-          />
-        );
-
-        return isInteractive ? (
-          <button
-            key={`${attachment.clipId}:${index}`}
-            type="button"
-            className={previewClassName}
-            onClick={() => onAttachmentClick?.(attachment)}
-            aria-label={`Open attached ${attachment.mediaType} ${index + 1}`}
-          >
-            {preview}
-          </button>
-        ) : (
-          <div
-            key={`${attachment.clipId}:${index}`}
-            className={previewClassName}
-            aria-label={`Attached ${attachment.mediaType} ${index + 1}`}
-          >
-            {preview}
-          </div>
+        return renderPreview(
+          group.attachment,
+          index,
+          `Deselect attached ${group.attachment.mediaType} ${index + 1}`,
         );
       })}
       {remainingCount > 0 && (
@@ -152,21 +323,21 @@ export function AgentChatToolGroup({ pairs }: AgentChatToolGroupProps) {
     <div className="w-full">
       <button
         type="button"
-        className="flex w-full items-center gap-2 rounded-lg bg-muted/30 px-2.5 py-1.5 text-left text-xs transition-colors hover:bg-muted/50"
+        className="flex w-full min-w-0 items-center gap-2 rounded-lg bg-muted/30 px-2.5 py-1.5 text-left text-xs transition-colors hover:bg-muted/50"
         onClick={() => setIsOpen(!isOpen)}
       >
         <Terminal className="h-3 w-3 shrink-0 text-muted-foreground" />
-        <code className="flex-1 truncate font-mono text-foreground/80">{label}</code>
+        <code className="min-w-0 flex-1 truncate font-mono text-foreground/80">{label}</code>
         {count > 1 && (isOpen ? <ChevronDown className="h-3 w-3 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-3 w-3 shrink-0 text-muted-foreground" />)}
       </button>
 
       {isOpen && count > 1 && (
         <div className="mt-1 space-y-0.5 pl-2">
           {pairs.map((pair, index) => (
-            <div key={`${pair.call.timestamp}:${index}`} className="flex items-start gap-2 rounded px-2 py-1 text-xs">
-              <code className="font-mono text-foreground/70">{commandSummaries[index]}</code>
+            <div key={`${pair.call.timestamp}:${index}`} className="flex min-w-0 items-start gap-2 rounded px-2 py-1 text-xs">
+              <code className="min-w-0 break-all font-mono text-foreground/70">{commandSummaries[index]}</code>
               {pair.result && (
-                <span className="truncate text-muted-foreground">→ {pair.result.content?.slice(0, MAX_TOOL_NAME_LENGTH)}</span>
+                <span className="min-w-0 break-words text-muted-foreground">→ {pair.result.content?.slice(0, MAX_TOOL_NAME_LENGTH)}</span>
               )}
             </div>
           ))}
@@ -175,7 +346,7 @@ export function AgentChatToolGroup({ pairs }: AgentChatToolGroupProps) {
 
       {/* Show result inline for single commands */}
       {count === 1 && pairs[0].result?.content && (
-        <div className="mt-0.5 px-2.5 text-xs text-muted-foreground">
+        <div className="mt-0.5 break-words px-2.5 text-xs text-muted-foreground">
           {pairs[0].result.content.slice(0, MAX_ATTACHMENT_SUMMARY_LENGTH)}
         </div>
       )}
@@ -193,13 +364,15 @@ export function AgentChatMessage({ turn, onAttachmentClick }: AgentChatMessagePr
     <div className={cn('flex w-full', isUser ? 'justify-end' : 'justify-start')}>
       <div
         className={cn(
-          'max-w-[85%] rounded-2xl px-4 py-2.5 shadow-sm',
+          'min-w-0 max-w-[85%] rounded-2xl px-4 py-2.5 shadow-sm',
           isUser
             ? 'bg-primary text-primary-foreground'
             : 'border border-border/70 bg-card text-card-foreground',
         )}
       >
-        <div className="whitespace-pre-wrap text-sm leading-relaxed">{turn.content}</div>
+        <div className="whitespace-pre-wrap break-words text-sm leading-relaxed [overflow-wrap:anywhere]">
+          {turn.content}
+        </div>
         {hasAttachmentPreviews && turn.attachments && (
           <AgentChatAttachmentStrip
             attachments={turn.attachments}

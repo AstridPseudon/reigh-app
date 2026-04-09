@@ -47,6 +47,7 @@ interface UseCrossTrackDragOptions {
   selectedClipIdsRef: MutableRefObject<Set<string>>;
   applyEdit: TimelineApplyEdit;
   coordinator: DragCoordinator;
+  additiveSelectionRef: MutableRefObject<boolean>;
   rowHeight: number;
   scale: number;
   scaleWidth: number;
@@ -67,6 +68,7 @@ export interface DragSession {
   startClientY: number;
   pointerOffsetX: number;
   pointerOffsetY: number;
+  pointerCoordinateYOffset: number;
   clipDuration: number;
   clipEl: HTMLElement;
   moveListener: (event: PointerEvent) => void;
@@ -102,6 +104,7 @@ export const useClipDrag = ({
   selectedClipIdsRef,
   applyEdit,
   coordinator,
+  additiveSelectionRef,
   rowHeight: _rowHeight,
   scale,
   scaleWidth,
@@ -135,8 +138,24 @@ export const useClipDrag = ({
   pendingOpsRefRef.current = pendingOpsRef;
   const applyEditRef = useRef<TimelineApplyEdit>(applyEdit);
   applyEditRef.current = applyEdit;
+  const additiveSelectionRefRef = useRef(additiveSelectionRef);
+  additiveSelectionRefRef.current = additiveSelectionRef;
 
   useEffect(() => {
+    const findClipElement = (
+      wrapper: HTMLDivElement,
+      clipId: string,
+      rowId: string,
+    ): HTMLElement | null => {
+      const candidates = wrapper.querySelectorAll<HTMLElement>('.clip-action');
+      for (const candidate of candidates) {
+        if (candidate.dataset.clipId === clipId && candidate.dataset.rowId === rowId) {
+          return candidate;
+        }
+      }
+      return null;
+    };
+
     const clearSession = (session: DragSession | null, deferDeactivate = false) => {
       autoScrollerRef.current?.stop();
       autoScrollerRef.current = null;
@@ -184,8 +203,9 @@ export const useClipDrag = ({
 
     const updateFloatingGhostPosition = (session: DragSession, clientX: number, clientY: number) => {
       if (!session.floatingGhostEl) return;
+      const adjustedClientY = clientY + session.pointerCoordinateYOffset;
       session.floatingGhostEl.style.left = `${clientX - session.pointerOffsetX}px`;
-      session.floatingGhostEl.style.top = `${clientY - session.pointerOffsetY}px`;
+      session.floatingGhostEl.style.top = `${adjustedClientY - session.pointerOffsetY}px`;
     };
 
     const createFloatingGhost = (clipEl: HTMLElement): HTMLElement => {
@@ -275,8 +295,23 @@ export const useClipDrag = ({
       const wrapper = timelineWrapperRef.current;
       if (!wrapper || !wrapper.contains(event.target as Node)) return;
 
-      const clipTarget = event.target instanceof HTMLElement ? event.target.closest<HTMLElement>('.clip-action') : null;
-      if (!clipTarget || (event.target instanceof HTMLElement && event.target.closest("[data-delete-clip='true']"))) return;
+      const eventTarget = event.target instanceof HTMLElement ? event.target : null;
+      const labelTarget = eventTarget?.closest<HTMLElement>('[data-shot-group-drag-anchor-clip-id]') ?? null;
+      if (labelTarget && eventTarget?.closest('button')) {
+        return;
+      }
+
+      const clipTarget = eventTarget?.closest<HTMLElement>('.clip-action')
+        ?? (
+          labelTarget?.dataset.shotGroupDragAnchorClipId && labelTarget.dataset.shotGroupDragAnchorRowId
+            ? findClipElement(
+                wrapper,
+                labelTarget.dataset.shotGroupDragAnchorClipId,
+                labelTarget.dataset.shotGroupDragAnchorRowId,
+              )
+            : null
+        );
+      if (!clipTarget || (eventTarget && eventTarget.closest("[data-delete-clip='true']"))) return;
 
       const clipId = clipTarget.dataset.clipId;
       const rowId = clipTarget.dataset.rowId;
@@ -293,6 +328,10 @@ export const useClipDrag = ({
       const editArea = wrapper.querySelector<HTMLElement>('.timeline-canvas-edit-area');
 
       const clipRect = clipTarget.getBoundingClientRect();
+      const pointerCoordinateYOffset = labelTarget
+        ? clipRect.top - labelTarget.getBoundingClientRect().top
+        : 0;
+      const adjustedStartClientY = event.clientY + pointerCoordinateYOffset;
       const pixelsPerSecond = pixelsPerSecondRef.current;
 
       // Soft-tag grouped drag: compute the group's live outer bounds from the
@@ -319,12 +358,15 @@ export const useClipDrag = ({
         ? (groupLiveEnd - groupLiveStart)
         : (sourceAction.end - sourceAction.start);
       const selectedClipIds = selectedClipIdsRefRef.current.current;
+      const shouldDragSelectedSet = additiveSelectionRefRef.current.current && selectedClipIds.has(clipId);
       const draggedClipIds = enclosingGroup
-        ? [
-            ...enclosingGroup.group.clipIds,
-            ...[...selectedClipIds].filter((selectedClipId) => !enclosingGroup.group.clipIds.includes(selectedClipId)),
-          ]
-        : selectedClipIds.has(clipId)
+        ? shouldDragSelectedSet
+          ? [
+              ...enclosingGroup.group.clipIds,
+              ...[...selectedClipIds].filter((selectedClipId) => !enclosingGroup.group.clipIds.includes(selectedClipId)),
+            ]
+          : [...enclosingGroup.group.clipIds]
+        : shouldDragSelectedSet
           ? [clipId, ...[...selectedClipIds].filter((selectedClipId) => selectedClipId !== clipId)]
           : [clipId];
       const clipOffsets = buildClipOffsets(current, draggedClipIds, initialStart);
@@ -345,9 +387,10 @@ export const useClipDrag = ({
       };
 
       const updateDragState = (session: DragSession, clientX: number, clientY: number) => {
+        const adjustedClientY = clientY + session.pointerCoordinateYOffset;
         const nextPosition = coordinatorRef.current.update({
           clientX,
-          clientY,
+          clientY: adjustedClientY,
           sourceKind: session.sourceKind,
           clipDuration: session.clipDuration,
           clipOffsetX: session.pointerOffsetX,
@@ -374,7 +417,7 @@ export const useClipDrag = ({
           dragState.latestEnd = snappedStart + duration;
         }
 
-        const dy = clientY - session.startClientY;
+        const dy = adjustedClientY - session.startClientY;
         if (!crossTrackActiveRef.current && Math.abs(dy) >= CROSS_TRACK_THRESHOLD_PX) {
           crossTrackActiveRef.current = true;
           session.floatingGhostEl = createFloatingGhost(session.clipEl);
@@ -602,11 +645,12 @@ export const useClipDrag = ({
         metaKey: event.metaKey,
         wasSelectedOnPointerDown: selectedClipIdsRefRef.current.current.has(clipId),
         startClientX: event.clientX,
-        startClientY: event.clientY,
+        startClientY: adjustedStartClientY,
         pointerOffsetX: groupDragEntry
           ? event.clientX - (clipRect.left - ((sourceAction.start - initialStart) * pixelsPerSecond))
           : event.clientX - clipRect.left,
-        pointerOffsetY: event.clientY - clipRect.top,
+        pointerOffsetY: adjustedStartClientY - clipRect.top,
+        pointerCoordinateYOffset,
         clipDuration,
         clipEl: clipTarget,
         moveListener: handlePointerMove,

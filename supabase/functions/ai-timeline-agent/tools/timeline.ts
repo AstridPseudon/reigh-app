@@ -1,5 +1,6 @@
 import type {
   AssetRegistry,
+  PinnedShotGroup,
   TimelineClip,
   TimelineConfig,
   TrackDefinition,
@@ -54,7 +55,26 @@ function getClipTimelineDuration(clip: TimelineClip, registry: AssetRegistry): n
   return getClipSourceDuration(clip, registry) / speed;
 }
 
-function formatClipLine(clip: TimelineClip, registry: AssetRegistry): string {
+function getShotLabel(shotId: string, shotNamesById: Record<string, string>): string {
+  return shotNamesById[shotId] ?? shotId;
+}
+
+function buildShotGroupByClipId(config: TimelineConfig): Map<string, PinnedShotGroup> {
+  const shotGroupByClipId = new Map<string, PinnedShotGroup>();
+  for (const group of config.pinnedShotGroups ?? []) {
+    for (const clipId of group.clipIds) {
+      shotGroupByClipId.set(clipId, group);
+    }
+  }
+  return shotGroupByClipId;
+}
+
+function formatClipLine(
+  clip: TimelineClip,
+  registry: AssetRegistry,
+  shotGroupByClipId: Map<string, PinnedShotGroup>,
+  shotNamesById: Record<string, string>,
+): string {
   const duration = roundSeconds(getClipTimelineDuration(clip, registry));
   const parts = [
     `id=${clip.id}`,
@@ -73,6 +93,12 @@ function formatClipLine(clip: TimelineClip, registry: AssetRegistry): string {
   if (clip.volume != null && clip.volume !== 1) parts.push(`volume=${clip.volume}`);
   if (clip.speed != null && clip.speed !== 1) parts.push(`speed=${clip.speed}`);
   if (clip.clipType === "text" && clip.text?.content) parts.push(`text="${clip.text.content}"`);
+
+  const shotGroup = shotGroupByClipId.get(clip.id);
+  if (shotGroup) {
+    parts.push(`shot=${getShotLabel(shotGroup.shotId, shotNamesById)}`);
+    parts.push(`shotId=${shotGroup.shotId}`);
+  }
 
   return parts.join(" | ");
 }
@@ -94,8 +120,14 @@ function getClipIndex(config: TimelineConfig, clipId: string): number {
   return config.clips.findIndex((clip) => clip.id === clipId);
 }
 
-function describeTimeline(config: TimelineConfig, registry: AssetRegistry): string {
+function describeTimeline(
+  config: TimelineConfig,
+  registry: AssetRegistry,
+  shotNamesById: Record<string, string>,
+): string {
   const tracks = getTrackDefinitions(config);
+  const shotGroupByClipId = buildShotGroupByClipId(config);
+  const shotGroups = config.pinnedShotGroups ?? [];
   const totalDuration = config.clips.reduce((maxDuration, clip) => {
     return Math.max(maxDuration, clip.at + getClipTimelineDuration(clip, registry));
   }, 0);
@@ -105,15 +137,25 @@ function describeTimeline(config: TimelineConfig, registry: AssetRegistry): stri
     "Tracks:",
     ...tracks.map((track) => `- ${track.id} (${track.kind}): ${track.label}`),
     "Clips:",
-    ...config.clips.map((clip) => `- ${formatClipLine(clip, registry)}`),
+    ...config.clips.map((clip) => `- ${formatClipLine(clip, registry, shotGroupByClipId, shotNamesById)}`),
+    "Shot groups:",
+    ...(shotGroups.length > 0
+      ? shotGroups.map((group) => (
+        `- shot=${getShotLabel(group.shotId, shotNamesById)} | shotId=${group.shotId} | trackId=${group.trackId} | clipIds=${group.clipIds.join(",")} | mode=${group.mode ?? "images"}`
+      ))
+      : ["- none"]),
   ];
 
   return lines.join("\n");
 }
 
-export function viewTimeline(config: TimelineConfig, registry: AssetRegistry): TimelineToolResult {
+export function viewTimeline(
+  config: TimelineConfig,
+  registry: AssetRegistry,
+  shotNamesById: Record<string, string> = {},
+): TimelineToolResult {
   return {
-    result: describeTimeline(config, registry),
+    result: describeTimeline(config, registry, shotNamesById),
   };
 }
 
@@ -715,5 +757,5 @@ export const handlers: Record<string, ToolHandler> = {
   split_clip: (args, ctx) => splitClip(ctx.config, ctx.registry, args),
   swap_clip_asset: (args, ctx) => swapClipAsset(ctx.config, ctx.registry, args),
   trim_clip: (args, ctx) => trimClip(ctx.config, ctx.registry, args),
-  view_timeline: (_args, ctx) => viewTimeline(ctx.config, ctx.registry),
+  view_timeline: (_args, ctx) => viewTimeline(ctx.config, ctx.registry, ctx.shotNamesById),
 };

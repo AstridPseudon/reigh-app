@@ -190,10 +190,16 @@
             "type": "string"
           },
           "flag_id": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           },
           "source": {
-            "type": "string"
+            "type": [
+              "string",
+              "null"
+            ]
           }
         },
         "required": [
@@ -201,7 +207,9 @@
           "issue",
           "expected",
           "actual",
-          "evidence_file"
+          "evidence_file",
+          "flag_id",
+          "source"
         ],
         "additionalProperties": false
       }

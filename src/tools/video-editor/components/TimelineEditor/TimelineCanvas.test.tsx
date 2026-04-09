@@ -236,6 +236,8 @@ function renderCanvas(params?: {
   actionId?: string;
   shotGroups?: React.ComponentProps<typeof TimelineCanvas>['shotGroups'];
   finalVideoMap?: React.ComponentProps<typeof TimelineCanvas>['finalVideoMap'];
+  onShotGroupNavigate?: React.ComponentProps<typeof TimelineCanvas>['onShotGroupNavigate'];
+  onSelectClips?: React.ComponentProps<typeof TimelineCanvas>['onSelectClips'];
   onShotGroupUnpin?: React.ComponentProps<typeof TimelineCanvas>['onShotGroupUnpin'];
   onShotGroupDelete?: React.ComponentProps<typeof TimelineCanvas>['onShotGroupDelete'];
   onShotGroupSwitchToFinalVideo?: React.ComponentProps<typeof TimelineCanvas>['onShotGroupSwitchToFinalVideo'];
@@ -244,11 +246,13 @@ function renderCanvas(params?: {
   startLeft?: number;
   scale?: number;
   scaleWidth?: number;
+  tracks?: TrackDefinition[];
+  rows?: TimelineRow[];
 }) {
   const pendingOpsRef = params?.pendingOpsRef ?? { current: 0 };
   const dataRef = params?.dataRef ?? { current: null };
-  const trackDefinition = params?.track ?? track;
-  const timelineRow = params?.row ?? row;
+  const trackDefinitions = params?.tracks ?? [params?.track ?? track];
+  const timelineRows = params?.rows ?? [params?.row ?? row];
   useTimelineEditorDataMock.mockReturnValue({ pendingOpsRef, dataRef });
 
   const onActionResizeStart = params?.onActionResizeStart ?? vi.fn();
@@ -257,8 +261,8 @@ function renderCanvas(params?: {
 
   const renderResult = render(
     <TimelineCanvas
-      rows={[timelineRow]}
-      tracks={[trackDefinition]}
+      rows={timelineRows}
+      tracks={trackDefinitions}
       scale={params?.scale ?? 1}
       scaleWidth={params?.scaleWidth ?? 100}
       scaleSplitCount={1}
@@ -279,6 +283,8 @@ function renderCanvas(params?: {
       onClipEdgeResizeEnd={onClipEdgeResizeEnd}
       shotGroups={params?.shotGroups}
       finalVideoMap={params?.finalVideoMap}
+      onShotGroupNavigate={params?.onShotGroupNavigate}
+      onSelectClips={params?.onSelectClips}
       onShotGroupUnpin={params?.onShotGroupUnpin}
       onShotGroupDelete={params?.onShotGroupDelete}
       onShotGroupSwitchToFinalVideo={params?.onShotGroupSwitchToFinalVideo}
@@ -288,7 +294,8 @@ function renderCanvas(params?: {
     />,
   );
 
-  const targetActionId = params?.actionId ?? timelineRow.actions[0]?.id ?? 'clip-1';
+  const targetRow = timelineRows.find((candidate) => candidate.actions.length > 0) ?? timelineRows[0];
+  const targetActionId = params?.actionId ?? targetRow?.actions[0]?.id ?? 'clip-1';
   const actionElement = renderResult.container.querySelector(`[data-action-id="${targetActionId}"]`);
   if (!(actionElement instanceof HTMLElement)) {
     throw new Error('expected action element');
@@ -357,6 +364,21 @@ function fireLostPointerCapture(target: HTMLElement, pointerId: number) {
 }
 
 describe('TimelineCanvas resize pending ops', () => {
+  it('sizes the playhead to the full scrollable timeline content height', () => {
+    const secondTrack: TrackDefinition = { id: 'V2', kind: 'visual', label: 'V2' };
+    const secondRow: TimelineRow = {
+      id: 'V2',
+      actions: [{ id: 'clip-2', start: 1, end: 3, effectId: 'effect-clip-2' }],
+    };
+
+    const { getByTestId } = renderCanvas({
+      tracks: [track, secondTrack],
+      rows: [row, secondRow],
+    });
+
+    expect(getByTestId('timeline-playhead')).toHaveStyle({ height: '144px' });
+  });
+
   it('increments on resize start and decrements on resize end', () => {
     const { leftHandle, pendingOpsRef, onActionResizeStart, onClipEdgeResizeEnd } = renderCanvas();
     if (!leftHandle) throw new Error('expected left handle');
@@ -823,7 +845,7 @@ describe('TimelineCanvas resize pending ops', () => {
     expect(label.style.width).toBe('300px');
   });
 
-  it('resizes pinned groups when grabbing the first child clip\'s outer-left handle', () => {
+  it('routes the first child clip\'s outer-left handle through the pinned-group outer resize session', () => {
     const onClipEdgeResizeEnd = vi.fn();
     const { actionElement, leftHandle, onActionResizeStart } = renderCanvas({
       row: shiftedPinnedGroupRow,
@@ -891,15 +913,13 @@ describe('TimelineCanvas resize pending ops', () => {
         rowId: 'V1',
         context: expect.objectContaining({ kind: 'outer', shotId: 'shot-1', trackId: 'V1' }),
       }),
-      updates: expect.arrayContaining([
-        expect.objectContaining({ clipId: 'clip-1', start: 0.5, end: expect.closeTo(5 / 3, 5) }),
-        expect.objectContaining({ clipId: 'clip-2', start: expect.closeTo(5 / 3, 5), end: expect.closeTo(17 / 6, 5) }),
-        expect.objectContaining({ clipId: 'clip-3', start: expect.closeTo(17 / 6, 5), end: 4 }),
-      ]),
+      updates: [
+        expect.objectContaining({ clipId: 'clip-1', start: 0.5, end: 2 }),
+      ],
     }));
   });
 
-  it('keeps the group outer-left boundary fixed on release after a pointer drag', () => {
+  it('keeps the outer-left preview boundary fixed on release after a pointer drag', () => {
     const { getActionElement, getHandle, onClipEdgeResizeEndSpy } = renderStatefulPinnedGroupCanvas({
       initialRow: shiftedPinnedGroupRow,
       initialShotGroup: {
@@ -938,11 +958,9 @@ describe('TimelineCanvas resize pending ops', () => {
         edge: 'left',
         context: expect.objectContaining({ kind: 'outer', shotId: 'shot-1', trackId: 'V1' }),
       }),
-      updates: expect.arrayContaining([
-        expect.objectContaining({ clipId: 'clip-1', start: 0.5, end: expect.closeTo(5 / 3, 5) }),
-        expect.objectContaining({ clipId: 'clip-2', start: expect.closeTo(5 / 3, 5), end: expect.closeTo(17 / 6, 5) }),
-        expect.objectContaining({ clipId: 'clip-3', start: expect.closeTo(17 / 6, 5), end: 4 }),
-      ]),
+      updates: [
+        expect.objectContaining({ clipId: 'clip-1', start: 0.5, end: 2 }),
+      ],
     }));
   });
 
@@ -979,6 +997,50 @@ describe('TimelineCanvas resize pending ops', () => {
     expect(getAllByTitle(/Shot [AB]/)).toHaveLength(2);
     expect(getByText('Shot A')).toBeTruthy();
     expect(getByText('Shot B')).toBeTruthy();
+  });
+
+  it('renders the first-row shot group label in an overlay above the tracks without adding layout headroom', () => {
+    const { container, getByTitle } = renderCanvas({
+      shotGroups: [pinnedShotGroup],
+      allowMissingHandles: true,
+    });
+
+    const gridSurface = container.querySelector('.timeline-canvas-edit-area > .relative');
+    if (!(gridSurface instanceof HTMLElement)) {
+      throw new Error('expected timeline grid surface');
+    }
+
+    expect(gridSurface.style.paddingTop).toBe('');
+    expect(getByTitle('Pinned Shot')).toHaveStyle({
+      top: '16px',
+      height: '18px',
+    });
+  });
+
+  it('double-clicks a shot group label to jump to the shot', () => {
+    const onShotGroupNavigate = vi.fn();
+    const { getByTitle } = renderCanvas({
+      shotGroups: [pinnedShotGroup],
+      onShotGroupNavigate,
+      allowMissingHandles: true,
+    });
+
+    fireEvent.doubleClick(getByTitle('Pinned Shot'));
+
+    expect(onShotGroupNavigate).toHaveBeenCalledWith('shot-1');
+  });
+
+  it('single-clicks a shot group label to select the group clips', () => {
+    const onSelectClips = vi.fn();
+    const { getByTitle } = renderCanvas({
+      shotGroups: [pinnedShotGroup],
+      onSelectClips,
+      allowMissingHandles: true,
+    });
+
+    fireEvent.click(getByTitle('Pinned Shot'));
+
+    expect(onSelectClips).toHaveBeenCalledWith(['clip-1', 'clip-2', 'clip-3']);
   });
 
   it('shows deconstruct/delete and switch-to-video actions for pinned groups with a final video', () => {
