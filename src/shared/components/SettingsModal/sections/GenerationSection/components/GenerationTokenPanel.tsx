@@ -472,18 +472,18 @@ export const GenerationTokenPanel: React.FC<GenerationTokenPanelProps> = ({
             <TabsContent value="need-install" className="space-y-4">
               <div className="space-y-4">
                 {computerType === "windows" && (
-                  <div className="border border-gray-200 rounded-lg">
+                  <div className="border border-border rounded-lg">
                     <button
                       onClick={() => setShowPrerequisites(!showPrerequisites)}
                       className="w-full flex items-center justify-between p-3 text-left hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                     >
-                      <span className="text-sm text-gray-700">
+                      <span className="text-sm text-foreground">
                         Prerequisites (install manually if not already installed):
                       </span>
-                      <ChevronDown className={`h-4 w-4 text-gray-500 transition-transform ${showPrerequisites ? 'rotate-180' : ''}`} />
+                      <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showPrerequisites ? 'rotate-180' : ''}`} />
                     </button>
                     {showPrerequisites && (
-                      <ul className="list-disc pl-8 pr-4 pb-3 text-sm space-y-1.5 text-gray-600">
+                      <ul className="list-disc pl-8 pr-4 pb-3 text-sm space-y-1.5 text-muted-foreground">
                         <li>
                           NVIDIA GPU with CUDA 6.0+ (8GB+ VRAM required)
                         </li>
