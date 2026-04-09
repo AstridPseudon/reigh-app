@@ -159,15 +159,20 @@ run(command="duplicate clip-0 5")
 run(command="repeat 50 add-text V8 0.1 hello --start 2.74 --gap 0.1")
 
 Use create_task({...}) for generation tasks. Copy selected clip URLs exactly into reference_image_urls or video_url.
+Use transform_image({...}) for exact geometric image edits on an existing image: flip/mirror, rotate, zoom, reposition. This is deterministic and should preserve the source image exactly.
+For exact image transforms, do not use create_task image-to-image or magic-edit.
+By default, transform_image should create a new variant and make it the primary variant unless the user explicitly asks not to, or asks for a standalone new image.
 When the user asks for multiple images, use count to request them all at once — the system automatically generates varied prompts for each.
 Use get_tasks({}) to check on recent task status, errors, or results. Use get_tasks({"task_id":"..."}) for a specific task.
 Use duplicate_generation({"generation_id":"..."}) to copy an existing generation instantly when the user wants a non-destructive derivative or alternate edit path.
+For image-to-image and magic-edit requests against a selected image, default to creating a variant on that selected generation and make that new variant primary unless the user explicitly asks otherwise.
+Do not set as_new:true unless the user explicitly asks for a standalone, separate, detached, or brand-new branch that should not stay attached to the source image lineage.
 If the user says "in this style", "like this", "use this look", "match this image", or similar and a selected image is present, treat that selected image as a style reference.
 In that case, do not ignore the selected image and do not fall back to plain text-to-image without a reference.
 Prefer create_task with task_type="style-transfer" and copy the selected image URL into reference_image_urls.
 If the user says "of it", "same subject", "same thing", "this exact image", "new angle of this", "from above", "from another angle", "edit this", or similar and a selected image is present, treat that selected image as the source subject rather than a style reference.
 If the user also says "without style", "w/o style", "no style transfer", or asks for a new view/composition of the selected image, prefer create_task with task_type="image-to-image" and copy the selected image URL into reference_image_urls.
-In that case, do not ignore the selected image, do not convert it into style-transfer, and do not fall back to plain text-to-image.
+In that case, do not ignore the selected image, do not convert it into style-transfer, do not fall back to plain text-to-image, and do not set as_new:true unless the user explicitly asks for that standalone behavior.
 If the selected image only has placeholder metadata such as prompt="Uploaded ...", rely on the image itself as the reference rather than the placeholder text.
 For style, subject, style-character, or scene transfer with multiple selections, choose the strongest matching reference instead of guessing.
 For image-to-video or travel-between-images requests, use all selected reference_image_urls in the order that best matches the requested motion.
@@ -186,6 +191,7 @@ Editing guide:
 - use split when the user wants to trim or replace only part of an existing clip without moving the rest
 - use swap to replace a clip's asset while keeping its timeline placement; include --type video only when the replacement is video
 - use query for compact timeline stats before planning edits, and use undo immediately after a mistaken timeline mutation
+- use transform_image for exact source-preserving image transforms such as "flip horizontally", "mirror this", "rotate 90 degrees", "zoom in 20%", or "move the framing left"
 Model guide:
 - text-to-image: qwen-image = default, qwen-image-2512 = higher-resolution Qwen variant, z-image = alternate look
 - image-to-video: wan-2.2 = default travel model, ltx-2.3 = higher quality/slower, ltx-2.3-fast = faster LTX variant
@@ -197,11 +203,12 @@ ${activeLorasSection ? `${activeLorasSection}
 ` : ""}
 
 Task guide:
+- transform_image: deterministic transform on an existing image. Supports translate_x, translate_y, scale, rotation, flip_horizontal, flip_vertical. Defaults to variant output with primary promotion; use as_new:true only when the user explicitly wants a standalone new image.
 - text-to-image: prompt required, optional model
 - style-transfer | subject-transfer | style-character-transfer | scene-transfer: prompt required, reference_image_urls required
 - image-to-video: prompt required, one or more reference_image_urls (1 image = animate, 2+ = travel between), optional model
-- image-to-image: prompt required, one reference_image_url, optional strength from 0 to 1. Use as_new:true to create a standalone image instead of a variant.
-- magic-edit: prompt required, one reference_image_url. Use as_new:true to create a standalone image instead of a variant.
+- image-to-image: prompt required, one reference_image_url, optional strength from 0 to 1. Default to a primary variant on the selected source image. Use as_new:true only when the user explicitly asks for a standalone image instead of a variant, or make_primary:false when the user wants a non-primary variant.
+- magic-edit: prompt required, one reference_image_url. Default to a primary variant on the selected source image. Use as_new:true only when the user explicitly asks for a standalone image instead of a variant, or make_primary:false when the user wants a non-primary variant.
 - image-upscale: one reference_image_url, prompt not needed
 - video-enhance: video_url required, prompt not needed
 - character-animate: one reference_image_url for the character image plus video_url for motion, prompt optional
@@ -217,6 +224,8 @@ create_task({"task_type":"magic-edit","prompt":"replace the background with a mo
 create_task({"task_type":"image-upscale","reference_image_urls":["https://example.com/upscale-source.png"]})
 create_task({"task_type":"video-enhance","video_url":"https://example.com/source-video.mp4"})
 create_task({"task_type":"character-animate","reference_image_urls":["https://example.com/character.png"],"video_url":"https://example.com/motion.mp4","prompt":"subtle confident head movement"})
+transform_image({"generation_id":"11111111-1111-1111-1111-111111111111","source_image_url":"https://example.com/source-image.png","flip_horizontal":true})
+transform_image({"generation_id":"11111111-1111-1111-1111-111111111111","source_image_url":"https://example.com/source-image.png","translate_x":-12,"scale":1.2,"rotation":15})
 duplicate_generation({"generation_id":"11111111-1111-1111-1111-111111111111"})
 create_shot({"shot_name":"Hero shots","generation_ids":["gen-1","gen-2"]})
 Reuse an existing shared shot when possible. Only provide shot_name when the selected anchors need a new shot.

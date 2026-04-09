@@ -255,6 +255,14 @@ export async function executeCreateTask(
   }
 
   const asNew = args.as_new === true;
+  const shouldDefaultPrimaryVariant = taskType === "image-to-image" || taskType === "magic-edit";
+  const makePrimary = asNew
+    ? undefined
+    : typeof args.make_primary === "boolean"
+      ? args.make_primary
+      : shouldDefaultPrimaryVariant
+        ? true
+        : undefined;
   const basedOn = asNew
     ? undefined
     : (asTrimmedString(args.based_on) ?? (taskType === "video-enhance"
@@ -326,7 +334,13 @@ export async function executeCreateTask(
   const requestedCount = asPositiveNumber(args.count) ?? 1;
   const taskParams = taskType === "image-to-video"
     ? (filteredTravelParams && Object.keys(filteredTravelParams).length > 0 ? filteredTravelParams : undefined)
-    : (Object.keys(mergedParams).length > 0 ? mergedParams : undefined);
+    : (() => {
+      const variantParams = {
+        ...mergedParams,
+        ...(makePrimary !== undefined ? { is_primary: makePrimary } : {}),
+      };
+      return Object.keys(variantParams).length > 0 ? variantParams : undefined;
+    })();
 
   // When count > 1 and there's a prompt, expand into varied prompts and create separate tasks
   if (requestedCount > 1 && prompt) {

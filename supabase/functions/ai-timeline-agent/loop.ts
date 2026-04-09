@@ -38,6 +38,7 @@ import { executeDuplicateGeneration } from "./tools/duplicate-generation.ts";
 import { executeSearchLoras, executeSetLora } from "./tools/loras.ts";
 import { executeCommand } from "./tools/registry.ts";
 import { viewTimeline } from "./tools/timeline.ts";
+import { executeTransformImage } from "./tools/transform-image.ts";
 import type {
   AgentSession,
   AgentSessionStatus,
@@ -265,6 +266,10 @@ export async function executeToolCall(
 
   if (toolCall.name === "create_task") {
     return await executeCreateTask(toolArgs, timelineState, selectedClips, supabaseAdmin, generationContext);
+  }
+
+  if (toolCall.name === "transform_image") {
+    return await executeTransformImage(toolArgs, selectedClips, userId);
   }
 
   if (toolCall.name === "search_loras") {

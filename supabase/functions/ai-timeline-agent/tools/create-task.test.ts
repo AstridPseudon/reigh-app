@@ -199,6 +199,9 @@ describe("executeCreateTask", () => {
       strength: 0.55,
       shot_id: "shot-1",
       based_on: "gen-1",
+      params: expect.objectContaining({
+        is_primary: true,
+      }),
     }));
 
     const firstCallArgs = mocks.createGenerationTask.mock.calls[0]?.[0] as {

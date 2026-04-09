@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   executeDuplicateGeneration: vi.fn(),
   executeSearchLoras: vi.fn(),
   executeSetLora: vi.fn(),
+  executeTransformImage: vi.fn(),
 }));
 
 vi.mock("./tools/registry.ts", () => ({
@@ -23,6 +24,10 @@ vi.mock("./tools/duplicate-generation.ts", () => ({
 vi.mock("./tools/loras.ts", () => ({
   executeSearchLoras: (...args: unknown[]) => mocks.executeSearchLoras(...args),
   executeSetLora: (...args: unknown[]) => mocks.executeSetLora(...args),
+}));
+
+vi.mock("./tools/transform-image.ts", () => ({
+  executeTransformImage: (...args: unknown[]) => mocks.executeTransformImage(...args),
 }));
 
 import {
@@ -66,6 +71,7 @@ describe("loop helpers", () => {
     mocks.executeCreateTask.mockResolvedValue({ result: "queued" });
     mocks.executeSearchLoras.mockResolvedValue({ result: "found" });
     mocks.executeSetLora.mockResolvedValue({ result: "updated" });
+    mocks.executeTransformImage.mockResolvedValue({ result: "transformed" });
 
     await expect(executeToolCall({
       id: "parse",
@@ -94,6 +100,18 @@ describe("loop helpers", () => {
       selectedClips,
       supabaseAdmin,
       undefined,
+    );
+
+    await expect(executeToolCall({
+      id: "transform",
+      name: "transform_image",
+      args: { generation_id: "gen-1", flip_horizontal: true },
+      parseError: null,
+    }, timelineState, supabaseAdmin, "timeline-1", selectedClips, undefined, "user-1")).resolves.toEqual({ result: "transformed" });
+    expect(mocks.executeTransformImage).toHaveBeenCalledWith(
+      { generation_id: "gen-1", flip_horizontal: true },
+      selectedClips,
+      "user-1",
     );
 
     await expect(executeToolCall({
@@ -324,6 +342,8 @@ describe("loop helpers", () => {
     expect(systemPrompt).toContain('prefer create_task with task_type="image-to-image"');
     expect(systemPrompt).toContain("do not convert it into style-transfer");
     expect(systemPrompt).toContain("do not fall back to plain text-to-image");
+    expect(systemPrompt).toContain("default to creating a variant on that selected generation");
+    expect(systemPrompt).toContain("Do not set as_new:true unless the user explicitly asks");
   });
 
   it("surfaces shared shot context in the system prompt when selected clips already share a shot", () => {

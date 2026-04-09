@@ -5,6 +5,7 @@ import {
   decodeImageTransform,
   type ImageTransformControls,
 } from './types';
+import { hasImageTransformChanges } from '@/shared/lib/media/imageTransform';
 
 interface UseImageTransformProps {
   /** Active variant ID or generation ID for cache key */
@@ -38,13 +39,7 @@ export function useImageTransform({
   const [transform, setTransform] = useState<ImageTransform>(DEFAULT_TRANSFORM);
 
   // Track if user has made any transform changes
-  const hasTransformChanges =
-    transform.translateX !== 0 ||
-    transform.translateY !== 0 ||
-    transform.scale !== 1 ||
-    transform.rotation !== 0 ||
-    transform.flipH ||
-    transform.flipV;
+  const hasTransformChanges = hasImageTransformChanges(transform);
 
   // Per-variant transform cache (preserves transforms when switching variants)
   const transformCacheRef = useRef<Map<string, ImageTransform>>(new Map());

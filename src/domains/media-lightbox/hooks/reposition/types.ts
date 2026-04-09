@@ -1,52 +1,16 @@
 import type { GenerationRow } from '@/domains/generation/types';
 import type { EditAdvancedSettings, QwenEditModel } from '../useGenerationEditSettings';
 import type { PointerHandlersWithWheel } from '@/shared/types/pointerHandlers';
+import {
+  DEFAULT_IMAGE_TRANSFORM,
+  decodeImageTransform,
+  type ImageTransform,
+} from '@/shared/lib/media/imageTransform';
 
-export interface ImageTransform {
-  translateX: number; // percentage (0-100)
-  translateY: number; // percentage (0-100)
-  scale: number;      // 1.0 = original size
-  rotation: number;   // degrees
-  flipH: boolean;     // flip horizontal
-  flipV: boolean;     // flip vertical
-}
+export type { ImageTransform };
+export { decodeImageTransform };
 
-export const DEFAULT_TRANSFORM: ImageTransform = {
-  translateX: 0,
-  translateY: 0,
-  scale: 1,
-  rotation: 0,
-  flipH: false,
-  flipV: false,
-};
-
-function toFiniteNumber(value: unknown, fallback: number): number {
-  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
-}
-
-function toBoolean(value: unknown, fallback: boolean): boolean {
-  return typeof value === 'boolean' ? value : fallback;
-}
-
-/**
- * Runtime decoder for persisted transform payloads.
- * Rejects non-object payloads and coerces each field with safe defaults.
- */
-export function decodeImageTransform(payload: unknown): ImageTransform | null {
-  if (!payload || typeof payload !== 'object' || Array.isArray(payload)) {
-    return null;
-  }
-
-  const record = payload as Record<string, unknown>;
-  return {
-    translateX: toFiniteNumber(record.translateX, DEFAULT_TRANSFORM.translateX),
-    translateY: toFiniteNumber(record.translateY, DEFAULT_TRANSFORM.translateY),
-    scale: toFiniteNumber(record.scale, DEFAULT_TRANSFORM.scale),
-    rotation: toFiniteNumber(record.rotation, DEFAULT_TRANSFORM.rotation),
-    flipH: toBoolean(record.flipH, DEFAULT_TRANSFORM.flipH),
-    flipV: toBoolean(record.flipV, DEFAULT_TRANSFORM.flipV),
-  };
-}
+export const DEFAULT_TRANSFORM = DEFAULT_IMAGE_TRANSFORM;
 
 export interface UseRepositionModeProps {
   media: GenerationRow;

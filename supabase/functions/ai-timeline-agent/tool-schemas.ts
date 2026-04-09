@@ -26,6 +26,67 @@ export const TIMELINE_AGENT_TOOLS: TimelineAgentToolDefinition[] = [
   {
     type: "function",
     function: {
+      name: "transform_image",
+      description: "Apply an exact deterministic transform to an existing image and save it as a new variant or standalone generation. Use for flips, rotations, zoom/reposition, and other geometric edits that must preserve the source image exactly.",
+      parameters: {
+        type: "object",
+        properties: {
+          generation_id: {
+            type: "string",
+            description: "Source generation ID. If omitted, the tool can fall back to exactly one selected image clip.",
+          },
+          source_image_url: {
+            type: "string",
+            description: "Optional explicit source image URL. Prefer copying the selected clip URL exactly when available.",
+          },
+          source_variant_id: {
+            type: "string",
+            description: "Optional source variant ID when transforming a non-primary variant.",
+          },
+          translate_x: {
+            type: "number",
+            description: "Horizontal move as a percentage of image width. 0 means centered.",
+          },
+          translate_y: {
+            type: "number",
+            description: "Vertical move as a percentage of image height. 0 means centered.",
+          },
+          scale: {
+            type: "number",
+            description: "Zoom factor. 1 = original size, 1.5 = 150%, 0.75 = 75%.",
+          },
+          rotation: {
+            type: "number",
+            description: "Rotation in degrees.",
+          },
+          flip_horizontal: {
+            type: "boolean",
+            description: "Mirror left-to-right.",
+          },
+          flip_vertical: {
+            type: "boolean",
+            description: "Mirror top-to-bottom.",
+          },
+          as_new: {
+            type: "boolean",
+            description: "When true, create a standalone generation instead of a variant. Defaults to false.",
+          },
+          make_primary: {
+            type: "boolean",
+            description: "When false, keep the new variant non-primary. Defaults to true for variant outputs.",
+          },
+          variant_name: {
+            type: "string",
+            description: "Optional label for the created variant.",
+          },
+        },
+        additionalProperties: false,
+      },
+    },
+  },
+  {
+    type: "function",
+    function: {
       name: "create_task",
       description: "Create a generation task from text or selected reference media.",
       parameters: {
@@ -90,7 +151,11 @@ export const TIMELINE_AGENT_TOOLS: TimelineAgentToolDefinition[] = [
           },
           as_new: {
             type: "boolean",
-            description: "When true, create a standalone generation instead of a variant of the source image. Defaults to false.",
+            description: "When true, create a standalone generation instead of a variant of the source image. Leave unset for normal image-to-image or magic-edit requests unless the user explicitly asks for a standalone or detached result. Defaults to false.",
+          },
+          make_primary: {
+            type: "boolean",
+            description: "When false, keep a source-derived variant non-primary. For image-to-image and magic-edit variants, defaults to true.",
           },
           shot_name: { type: "string", description: "Optional shot name to use if a new shot must be created." },
           amount_of_motion: {
