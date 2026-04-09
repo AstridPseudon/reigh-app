@@ -76,8 +76,8 @@ describe('getInstallationCommand', () => {
     });
 
     expect(cmd).toContain('cd /d Reigh-Worker &&');
-    expect(cmd).toContain('"%USERPROFILE%\\.local\\bin\\uv.exe" sync --locked --python 3.10 --extra cuda124');
-    expect(cmd).toContain('"%USERPROFILE%\\.local\\bin\\uv.exe" run --python 3.10 python run_worker.py');
+    expect(cmd).toContain('"%USERPROFILE%/.local/bin/uv.exe" sync --locked --python 3.10 --extra cuda124');
+    expect(cmd).toContain('"%USERPROFILE%/.local/bin/uv.exe" run --python 3.10 python run_worker.py');
   });
 });
 
@@ -138,8 +138,8 @@ describe('getRunCommand', () => {
 
     expect(cmd).toMatch(/^cd \/d Reigh-Worker && /);
     expect(cmd).toContain('git pull --ff-only');
-    expect(cmd).toContain('"%USERPROFILE%\\.local\\bin\\uv.exe" sync --locked --python 3.10 --extra cuda124');
-    expect(cmd).toContain('"%USERPROFILE%\\.local\\bin\\uv.exe" run --python 3.10 python run_worker.py');
+    expect(cmd).toContain('"%USERPROFILE%/.local/bin/uv.exe" sync --locked --python 3.10 --extra cuda124');
+    expect(cmd).toContain('"%USERPROFILE%/.local/bin/uv.exe" run --python 3.10 python run_worker.py');
     expect(cmd).not.toContain('\n');
     expect(cmd).not.toMatch(/python worker\.py\b/);
   });
@@ -153,8 +153,8 @@ describe('getRunCommand', () => {
     });
 
     expect(cmd).toMatch(/^cd \/d Reigh-Worker &&/);
-    expect(cmd).toContain('"%USERPROFILE%\\.local\\bin\\uv.exe" sync --locked --python 3.10 --extra cuda128');
-    expect(cmd).not.toContain('"%USERPROFILE%\\.local\\bin\\uv.exe" sync --locked --python 3.10 --extra cuda124');
+    expect(cmd).toContain('"%USERPROFILE%/.local/bin/uv.exe" sync --locked --python 3.10 --extra cuda128');
+    expect(cmd).not.toContain('"%USERPROFILE%/.local/bin/uv.exe" sync --locked --python 3.10 --extra cuda124');
   });
 
   it('throws UnsupportedPlatformError on macOS', () => {

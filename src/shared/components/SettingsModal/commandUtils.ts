@@ -5,7 +5,7 @@ const WORKER_REPO_URL = 'https://github.com/banodoco/Reigh-Worker.git';
 const REPO_DIR = 'Reigh-Worker';
 const LINUX_UV_INSTALL = 'curl -LsSf https://astral.sh/uv/install.sh | sh';
 const WINDOWS_UV_INSTALL = 'irm https://astral.sh/uv/install.ps1 | iex';
-const WINDOWS_CMD_UV_EXE = '%USERPROFILE%\\.local\\bin\\uv.exe';
+const WINDOWS_CMD_UV_EXE = '%USERPROFILE%/.local/bin/uv.exe';
 
 export class UnsupportedPlatformError extends Error {
   constructor(platform: string) {
