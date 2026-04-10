@@ -37,6 +37,7 @@ const AudioTrackComponent: FC<{
             key={`${clip.id}-${clip.at}-${clip.from ?? 0}-${clip.to ?? ''}-${clip.speed ?? 1}`}
             from={secondsToFrames(clip.at, fps)}
             durationInFrames={getClipDurationInFrames(clip, fps)}
+            premountFor={fps}
           >
             {mediaSrc ? (
               <MediaErrorBoundary
@@ -50,7 +51,10 @@ const AudioTrackComponent: FC<{
                   trimAfter={trimProps.trimAfter}
                   playbackRate={playbackRate}
                   volume={effectiveVolume}
-                  pauseWhenBuffering={!environment.isRendering && !environment.isClientSideRendering}
+                  // In the interactive player, blocking playback on every transient audio
+                  // buffer underrun causes the preview to "randomly" pause. Let clips
+                  // preload via premounting instead of hard-pausing the whole player.
+                  pauseWhenBuffering={false}
                 />
               </MediaErrorBoundary>
             ) : null}
