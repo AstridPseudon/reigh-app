@@ -96,6 +96,8 @@ vi.mock('@/shared/lib/preloading', () => ({
 
 vi.mock('@/shared/lib/media/mediaTypeHelpers', () => ({
   getGenerationId: (...args: unknown[]) => mocks.getGenerationId(...args),
+  getMediaUrl: (image: { url?: string }) => image.url ?? null,
+  getThumbnailUrl: (image: { thumbUrl?: string; url?: string }) => image.thumbUrl ?? image.url ?? null,
 }));
 
 vi.mock('@/shared/lib/dnd/dragDrop', () => ({
@@ -225,14 +227,14 @@ describe('MediaGalleryItem behavior', () => {
     expect(container.querySelector('.animate-pulse')).not.toBeNull();
   });
 
-  it('opens the lightbox when the rendered image is clicked', async () => {
+  it('opens the lightbox when the rendered image is double-clicked', async () => {
     mocks.hasLoadedImage.mockReturnValue(true);
     const props = buildProps();
 
     render(<MediaGalleryItem {...props} />);
 
     const image = await screen.findByAltText('Sunset over water');
-    fireEvent.click(image);
+    fireEvent.doubleClick(image);
 
     expect(props.actions.onOpenLightbox).toHaveBeenCalledWith(props.image);
   });

@@ -72,13 +72,7 @@ export const ImageContent: React.FC<ImageContentProps> = ({
             progressiveEnabled && isThumbShowing && "opacity-90",
             progressiveEnabled && isFullLoaded && "opacity-100"
           )}
-          onClick={enableSingleClick || !isMobile ? () => {
-            if (onImageClick) {
-              onImageClick(image);
-            } else {
-              onOpenLightbox(image);
-            }
-          } : undefined}
+          onClick={onImageClick && (enableSingleClick || !isMobile) ? () => onImageClick(image) : undefined}
           onDoubleClick={isMobile ? undefined : () => onOpenLightbox(image)}
           draggable={false}
           style={{ cursor: 'pointer' }}
