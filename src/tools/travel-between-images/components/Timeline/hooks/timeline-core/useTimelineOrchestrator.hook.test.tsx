@@ -132,6 +132,16 @@ vi.mock('../drag/useUnifiedDrop', () => ({
   }),
 }));
 
+vi.mock('@/tools/travel-between-images/providers', () => ({
+  useModelSettings: () => ({ selectedModel: 'wan-2.2' }),
+}));
+
+vi.mock('@/tools/travel-between-images/settings', () => ({
+  MODEL_DEFAULTS: {
+    'wan-2.2': { frames: 61, fps: 16 },
+  },
+}));
+
 vi.mock('./useTimelineOrchestratorActions', () => ({
   useTimelineOrchestratorActions: vi.fn((args: unknown) => {
     (globalThis as { __timelineActionArgs__?: unknown }).__timelineActionArgs__ = args;

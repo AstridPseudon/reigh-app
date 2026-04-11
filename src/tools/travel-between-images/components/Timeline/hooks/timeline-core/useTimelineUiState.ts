@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useReducer } from 'react';
+import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 
 interface TimelineUiState {
   resetGap: number;
@@ -13,6 +13,11 @@ type TimelineUiAction =
 
 const DEFAULT_RESET_GAP = 50;
 const DEFAULT_MAX_GAP = 81;
+
+interface UseTimelineUiStateOptions {
+  maxFrameLimit?: number;
+  defaultFrameGap?: number;
+}
 
 function reducer(state: TimelineUiState, action: TimelineUiAction): TimelineUiState {
   switch (action.type) {
@@ -36,9 +41,12 @@ function reducer(state: TimelineUiState, action: TimelineUiAction): TimelineUiSt
   }
 }
 
-export function useTimelineUiState() {
+export function useTimelineUiState(options: UseTimelineUiStateOptions = {}) {
+  const { maxFrameLimit = DEFAULT_MAX_GAP, defaultFrameGap } = options;
+  const initialResetGap = defaultFrameGap ?? DEFAULT_RESET_GAP;
+
   const [state, dispatch] = useReducer(reducer, {
-    resetGap: DEFAULT_RESET_GAP,
+    resetGap: initialResetGap,
     showVideoBrowser: false,
     isUploadingStructureVideo: false,
   });
@@ -46,6 +54,16 @@ export function useTimelineUiState() {
   const setResetGap = useCallback((value: number) => {
     dispatch({ type: 'set_reset_gap', value });
   }, []);
+
+  // When the underlying model's default gap changes (model switch), sync the
+  // reset gap to the new default so the "Gap" slider reflects the selected model.
+  const prevDefaultRef = useRef(defaultFrameGap);
+  useEffect(() => {
+    if (defaultFrameGap !== undefined && prevDefaultRef.current !== defaultFrameGap) {
+      prevDefaultRef.current = defaultFrameGap;
+      dispatch({ type: 'set_reset_gap', value: defaultFrameGap });
+    }
+  }, [defaultFrameGap]);
 
   const setShowVideoBrowser = useCallback((value: boolean) => {
     dispatch({ type: 'set_show_video_browser', value });
@@ -58,12 +76,13 @@ export function useTimelineUiState() {
   return useMemo(() => ({
     resetGap: state.resetGap,
     setResetGap,
-    maxGap: DEFAULT_MAX_GAP,
+    maxGap: maxFrameLimit,
     showVideoBrowser: state.showVideoBrowser,
     setShowVideoBrowser,
     isUploadingStructureVideo: state.isUploadingStructureVideo,
     setIsUploadingStructureVideo,
   }), [
+    maxFrameLimit,
     setIsUploadingStructureVideo,
     setResetGap,
     setShowVideoBrowser,

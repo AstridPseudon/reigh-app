@@ -31,6 +31,8 @@ import {
   runImageDropInterceptor,
   useTimelineOrchestratorActions,
 } from './useTimelineOrchestratorActions';
+import { useModelSettings } from '@/tools/travel-between-images/providers';
+import { MODEL_DEFAULTS } from '@/tools/travel-between-images/settings';
 
 interface TimelineOrchestratorCoreProps {
   shotId: string;
@@ -172,6 +174,8 @@ export function useTimelineOrchestrator({
   structureVideo,
   hasExistingTrailingVideo = false,
 }: UseTimelineOrchestratorProps): UseTimelineOrchestratorReturn {
+  const { selectedModel } = useModelSettings();
+  const defaultFrameGap = MODEL_DEFAULTS[selectedModel]?.frames;
   const {
     structureVideos,
     primaryStructureVideo,
@@ -189,7 +193,7 @@ export function useTimelineOrchestrator({
   const enableTapToMove = isTablet && !readOnly;
   const prefetchTaskData = usePrefetchTaskData();
 
-  const uiState = useTimelineUiState();
+  const uiState = useTimelineUiState({ maxFrameLimit, defaultFrameGap });
   const {
     pendingDropFrame,
     setPendingDropFrame,
@@ -245,6 +249,7 @@ export function useTimelineOrchestrator({
     selectedIds,
     onDragStart: lockSelection,
     onDragEnd: unlockSelection,
+    maxFrameLimit,
   });
 
   const viewport = useTimelineViewportController({
@@ -301,6 +306,7 @@ export function useTimelineOrchestrator({
     onUpdateStructureVideo,
     onPrimaryStructureVideoInputChange,
     setShowVideoBrowser: uiState.setShowVideoBrowser,
+    maxFrameLimit,
   });
 
   const drop = useUnifiedDrop({

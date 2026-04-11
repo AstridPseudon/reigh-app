@@ -79,6 +79,7 @@ interface UseTimelineOrchestratorActionsInput {
   onUpdateStructureVideo?: (index: number, updates: Partial<StructureVideoConfigWithMetadata>) => void;
   onPrimaryStructureVideoInputChange?: StructureVideoSelectionArgs['onPrimaryStructureVideoInputChange'];
   setShowVideoBrowser: (value: boolean) => void;
+  maxFrameLimit?: number;
 }
 
 interface TimelineOrchestratorActionsResult {
@@ -223,6 +224,7 @@ export function useTimelineOrchestratorActions({
   onUpdateStructureVideo,
   onPrimaryStructureVideoInputChange,
   setShowVideoBrowser,
+  maxFrameLimit,
 }: UseTimelineOrchestratorActionsInput): TimelineOrchestratorActionsResult {
   const handleImageDropInterceptor = useCallback(async (files: File[], targetFrame?: number) => {
     await runImageDropInterceptor({
@@ -265,6 +267,7 @@ export function useTimelineOrchestratorActions({
     selectedIds,
     clearSelection,
     containerRef,
+    maxFrameLimit,
   });
 
   const handleDuplicateInterceptor = useCallback((imageId: string, timelineFrame: number) => {

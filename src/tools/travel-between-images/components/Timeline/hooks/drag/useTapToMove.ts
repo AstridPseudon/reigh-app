@@ -14,6 +14,7 @@ interface UseTapToMoveProps {
   selectedIds: string[];
   clearSelection: () => void;
   containerRef: React.RefObject<HTMLDivElement>;
+  maxFrameLimit?: number;
 }
 
 interface UseTapToMoveReturn {
@@ -33,6 +34,7 @@ export function useTapToMove({
   selectedIds,
   clearSelection,
   containerRef,
+  maxFrameLimit = 81,
 }: UseTapToMoveProps): UseTapToMoveReturn {
   const handleTapToMoveAction = useCallback(async (imageId: string, targetFrame: number) => {
     const originalPos = framePositions.get(imageId) ?? 0;
@@ -51,16 +53,16 @@ export function useTapToMove({
       if (nearest) newPositions.set(nearest[0], 0);
     }
 
-    const finalPositions = applyFluidTimeline(newPositions, imageId, targetFrame, undefined, fullMin, fullMax);
+    const finalPositions = applyFluidTimeline(newPositions, imageId, targetFrame, undefined, fullMin, fullMax, false, maxFrameLimit);
     await setFramePositions(finalPositions);
     clearSelection();
-  }, [framePositions, setFramePositions, fullMin, fullMax, clearSelection]);
+  }, [framePositions, setFramePositions, fullMin, fullMax, clearSelection, maxFrameLimit]);
 
   const handleTapToMoveMultiAction = useCallback(async (imageIds: string[], targetFrame: number) => {
-    const finalPositions = applyFluidTimelineMulti(framePositions, imageIds, targetFrame);
+    const finalPositions = applyFluidTimelineMulti(framePositions, imageIds, targetFrame, false, maxFrameLimit);
     await setFramePositions(finalPositions);
     clearSelection();
-  }, [framePositions, setFramePositions, clearSelection]);
+  }, [framePositions, setFramePositions, clearSelection, maxFrameLimit]);
 
   const handleTimelineTapToMove = useCallback((clientX: number) => {
     if (!enableTapToMove || !containerRef.current || selectedIds.length === 0) return;

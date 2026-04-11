@@ -37,6 +37,7 @@ interface UseTimelineDragProps {
   selectedIds?: string[];
   onDragStart?: () => void;
   onDragEnd?: () => void;
+  maxFrameLimit?: number;
 }
 
 export const useTimelineDrag = ({
@@ -52,6 +53,7 @@ export const useTimelineDrag = ({
   selectedIds = [],
   onDragStart,
   onDragEnd,
+  maxFrameLimit = 81,
 }: UseTimelineDragProps) => {
   const shortId = (id: string | null | undefined) => id ? id.slice(0, 8) : null;
 
@@ -123,13 +125,13 @@ export const useTimelineDrag = ({
     if (targetRelativePos > effectiveWidth) {
       const overshoot = targetRelativePos - effectiveWidth;
       const overshootFrames = (overshoot / effectiveWidth) * fullRange;
-      const maxExpansion = 81;
+      const maxExpansion = maxFrameLimit;
       const cappedOvershoot = Math.min(overshootFrames, maxExpansion);
       return Math.round(calculatedFrame + cappedOvershoot);
     }
 
     return calculatedFrame;
-  }, [dragState.originalFramePos, fullMin, fullRange]);
+  }, [dragState.originalFramePos, fullMin, fullRange, maxFrameLimit]);
 
   // ============================================================================
   // CONSOLIDATED: Single function for calculating drag positions
@@ -179,7 +181,7 @@ export const useTimelineDrag = ({
 
       const result = applyFluidTimeline(
         newPositions, dragState.activeId, finalPosition,
-        undefined, fullMin, fullMax, isPreview
+        undefined, fullMin, fullMax, isPreview, maxFrameLimit
       );
 
       // Trailing endpoint: shift along with right-side items
@@ -191,7 +193,7 @@ export const useTimelineDrag = ({
 
     // Multi-select drag: bundle items together
     if (isMultiSelectDrag) {
-      return applyFluidTimelineMulti(framePositions, selectedIds, finalPosition, isPreview);
+      return applyFluidTimelineMulti(framePositions, selectedIds, finalPosition, isPreview, maxFrameLimit);
     }
 
     const { positions: newPositions } = resolveSinglePositionConflict(
@@ -200,7 +202,7 @@ export const useTimelineDrag = ({
       finalPosition,
     );
 
-    return applyFluidTimeline(newPositions, dragState.activeId, finalPosition, dragState.activeId, fullMin, fullMax, isPreview);
+    return applyFluidTimeline(newPositions, dragState.activeId, finalPosition, dragState.activeId, fullMin, fullMax, isPreview, maxFrameLimit);
   }, [
     dragState.isDragging,
     dragState.activeId,
@@ -214,6 +216,7 @@ export const useTimelineDrag = ({
     containerRect,
     fullMin,
     fullMax,
+    maxFrameLimit,
   ]);
 
   // Preview positions during drag (skip quantization for smoothness)

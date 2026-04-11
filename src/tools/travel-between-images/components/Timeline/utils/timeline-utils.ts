@@ -64,8 +64,9 @@ const shrinkOversizedGaps = (
   positions: Map<string, number>,
   excludeId?: string,
   skipQuantization: boolean = false,
+  maxFrameLimit: number = 81,
 ): Map<string, number> => {
-  const maxGap = Math.max(1, 81);
+  const maxGap = Math.max(1, maxFrameLimit);
 
   // Preserve trailing endpoint separately (not subject to gap shrinking)
   const trailingValue = positions.get(TRAILING_ENDPOINT_KEY);
@@ -126,6 +127,7 @@ export const applyFluidTimeline = (
   _fullMin: number = 0,
   _fullMax: number = Number.MAX_SAFE_INTEGER,
   skipQuantization: boolean = false,
+  maxFrameLimit: number = 81,
 ): Map<string, number> => {
   const originalPos = positions.get(draggedId) ?? 0;
   const movementAmount = targetFrame - originalPos;
@@ -139,7 +141,7 @@ export const applyFluidTimeline = (
   result.set(draggedId, limitedTargetFrame);
 
   // Apply gap constraints (this also handles frame 0 enforcement)
-  return shrinkOversizedGaps(result, excludeId, skipQuantization);
+  return shrinkOversizedGaps(result, excludeId, skipQuantization, maxFrameLimit);
 };
 
 // Convert pixel position to frame number
@@ -158,10 +160,11 @@ export const applyFluidTimelineMulti = (
   selectedIds: string[],
   targetFrame: number,
   skipQuantization: boolean = false,
+  maxFrameLimit: number = 81,
 ): Map<string, number> => {
   if (selectedIds.length === 0) return positions;
   if (selectedIds.length === 1) {
-    return applyFluidTimeline(positions, selectedIds[0], targetFrame, undefined, 0, Number.MAX_SAFE_INTEGER, skipQuantization);
+    return applyFluidTimeline(positions, selectedIds[0], targetFrame, undefined, 0, Number.MAX_SAFE_INTEGER, skipQuantization, maxFrameLimit);
   }
 
   const result = new Map(positions);
@@ -188,5 +191,5 @@ export const applyFluidTimelineMulti = (
   });
 
   // Apply gap constraints (handles frame 0 enforcement)
-  return shrinkOversizedGaps(result, undefined, skipQuantization);
+  return shrinkOversizedGaps(result, undefined, skipQuantization, maxFrameLimit);
 };
