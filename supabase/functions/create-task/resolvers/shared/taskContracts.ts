@@ -3,16 +3,6 @@ export const TASK_VIEW_CONTRACT_VERSION = 1 as const;
 export const TASK_PAYLOAD_CONTRACT_VERSION = 1 as const;
 export const TASK_FAMILY_CONTRACT_VERSION = 1 as const;
 
-type GenerationRouting =
-  | "orchestrator"
-  | "variant_source"
-  | "variant_child"
-  | "variant_parent"
-  | "child_generation"
-  | "standalone";
-
-type SiblingLookupMode = "run_id" | "orchestrator_task_id";
-type SegmentRegenerationMode = "segment_regen_from_pair" | "segment_regen_from_order";
 type JoinClipsMode = "legacy_join" | "multi_clip_join" | "video_edit_join";
 
 export interface OrchestrationContract {
@@ -26,9 +16,6 @@ export interface OrchestrationContract {
   shot_id?: string;
   based_on?: string;
   create_as_generation?: boolean;
-  generation_routing?: GenerationRouting;
-  sibling_lookup?: SiblingLookupMode;
-  segment_regen_mode?: SegmentRegenerationMode;
 }
 
 export interface TaskViewContract {
@@ -72,9 +59,6 @@ interface OrchestrationContractInput {
   shotId?: string;
   basedOn?: string;
   createAsGeneration?: boolean;
-  generationRouting?: GenerationRouting;
-  siblingLookup?: SiblingLookupMode;
-  segmentRegenerationMode?: SegmentRegenerationMode;
 }
 
 interface TaskViewContractInput {
@@ -97,8 +81,6 @@ interface JoinClipsFamilyContract {
 
 interface IndividualSegmentFamilyContract {
   contract_version: typeof TASK_FAMILY_CONTRACT_VERSION;
-  segment_regen_mode: SegmentRegenerationMode;
-  generation_routing: "variant_child" | "child_generation";
   segment_index: number;
   has_end_image: boolean;
   has_pair_shot_generation_id: boolean;
@@ -106,7 +88,6 @@ interface IndividualSegmentFamilyContract {
 
 interface TravelBetweenImagesFamilyContract {
   contract_version: typeof TASK_FAMILY_CONTRACT_VERSION;
-  segment_regen_mode: SegmentRegenerationMode;
   image_count: number;
   segment_count: number;
   has_pair_ids: boolean;
@@ -133,10 +114,6 @@ export function buildOrchestrationContract(
   if (input.shotId) contract.shot_id = input.shotId;
   if (input.basedOn) contract.based_on = input.basedOn;
   if (typeof input.createAsGeneration === "boolean") contract.create_as_generation = input.createAsGeneration;
-  if (input.generationRouting) contract.generation_routing = input.generationRouting;
-  if (input.siblingLookup) contract.sibling_lookup = input.siblingLookup;
-  if (input.segmentRegenerationMode) contract.segment_regen_mode = input.segmentRegenerationMode;
-
   return contract;
 }
 
@@ -201,16 +178,12 @@ export function buildJoinClipsFamilyContract(input: {
 }
 
 export function buildIndividualSegmentFamilyContract(input: {
-  segmentRegenerationMode: SegmentRegenerationMode;
-  generationRouting: "variant_child" | "child_generation";
   segmentIndex: number;
   hasEndImage: boolean;
   hasPairShotGenerationId: boolean;
 }): IndividualSegmentFamilyContract {
   return {
     contract_version: TASK_FAMILY_CONTRACT_VERSION,
-    segment_regen_mode: input.segmentRegenerationMode,
-    generation_routing: input.generationRouting,
     segment_index: input.segmentIndex,
     has_end_image: input.hasEndImage,
     has_pair_shot_generation_id: input.hasPairShotGenerationId,
@@ -218,7 +191,6 @@ export function buildIndividualSegmentFamilyContract(input: {
 }
 
 export function buildTravelBetweenImagesFamilyContract(input: {
-  segmentRegenerationMode: SegmentRegenerationMode;
   imageCount: number;
   segmentCount: number;
   hasPairIds: boolean;
@@ -226,7 +198,6 @@ export function buildTravelBetweenImagesFamilyContract(input: {
 }): TravelBetweenImagesFamilyContract {
   const contract: TravelBetweenImagesFamilyContract = {
     contract_version: TASK_FAMILY_CONTRACT_VERSION,
-    segment_regen_mode: input.segmentRegenerationMode,
     image_count: input.imageCount,
     segment_count: input.segmentCount,
     has_pair_ids: input.hasPairIds,

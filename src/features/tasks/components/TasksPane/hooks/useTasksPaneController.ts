@@ -88,9 +88,10 @@ export function useTasksPaneController(
     allProjectIds: isAllProjectsMode ? allProjectIds : undefined,
   });
 
-  const scopedProjectId = shouldLoadTasks ? (selectedProjectId ?? null) : null;
+  const scopedProjectId = shouldLoadTasks ? (effectiveProjectId ?? selectedProjectId ?? null) : null;
   const { data: statusCounts, isLoading: isStatusCountsLoading } = useTaskStatusCounts(
     scopedProjectId,
+    isAllProjectsMode ? { allProjectIds: allProjectIds } : undefined,
   );
   const { data: allTaskTypes } = useAllTaskTypes(scopedProjectId);
 

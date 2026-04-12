@@ -2,28 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { createImageInpaintTask } from '../imageInpaint';
 
 const mockCreateTask = vi.fn();
-const mockProcessBatchResults = vi.fn();
-const mockBuildHiresFixParams = vi.fn();
 
 vi.mock('../../../taskCreation', () => ({
   createTask: (...args: unknown[]) => mockCreateTask(...args),
-  processBatchResults: (...args: unknown[]) => mockProcessBatchResults(...args),
-  buildHiresFixParams: (...args: unknown[]) => mockBuildHiresFixParams(...args),
 }));
 
 describe('createImageInpaintTask', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockCreateTask.mockResolvedValue({ task_id: 'task-1', status: 'pending' });
-    mockBuildHiresFixParams.mockReturnValue({});
-    mockProcessBatchResults.mockImplementation((results: PromiseSettledResult<unknown>[]) => {
-      return results
-        .filter((r): r is PromiseFulfilledResult<unknown> => r.status === 'fulfilled')
-        .map(r => r.value);
-    });
   });
 
-  it('creates a single inpaint task when num_generations is 1', async () => {
+  it('creates a single inpaint task with correct shape', async () => {
     const result = await createImageInpaintTask({
       project_id: 'proj-1',
       image_url: 'https://example.com/image.jpg',
@@ -37,14 +27,15 @@ describe('createImageInpaintTask', () => {
 
     const call = mockCreateTask.mock.calls[0][0];
     expect(call.project_id).toBe('proj-1');
-    expect(call.task_type).toBe('image_inpaint');
-    expect(call.params.image_url).toBe('https://example.com/image.jpg');
-    expect(call.params.mask_url).toBe('https://example.com/mask.png');
-    expect(call.params.prompt).toBe('remove the car');
-    expect(call.params.num_generations).toBe(1);
+    expect(call.family).toBe('masked_edit');
+    expect(call.input.task_type).toBe('image_inpaint');
+    expect(call.input.image_url).toBe('https://example.com/image.jpg');
+    expect(call.input.mask_url).toBe('https://example.com/mask.png');
+    expect(call.input.prompt).toBe('remove the car');
+    expect(call.input.num_generations).toBe(1);
   });
 
-  it('sets based_on equal to generation_id when provided', async () => {
+  it('passes generation_id in input when provided', async () => {
     await createImageInpaintTask({
       project_id: 'proj-1',
       image_url: 'https://example.com/image.jpg',
@@ -54,9 +45,8 @@ describe('createImageInpaintTask', () => {
       generation_id: 'gen-100',
     });
 
-    const params = mockCreateTask.mock.calls[0][0].params;
-    expect(params.generation_id).toBe('gen-100');
-    expect(params.based_on).toBe('gen-100');
+    const input = mockCreateTask.mock.calls[0][0].input;
+    expect(input.generation_id).toBe('gen-100');
   });
 
   it('includes optional fields when provided', async () => {
@@ -74,13 +64,13 @@ describe('createImageInpaintTask', () => {
       qwen_edit_model: 'qwen-edit-2511',
     });
 
-    const params = mockCreateTask.mock.calls[0][0].params;
-    expect(params.shot_id).toBe('shot-1');
-    expect(params.tool_type).toBe('inpaint');
-    expect(params.loras).toEqual([{ path: 'lora-path', scale: 0.8 }]);
-    expect(params.create_as_generation).toBe(true);
-    expect(params.source_variant_id).toBe('var-1');
-    expect(params.qwen_edit_model).toBe('qwen-edit-2511');
+    const input = mockCreateTask.mock.calls[0][0].input;
+    expect(input.shot_id).toBe('shot-1');
+    expect(input.tool_type).toBe('inpaint');
+    expect(input.loras).toEqual([{ path: 'lora-path', scale: 0.8 }]);
+    expect(input.create_as_generation).toBe(true);
+    expect(input.source_variant_id).toBe('var-1');
+    expect(input.qwen_edit_model).toBe('qwen-edit-2511');
   });
 
   it('omits optional fields when not provided', async () => {
@@ -92,21 +82,16 @@ describe('createImageInpaintTask', () => {
       num_generations: 1,
     });
 
-    const params = mockCreateTask.mock.calls[0][0].params;
-    expect(params.shot_id).toBeUndefined();
-    expect(params.tool_type).toBeUndefined();
-    expect(params.loras).toBeUndefined();
-    expect(params.create_as_generation).toBeUndefined();
-    expect(params.source_variant_id).toBeUndefined();
-    expect(params.qwen_edit_model).toBeUndefined();
+    const input = mockCreateTask.mock.calls[0][0].input;
+    expect(input.shot_id).toBeUndefined();
+    expect(input.tool_type).toBeUndefined();
+    expect(input.loras).toBeUndefined();
+    expect(input.create_as_generation).toBeUndefined();
+    expect(input.source_variant_id).toBeUndefined();
+    expect(input.qwen_edit_model).toBeUndefined();
   });
 
-  it('creates multiple tasks in parallel when num_generations > 1', async () => {
-    mockCreateTask
-      .mockResolvedValueOnce({ task_id: 'task-1', status: 'pending' })
-      .mockResolvedValueOnce({ task_id: 'task-2', status: 'pending' })
-      .mockResolvedValueOnce({ task_id: 'task-3', status: 'pending' });
-
+  it('makes a single createTask call even when num_generations > 1', async () => {
     const result = await createImageInpaintTask({
       project_id: 'proj-1',
       image_url: 'https://example.com/image.jpg',
@@ -115,15 +100,14 @@ describe('createImageInpaintTask', () => {
       num_generations: 3,
     });
 
-    expect(mockCreateTask).toHaveBeenCalledTimes(3);
-    // processBatchResults is called, returns the first task_id
-    expect(mockProcessBatchResults).toHaveBeenCalledOnce();
+    // Backend handles batching — only one createTask call is made
+    expect(mockCreateTask).toHaveBeenCalledOnce();
+    expect(mockCreateTask.mock.calls[0][0].input.num_generations).toBe(3);
     expect(result).toBe('task-1');
   });
 
-  it('calls buildHiresFixParams with hires_fix config', async () => {
+  it('passes hires_fix directly in input', async () => {
     const hiresConfig = { hires_scale: 2, hires_steps: 10 };
-    mockBuildHiresFixParams.mockReturnValue({ hires_scale: 2, hires_steps: 10 });
 
     await createImageInpaintTask({
       project_id: 'proj-1',
@@ -134,9 +118,7 @@ describe('createImageInpaintTask', () => {
       hires_fix: hiresConfig,
     });
 
-    expect(mockBuildHiresFixParams).toHaveBeenCalledWith(hiresConfig);
-    const params = mockCreateTask.mock.calls[0][0].params;
-    expect(params.hires_scale).toBe(2);
-    expect(params.hires_steps).toBe(10);
+    const input = mockCreateTask.mock.calls[0][0].input;
+    expect(input.hires_fix).toEqual({ hires_scale: 2, hires_steps: 10 });
   });
 });

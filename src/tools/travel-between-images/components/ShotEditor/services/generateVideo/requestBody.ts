@@ -20,13 +20,6 @@ function assertMappedIdCardinality(
     );
   }
 
-  if (imagePayload.imageVariantIds.length > 0 && imagePayload.imageVariantIds.length !== expectedImageCount) {
-    throw new ValidationError(
-      'Travel payload integrity check failed: image_variant_ids count does not match image_urls count.',
-      { field: 'image_variant_ids' },
-    );
-  }
-
   const expectedPairCount = Math.max(0, expectedImageCount - 1);
   if (imagePayload.pairShotGenerationIds.length > 0 && imagePayload.pairShotGenerationIds.length !== expectedPairCount) {
     throw new ValidationError(
@@ -112,9 +105,6 @@ export function buildTravelRequestBodyV2(params: BuildTravelRequestBodyParams): 
     ...(imagePayload.imageGenerationIds.length > 0 && imagePayload.imageGenerationIds.length === imageCount
       ? { image_generation_ids: imagePayload.imageGenerationIds }
       : {}),
-    ...(imagePayload.imageVariantIds.length > 0 && imagePayload.imageVariantIds.length === imageCount
-      ? { image_variant_ids: imagePayload.imageVariantIds }
-      : {}),
     ...(imagePayload.pairShotGenerationIds.length > 0 && imagePayload.pairShotGenerationIds.length === expectedPairCount
       ? { pair_shot_generation_ids: imagePayload.pairShotGenerationIds }
       : {}),
@@ -142,7 +132,6 @@ export function buildTravelRequestBodyV2(params: BuildTravelRequestBodyParams): 
     ...(spec.ui.guidanceScale && guidanceScale !== undefined ? { guidance_scale: guidanceScale } : {}),
     ...motionFields,
     ...(spec.supportsPhaseConfig ? { advanced_mode: useAdvancedMode } : {}),
-    regenerate_anchors: false,
     generation_name: variantNameParam.trim() || undefined,
     ...(textBeforePrompts ? { text_before_prompts: textBeforePrompts } : {}),
     ...(textAfterPrompts ? { text_after_prompts: textAfterPrompts } : {}),

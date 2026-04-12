@@ -172,20 +172,17 @@ export interface TravelBetweenImagesRequestPayload {
   shot_id?: string;
   parent_generation_id?: string;
   image_generation_ids?: string[];
-  image_variant_ids?: string[];
   pair_shot_generation_ids?: string[];
   resolution?: string;
-  params_json_str?: string;
   main_output_dir_for_run?: string;
-  openai_api_key?: string;
   show_input_images?: boolean;
   generation_mode?: 'batch' | 'timeline' | 'by-pair';
   dimension_source?: 'project' | 'firstImage' | 'custom';
-  regenerate_anchors?: boolean;
   after_first_post_generation_saturation?: number;
   after_first_post_generation_brightness?: number;
   generation_name?: string;
   independent_segments?: boolean;
+  // TODO: wire through to orchestrator_details.
   chain_segments?: boolean;
 
   // null entry means "use shot default" for that pair.
@@ -196,6 +193,7 @@ export interface TravelBetweenImagesRequestPayload {
 
   travel_guidance?: TravelGuidance;
 
+  // TODO: wire through to orchestrator_details.
   // Optional join config for automatic stitch-after-generation.
   stitch_config?: StitchConfig;
 }
@@ -205,6 +203,7 @@ export interface TravelBetweenImagesRequestPayload {
  * are still being normalized at the boundary.
  */
 interface TravelBetweenImagesLegacyCompatInput {
+  // TODO: wire through to orchestrator_details.
   /** @deprecated New writes should use `travel_guidance`. */
   structure_guidance?: StructureGuidanceConfig;
   /** @deprecated New writes should use `travel_guidance.videos`. */

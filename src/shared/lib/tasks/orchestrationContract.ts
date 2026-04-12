@@ -1,17 +1,5 @@
 export const ORCHESTRATION_CONTRACT_VERSION = 3 as const;
 
-type GenerationRouting =
-  | 'orchestrator'
-  | 'variant_source'
-  | 'variant_child'
-  | 'variant_parent'
-  | 'child_generation'
-  | 'standalone';
-
-type SiblingLookupMode = 'run_id' | 'orchestrator_task_id';
-
-export type SegmentRegenerationMode = 'segment_regen_from_pair' | 'segment_regen_from_order';
-
 interface OrchestrationContractInput {
   taskFamily: string;
   orchestratorTaskId?: string;
@@ -22,9 +10,6 @@ interface OrchestrationContractInput {
   shotId?: string;
   basedOn?: string;
   createAsGeneration?: boolean;
-  generationRouting?: GenerationRouting;
-  siblingLookup?: SiblingLookupMode;
-  segmentRegenerationMode?: SegmentRegenerationMode;
 }
 
 export interface OrchestrationContract {
@@ -38,9 +23,6 @@ export interface OrchestrationContract {
   shot_id?: string;
   based_on?: string;
   create_as_generation?: boolean;
-  generation_routing?: GenerationRouting;
-  sibling_lookup?: SiblingLookupMode;
-  segment_regen_mode?: SegmentRegenerationMode;
 }
 
 export function buildOrchestrationContract(
@@ -59,9 +41,5 @@ export function buildOrchestrationContract(
   if (input.shotId) contract.shot_id = input.shotId;
   if (input.basedOn) contract.based_on = input.basedOn;
   if (typeof input.createAsGeneration === 'boolean') contract.create_as_generation = input.createAsGeneration;
-  if (input.generationRouting) contract.generation_routing = input.generationRouting;
-  if (input.siblingLookup) contract.sibling_lookup = input.siblingLookup;
-  if (input.segmentRegenerationMode) contract.segment_regen_mode = input.segmentRegenerationMode;
-
   return contract;
 }

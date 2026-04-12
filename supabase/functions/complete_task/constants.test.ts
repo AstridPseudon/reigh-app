@@ -12,4 +12,10 @@ describe('complete_task/constants', () => {
       TASK_TYPES.JOIN_FINAL_STITCH,
     );
   });
+
+  it('treats individual travel segments as orchestrator-counted segment tasks', () => {
+    expect(SEGMENT_TYPE_CONFIG[TASK_TYPES.INDIVIDUAL_TRAVEL_SEGMENT]).toMatchObject({
+      segmentType: TASK_TYPES.INDIVIDUAL_TRAVEL_SEGMENT,
+    });
+  });
 });

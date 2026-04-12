@@ -101,7 +101,6 @@ def _resolve_from_task(client: DebugClient, task_id: str):
         "task_pair_shot_gen_id": task_pair_shot_gen_id,
         "based_on": based_on,
         "segment_index": params.get("segment_index"),
-        "generation_routing": _get_nested(params, "orchestration_contract", "generation_routing"),
         "child_order_contract": _get_nested(params, "orchestration_contract", "child_order"),
     }
 
@@ -542,10 +541,7 @@ def _run_inner(client: DebugClient, entity_id: str, options: dict):
 
         # Key routing params
         if task_ctx:
-            routing = task_ctx.get("generation_routing")
             seg_idx = task_ctx.get("segment_index")
-            if routing:
-                print(f"  Routing:         {routing}")
             if seg_idx is not None:
                 print(f"  segment_index:   {seg_idx}")
             if task_pair_shot_gen_id:

@@ -42,28 +42,27 @@ interface TravelBetweenImagesTaskInput {
   shot_id?: string;
   parent_generation_id?: string;
   image_generation_ids?: string[];
-  image_variant_ids?: string[];
   pair_shot_generation_ids?: string[];
   resolution?: string;
-  params_json_str?: string;
   main_output_dir_for_run?: string;
-  openai_api_key?: string;
   show_input_images?: boolean;
   generation_mode?: "batch" | "timeline" | "by-pair";
   dimension_source?: "project" | "firstImage" | "custom";
-  regenerate_anchors?: boolean;
   after_first_post_generation_saturation?: number;
   after_first_post_generation_brightness?: number;
   generation_name?: string;
   independent_segments?: boolean;
+  // TODO: wire through to orchestrator_details.
   chain_segments?: boolean;
   pair_phase_configs?: (Record<string, unknown> | null)[];
   pair_loras?: (Array<{ path: string; strength: number }> | null)[];
   loras?: Array<{ path: string; strength: number }>;
   pair_motion_settings?: (Record<string, unknown> | null)[];
   travel_guidance?: Record<string, unknown>;
+  // TODO: wire through to orchestrator_details.
   structure_guidance?: Record<string, unknown>;
   structure_videos?: Record<string, unknown>[];
+  // TODO: wire through to orchestrator_details.
   stitch_config?: Record<string, unknown>;
 }
 
@@ -226,7 +225,7 @@ function buildTravelBetweenImagesPayload(
     generation_mode: input.generation_mode ?? DEFAULT_TRAVEL_BETWEEN_IMAGES_VALUES.generation_mode,
     dimension_source: input.dimension_source ?? DEFAULT_TRAVEL_BETWEEN_IMAGES_VALUES.dimension_source,
     ...(input.advanced_mode
-      ? { regenerate_anchors: false }
+      ? {}
       : { amount_of_motion: input.amount_of_motion ?? DEFAULT_TRAVEL_BETWEEN_IMAGES_VALUES.amount_of_motion }),
     advanced_mode: input.advanced_mode ?? false,
     generation_name: input.generation_name,
@@ -250,11 +249,7 @@ function buildTravelBetweenImagesPayload(
   if (input.selected_phase_preset_id) {
     orchestratorPayload.selected_phase_preset_id = input.selected_phase_preset_id;
   }
-
   const hasPairIds = Boolean(input.pair_shot_generation_ids?.length);
-  const segmentRegenerationMode = hasPairIds
-    ? "segment_regen_from_pair"
-    : "segment_regen_from_order";
 
   const travelReadContract: TravelBetweenImagesReadContract = {
     contract_version: TASK_FAMILY_CONTRACT_VERSION,
@@ -285,8 +280,6 @@ function buildTravelBetweenImagesPayload(
       runId,
       parentGenerationId,
       shotId: input.shot_id,
-      generationRouting: "orchestrator",
-      siblingLookup: "run_id",
     },
     taskViewInput: {
       inputImages: input.image_urls,
@@ -296,7 +289,6 @@ function buildTravelBetweenImagesPayload(
       resolution: finalResolution,
     },
     familyContract: buildTravelBetweenImagesFamilyContract({
-      segmentRegenerationMode,
       imageCount: input.image_urls.length,
       segmentCount: numSegments,
       hasPairIds,

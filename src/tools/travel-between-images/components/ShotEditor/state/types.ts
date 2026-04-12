@@ -96,6 +96,10 @@ export interface ShotEditorState {
   showStepsNotification: boolean;
   hasInitializedShot: string | null;
   hasInitializedUISettings: string | null;
+  autoAdjustedAspectRatio: {
+    previousAspectRatio: string | null;
+    adjustedTo: string;
+  } | null;
 }
 
 export type ShotEditorAction =
@@ -115,4 +119,11 @@ export type ShotEditorAction =
   | { type: 'SET_TRANSITIONING_FROM_NAME_EDIT'; payload: boolean }
   | { type: 'SET_SHOW_STEPS_NOTIFICATION'; payload: boolean }
   | { type: 'SET_HAS_INITIALIZED_SHOT'; payload: string | null }
-  | { type: 'SET_HAS_INITIALIZED_UI_SETTINGS'; payload: string | null };
+  | { type: 'SET_HAS_INITIALIZED_UI_SETTINGS'; payload: string | null }
+  | {
+    type: 'SET_AUTO_ADJUSTED_ASPECT_RATIO';
+    payload: {
+      previousAspectRatio: string | null;
+      adjustedTo: string;
+    } | null;
+  };

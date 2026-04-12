@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { __getServeHandler, __resetServeHandler } from '../_tests/mocks/denoHttpServer.ts';
 import { parseTaskCostParams } from './costHelpers.ts';
+import * as CalculateTaskCostEntrypoint from './index.ts';
 
 describe('calculate-task-cost parsing contracts', () => {
   it('preserves validated known fields and extra unknown fields', () => {

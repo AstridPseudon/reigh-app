@@ -211,7 +211,7 @@ vi.mock('@/tools/travel-between-images/providers', () => ({
     setMotionMode: vi.fn(),
     turboMode: false,
     setTurboMode: vi.fn(),
-    smoothContinuations: true,
+    smoothContinuations: false,
     setSmoothContinuations: vi.fn(),
     amountOfMotion: 0.6,
     setAmountOfMotion: vi.fn(),
@@ -337,21 +337,25 @@ describe('BatchModeContent', () => {
   it('uses main model pills with LTX variant suboptions', () => {
     const { rerender } = renderWithProviders(<BatchModeContent swapButtonRef={{ current: null }} />);
 
-    expect(screen.getByRole('button', { name: 'WAN / VACE' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'LTX 2.3' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Full' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Distilled' })).not.toBeInTheDocument();
+    const initialBatchProps = batchSettingsFormSpy.mock.calls.at(-1)?.[0] as {
+      selectedModel: string;
+      onSelectedModelChange: (model: string) => void;
+    };
+    expect(initialBatchProps.selectedModel).toBe('wan-2.2');
 
-    fireEvent.click(screen.getByRole('button', { name: 'LTX 2.3' }));
-    expect(setSelectedModelMock).toHaveBeenCalledWith('ltx-2.3');
+    initialBatchProps.onSelectedModelChange('ltx-2.3-fast');
+    expect(setSelectedModelMock).toHaveBeenCalledWith('ltx-2.3-fast');
 
     selectedModelMock = 'ltx-2.3-fast';
     rerender(<BatchModeContent swapButtonRef={{ current: null }} />);
 
-    expect(screen.getByRole('button', { name: 'Full' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Distilled' })).toBeInTheDocument();
+    const ltxBatchProps = batchSettingsFormSpy.mock.calls.at(-1)?.[0] as {
+      selectedModel: string;
+      onSelectedModelChange: (model: string) => void;
+    };
+    expect(ltxBatchProps.selectedModel).toBe('ltx-2.3-fast');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Full' }));
+    ltxBatchProps.onSelectedModelChange('ltx-2.3');
     expect(setSelectedModelMock).toHaveBeenCalledWith('ltx-2.3');
   });
 

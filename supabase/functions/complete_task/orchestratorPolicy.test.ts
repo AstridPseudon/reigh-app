@@ -39,8 +39,13 @@ describe('orchestratorPolicy', () => {
     });
   });
 
-  it('resolves expected segment counts for travel and join-clips task types', () => {
+  it('resolves expected segment counts for travel-family and join-clips task types', () => {
     const travel = resolveExpectedSegmentCount(TASK_TYPES.TRAVEL_SEGMENT, {
+      orchestrator_details: {
+        num_new_segments_to_generate: 4,
+      },
+    });
+    const individualTravel = resolveExpectedSegmentCount(TASK_TYPES.INDIVIDUAL_TRAVEL_SEGMENT, {
       orchestrator_details: {
         num_new_segments_to_generate: 4,
       },
@@ -52,6 +57,7 @@ describe('orchestratorPolicy', () => {
     });
 
     expect(travel.value).toBe(4);
+    expect(individualTravel.value).toBe(4);
     expect(joinClips.value).toBe(2);
   });
 

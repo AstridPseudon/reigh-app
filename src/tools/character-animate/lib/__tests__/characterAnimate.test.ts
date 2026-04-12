@@ -2,14 +2,10 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock taskCreation before importing the module under test
 const mockCreateTask = vi.fn();
-const mockGenerateTaskId = vi.fn().mockReturnValue('test-task-id');
-const mockGenerateRunId = vi.fn().mockReturnValue('test-run-id');
 const mockValidateRequiredFields = vi.fn();
 
 vi.mock('@/shared/lib/taskCreation', () => ({
   createTask: (...args: unknown[]) => mockCreateTask(...args),
-  generateTaskId: (...args: unknown[]) => mockGenerateTaskId(...args),
-  generateRunId: (...args: unknown[]) => mockGenerateRunId(...args),
   validateRequiredFields: (...args: unknown[]) => mockValidateRequiredFields(...args),
   TaskValidationError: class TaskValidationError extends Error {
     field: string;
@@ -19,6 +15,10 @@ vi.mock('@/shared/lib/taskCreation', () => ({
       this.field = field;
     }
   },
+}));
+
+vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
+  normalizeAndPresentError: vi.fn(),
 }));
 
 import { createCharacterAnimateTask, CharacterAnimateTaskParams } from '../characterAnimate';
@@ -44,21 +44,18 @@ describe('createCharacterAnimateTask', () => {
     const result = await createCharacterAnimateTask(validParams);
 
     expect(result).toEqual({ task_id: 'created-task-id' });
-    expect(mockGenerateTaskId).toHaveBeenCalledWith('character_animate');
-    expect(mockGenerateRunId).toHaveBeenCalled();
     expect(mockCreateTask).toHaveBeenCalledWith({
       project_id: 'proj-123',
-      task_type: 'animate_character',
-      params: expect.objectContaining({
-        orchestrator_task_id: 'test-task-id',
-        run_id: 'test-run-id',
+      family: 'character_animate',
+      input: {
         character_image_url: 'https://example.com/character.png',
         motion_video_url: 'https://example.com/motion.mp4',
         prompt: 'dancing character',
         mode: 'animate',
         resolution: '480p',
         seed: 42,
-      }),
+        random_seed: false,
+      },
     });
   });
 
@@ -69,7 +66,7 @@ describe('createCharacterAnimateTask', () => {
 
     expect(mockCreateTask).toHaveBeenCalledWith(
       expect.objectContaining({
-        params: expect.objectContaining({
+        input: expect.objectContaining({
           prompt: 'natural expression; preserve outfit details',
         }),
       }),
@@ -81,7 +78,7 @@ describe('createCharacterAnimateTask', () => {
 
     await createCharacterAnimateTask(paramsRandomSeed);
 
-    const calledParams = mockCreateTask.mock.calls[0][0].params;
+    const calledParams = mockCreateTask.mock.calls[0][0].input;
     // When random_seed is true, the seed should be a random number (not 42)
     expect(typeof calledParams.seed).toBe('number');
     // The seed COULD randomly equal 42, but the important thing is the function ran
@@ -95,7 +92,7 @@ describe('createCharacterAnimateTask', () => {
 
     expect(mockCreateTask).toHaveBeenCalledWith(
       expect.objectContaining({
-        params: expect.objectContaining({
+        input: expect.objectContaining({
           seed: 12345,
         }),
       }),
@@ -152,12 +149,12 @@ describe('createCharacterAnimateTask', () => {
     await expect(createCharacterAnimateTask(validParams)).rejects.toThrow('Network error');
   });
 
-  it('sets task_type to animate_character', async () => {
+  it('sets family to character_animate', async () => {
     await createCharacterAnimateTask(validParams);
 
     expect(mockCreateTask).toHaveBeenCalledWith(
       expect.objectContaining({
-        task_type: 'animate_character',
+        family: 'character_animate',
       }),
     );
   });
@@ -168,7 +165,7 @@ describe('createCharacterAnimateTask', () => {
 
     expect(mockCreateTask).toHaveBeenCalledWith(
       expect.objectContaining({
-        params: expect.objectContaining({
+        input: expect.objectContaining({
           mode: 'replace',
         }),
       }),
@@ -181,7 +178,7 @@ describe('createCharacterAnimateTask', () => {
 
     expect(mockCreateTask).toHaveBeenCalledWith(
       expect.objectContaining({
-        params: expect.objectContaining({
+        input: expect.objectContaining({
           mode: 'animate',
         }),
       }),
@@ -193,7 +190,7 @@ describe('createCharacterAnimateTask', () => {
 
     expect(mockCreateTask).toHaveBeenCalledWith(
       expect.objectContaining({
-        params: expect.objectContaining({
+        input: expect.objectContaining({
           resolution: '720p',
         }),
       }),

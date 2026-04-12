@@ -152,7 +152,8 @@ describe('generationMutationsRepository', () => {
 
   it('deletes a variant using the resolved parent generation scope', async () => {
     const selectDeleteVariant = vi.fn().mockResolvedValue({ data: [{ id: 'v3' }], error: null });
-    const eqDeleteVariantGeneration = vi.fn(() => ({ select: selectDeleteVariant }));
+    const neqDeleteVariantOriginal = vi.fn(() => ({ select: selectDeleteVariant }));
+    const eqDeleteVariantGeneration = vi.fn(() => ({ neq: neqDeleteVariantOriginal }));
     const eqDeleteVariantId = vi.fn(() => ({ eq: eqDeleteVariantGeneration }));
     const deleteVariant = vi.fn(() => ({ eq: eqDeleteVariantId }));
     const from = vi.fn(() => ({
@@ -174,6 +175,7 @@ describe('generationMutationsRepository', () => {
     expect(deleteVariant).toHaveBeenCalledTimes(1);
     expect(eqDeleteVariantId).toHaveBeenCalledWith('id', 'v3');
     expect(eqDeleteVariantGeneration).toHaveBeenCalledWith('generation_id', 'g3');
+    expect(neqDeleteVariantOriginal).toHaveBeenCalledWith('variant_type', 'original');
     expect(selectDeleteVariant).toHaveBeenCalledWith('id');
   });
 

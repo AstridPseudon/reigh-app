@@ -14,6 +14,7 @@ export { useListShots, useProjectImageStats } from './useShotsQueries';
 
 // Shot field updates
 export { useUpdateShotName } from './useShotUpdates';
+export { useUpdateShotAspectRatio } from './useUpdateShotAspectRatio';
 
 // Shot-generation mutations (add, remove, reorder images in shots)
 export {

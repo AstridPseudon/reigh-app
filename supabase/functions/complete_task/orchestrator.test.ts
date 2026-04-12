@@ -180,6 +180,37 @@ describe('complete_task/orchestrator', () => {
     });
   });
 
+  it('counts orchestrated individual travel segments toward orchestrator completion', async () => {
+    const { supabase, updateCalls } = createSupabaseHarness();
+
+    await checkOrchestratorCompletion({
+      supabase: supabase as never,
+      taskIdString: 'task-individual-segment',
+      completedTask: buildCompletedTask({ task_type: 'individual_travel_segment' }),
+      publicUrl: 'https://public.example/media.mp4',
+      supabaseUrl: 'https://example.supabase.co',
+      serviceKey: 'service-key',
+      authContext: { isServiceRole: true, taskOwnerVerified: false, actorId: 'worker' },
+    });
+
+    expect(lookupTasksByRunIdWithFallbackMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        runId: 'run-1',
+        taskType: 'individual_travel_segment',
+      }),
+    );
+    expect(lookupTasksByOrchestratorIdWithFallbackMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        orchestratorTaskId: 'orch-1',
+        taskType: 'individual_travel_segment',
+      }),
+    );
+    expect(updateCalls[0]).toMatchObject({
+      status: 'Complete',
+      generation_started_at: '2026-01-01T00:00:01Z',
+    });
+  });
+
   it('waits when sibling segments are still pending', async () => {
     const { supabase, updateCalls } = createSupabaseHarness();
     lookupTasksByOrchestratorIdWithFallbackMock.mockResolvedValue([

@@ -141,10 +141,35 @@ function trackTaskStatusCountsFreshness(
   );
 }
 
-async function fetchTaskStatusCounts(projectId: string | null): Promise<TaskStatusCountsResult> {
-  if (!projectId) {
+interface FetchTaskStatusCountsOptions {
+  projectId: string | null;
+  allProjectIds?: string[];
+}
+
+function applyProjectScope(
+  query: ReturnType<ReturnType<typeof getSupabaseClient>['from']>['select'],
+  projectId: string | null,
+  allProjectIds?: string[],
+) {
+  if (allProjectIds && allProjectIds.length > 0) {
+    return query.in('project_id', allProjectIds);
+  }
+  if (projectId) {
+    return query.eq('project_id', projectId);
+  }
+  return query;
+}
+
+async function fetchTaskStatusCounts(options: FetchTaskStatusCountsOptions): Promise<TaskStatusCountsResult> {
+  const { projectId, allProjectIds } = options;
+  const isAllProjects = allProjectIds && allProjectIds.length > 0;
+
+  if (!projectId && !isAllProjects) {
     return buildEmptyTaskStatusCountsResult();
   }
+
+  // Use projectId for freshness tracking; fall back to synthetic key for all-projects mode
+  const trackingId = projectId ?? '__all-projects__';
 
   const visibleTaskTypes = getVisibleTaskTypes();
   const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
@@ -152,27 +177,36 @@ async function fetchTaskStatusCounts(projectId: string | null): Promise<TaskStat
 
   const settledResults = await Promise.allSettled([
     applyRootTaskFilter(
-      supabase
-        .from('tasks')
-        .select('id', { count: 'exact', head: true })
-        .eq('project_id', projectId)
+      applyProjectScope(
+        supabase
+          .from('tasks')
+          .select('id', { count: 'exact', head: true }),
+        projectId,
+        allProjectIds,
+      )
         .in('status', [...TASK_PROCESSING_STATUSES])
         .in('task_type', visibleTaskTypes),
     ),
     applyRootTaskFilter(
-      supabase
-        .from('tasks')
-        .select('id', { count: 'exact', head: true })
-        .eq('project_id', projectId)
+      applyProjectScope(
+        supabase
+          .from('tasks')
+          .select('id', { count: 'exact', head: true }),
+        projectId,
+        allProjectIds,
+      )
         .eq('status', 'Complete')
         .gte('generation_processed_at', oneHourAgo)
         .in('task_type', visibleTaskTypes),
     ),
     applyRootTaskFilter(
-      supabase
-        .from('tasks')
-        .select('id', { count: 'exact', head: true })
-        .eq('project_id', projectId)
+      applyProjectScope(
+        supabase
+          .from('tasks')
+          .select('id', { count: 'exact', head: true }),
+        projectId,
+        allProjectIds,
+      )
         .in('status', [...TASK_FAILURE_STATUSES])
         .gte('updated_at', oneHourAgo)
         .in('task_type', visibleTaskTypes),
@@ -184,19 +218,19 @@ async function fetchTaskStatusCounts(projectId: string | null): Promise<TaskStat
   ];
 
   const failedQueries: TaskStatusCountsQuery[] = [];
-  const processing = resolveSettledCountResult(projectId, settledResults[0], 'processing');
+  const processing = resolveSettledCountResult(trackingId, settledResults[0], 'processing');
   if (processing.failed) failedQueries.push('processing');
 
-  const success = resolveSettledCountResult(projectId, settledResults[1], 'success');
+  const success = resolveSettledCountResult(trackingId, settledResults[1], 'success');
   if (success.failed) failedQueries.push('success');
 
-  const failure = resolveSettledCountResult(projectId, settledResults[2], 'failure');
+  const failure = resolveSettledCountResult(trackingId, settledResults[2], 'failure');
   if (failure.failed) failedQueries.push('failure');
 
-  trackTaskStatusCountsFreshness(projectId, failedQueries, settledResults);
+  trackTaskStatusCountsFreshness(trackingId, failedQueries, settledResults);
 
   return buildTaskStatusCountsResult(
-    projectId,
+    trackingId,
     {
       processing: processing.count,
       success: success.count,
@@ -207,14 +241,19 @@ async function fetchTaskStatusCounts(projectId: string | null): Promise<TaskStat
 }
 
 // Hook to get status counts for indicators
-export const useTaskStatusCounts = (projectId: string | null) => {
-  const cacheProjectId = projectId ?? '__no-project__';
+export const useTaskStatusCounts = (
+  projectId: string | null,
+  options?: { allProjectIds?: string[] },
+) => {
+  const allProjectIds = options?.allProjectIds;
+  const isAllProjects = !!allProjectIds?.length;
+  const cacheProjectId = isAllProjects ? '__all-projects__' : (projectId ?? '__no-project__');
   const smartPollingConfig = useSmartPollingConfig(taskQueryKeys.statusCounts(cacheProjectId));
 
   return useQuery({
     queryKey: taskQueryKeys.statusCounts(cacheProjectId),
-    queryFn: () => fetchTaskStatusCounts(projectId),
-    enabled: !!projectId,
+    queryFn: () => fetchTaskStatusCounts({ projectId, allProjectIds }),
+    enabled: isAllProjects || !!projectId,
     ...smartPollingConfig,
     refetchIntervalInBackground: true,
     retry: STANDARD_RETRY,

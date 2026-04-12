@@ -182,7 +182,7 @@ describe('useCancelTask', () => {
     expect(mockHandleError).not.toHaveBeenCalled();
   });
 
-  it('reports an error when the task is already terminal', async () => {
+  it('treats terminal tasks as a no-op success', async () => {
     const queryClient = createQueryClient();
 
     const fetchTaskChain = {
@@ -208,16 +208,12 @@ describe('useCancelTask', () => {
       wrapper: createTaskCancellationWrapper(queryClient),
     });
 
-    await expect(result.current.mutateAsync('task-1')).rejects.toThrow('Task is already Complete');
+    await expect(result.current.mutateAsync('task-1')).resolves.toBeUndefined();
 
     expect(mockFrom).toHaveBeenCalledTimes(1);
-    expect(mockHandleError).toHaveBeenCalledWith(
-      expect.any(Error),
-      expect.objectContaining({
-        context: 'useCancelTask',
-        toastTitle: 'Failed to cancel task',
-      })
-    );
+    expect(mockRequireSession).not.toHaveBeenCalled();
+    expect(mockInvokeWithTimeout).not.toHaveBeenCalled();
+    expect(mockHandleError).not.toHaveBeenCalled();
   });
 });
 

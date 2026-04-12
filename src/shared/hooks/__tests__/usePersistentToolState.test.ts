@@ -27,6 +27,12 @@ vi.mock('@/tooling/toolDefaultsRegistry', () => ({
   toolDefaultsRegistry: {
     'test-tool': { generationMode: 'single', steps: 4 },
   },
+  getToolDefaults: vi.fn((toolId: string) => {
+    if (toolId === 'test-tool') {
+      return { generationMode: 'single', steps: 4 };
+    }
+    return undefined;
+  }),
 }));
 
 vi.mock('@/shared/lib/utils/deepEqual', () => ({

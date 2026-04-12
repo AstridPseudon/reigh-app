@@ -8,7 +8,7 @@ describe('queryKeys', () => {
     });
 
     it('list includes projectId and optional maxImages', () => {
-      expect(queryKeys.shots.list('p1')).toEqual(['shots', 'p1', undefined]);
+      expect(queryKeys.shots.list('p1')).toEqual(['shots', 'p1', 0]);
       expect(queryKeys.shots.list('p1', 50)).toEqual(['shots', 'p1', 50]);
     });
 

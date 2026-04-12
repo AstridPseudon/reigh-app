@@ -6,6 +6,7 @@ import { useProject } from "@/shared/contexts/ProjectContext";
 import {
   useAddImageToShot,
   useHandleExternalImageDrop,
+  useUpdateShotAspectRatio,
 } from "@/shared/hooks/shots";
 import { useQueryClient } from '@tanstack/react-query';
 import { useToolSettings } from '@/shared/hooks/settings/useToolSettings';
@@ -19,14 +20,110 @@ import { DEFAULT_FRAME_SPACING } from '@/shared/lib/timelinePositionCalculator';
 import { generationQueryKeys } from '@/shared/lib/queryKeys/generations';
 import { useDemoteOrphanedVariants } from '../../../../hooks/workflow/useDemoteOrphanedVariants';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
+import { findClosestAspectRatio } from '@/shared/lib/media/aspectRatios';
+import type { ShotEditorActions } from '../../state/useShotEditorState';
 
 interface UseDropActionsProps {
-  actions: {
-    setUploadingImage: (value: boolean) => void;
-  };
+  actions: Pick<ShotEditorActions, 'setUploadingImage' | 'setAutoAdjustedAspectRatio'>;
   selectedShot: Shot;
   projectId: string;
   batchVideoFrames: number;
+}
+
+type ProjectWithSettings = {
+  id: string;
+  aspectRatio?: string;
+  settings?: {
+    aspectRatio?: string;
+  };
+};
+
+type AutoAdjustedAspectRatio = NonNullable<
+  ShotEditorActions extends { setAutoAdjustedAspectRatio: (value: infer TValue) => void }
+    ? TValue
+    : never
+>;
+
+async function readImageDimensions(file: File): Promise<{ width: number; height: number } | null> {
+  try {
+    return await new Promise((resolve, reject) => {
+      const reader = new FileReader();
+
+      reader.onload = (event) => {
+        const img = new Image();
+
+        img.onload = () => {
+          resolve({ width: img.width, height: img.height });
+        };
+
+        img.onerror = () => {
+          reject(new Error('Failed to load dropped image.'));
+        };
+
+        if (event.target?.result) {
+          img.src = event.target.result as string;
+          return;
+        }
+
+        reject(new Error('Failed to read dropped image.'));
+      };
+
+      reader.onerror = () => {
+        reject(new Error('Failed to probe dropped image dimensions.'));
+      };
+
+      reader.readAsDataURL(file);
+    });
+  } catch (error) {
+    normalizeAndPresentError(error, {
+      context: 'DropAutoAdjustShotAspectRatio:probe',
+      showToast: false,
+    });
+    return null;
+  }
+}
+
+async function maybeAutoAdjustShotAspectRatio(
+  files: File[],
+  currentShot: Shot,
+  projectsList: ProjectWithSettings[],
+  projectId: string,
+): Promise<AutoAdjustedAspectRatio | null> {
+  try {
+    const firstFile = files[0];
+    if (!firstFile) {
+      return null;
+    }
+
+    const dimensions = await readImageDimensions(firstFile);
+    if (!dimensions?.width || !dimensions.height) {
+      return null;
+    }
+
+    const imageRatio = dimensions.width / dimensions.height;
+    const closestAspectRatio = findClosestAspectRatio(imageRatio);
+    const currentProject = projectsList.find((project) => project.id === projectId);
+    const currentAspectRatio =
+      currentShot.aspect_ratio ??
+      currentProject?.aspectRatio ??
+      currentProject?.settings?.aspectRatio ??
+      '16:9';
+
+    if (closestAspectRatio === currentAspectRatio) {
+      return null;
+    }
+
+    return {
+      previousAspectRatio: currentShot.aspect_ratio ?? null,
+      adjustedTo: closestAspectRatio,
+    };
+  } catch (error) {
+    normalizeAndPresentError(error, {
+      context: 'DropAutoAdjustShotAspectRatio',
+      showToast: false,
+    });
+    return null;
+  }
 }
 
 export const useDropActions = ({
@@ -39,6 +136,7 @@ export const useDropActions = ({
   const queryClient = useQueryClient();
   const addImageToShotMutation = useAddImageToShot();
   const handleExternalImageDropMutation = useHandleExternalImageDrop();
+  const { updateShotAspectRatio } = useUpdateShotAspectRatio();
   const { demoteOrphanedVariants } = useDemoteOrphanedVariants();
   const { settings: uploadSettings } = useToolSettings<{ cropToProjectSize?: boolean }>(SETTINGS_IDS.UPLOAD, { projectId });
 
@@ -61,11 +159,17 @@ export const useDropActions = ({
   const actionsRef = useRef(actions);
   actionsRef.current = actions;
 
+  const setAutoAdjustedAspectRatioRef = useRef(actions.setAutoAdjustedAspectRatio);
+  setAutoAdjustedAspectRatioRef.current = actions.setAutoAdjustedAspectRatio;
+
   const addImageToShotMutationRef = useRef(addImageToShotMutation);
   addImageToShotMutationRef.current = addImageToShotMutation;
 
   const handleExternalImageDropMutationRef = useRef(handleExternalImageDropMutation);
   handleExternalImageDropMutationRef.current = handleExternalImageDropMutation;
+
+  const updateShotAspectRatioRef = useRef(updateShotAspectRatio);
+  updateShotAspectRatioRef.current = updateShotAspectRatio;
 
   const queryClientRef = useRef(queryClient);
   queryClientRef.current = queryClient;
@@ -80,6 +184,7 @@ export const useDropActions = ({
     const currentShot = selectedShotRef.current;
     const currentProjectId = projectIdRef.current;
     const currentBatchVideoFrames = batchVideoFramesRef.current;
+    let adjustedShot: Shot | undefined;
 
     if (!currentShot?.id || !currentProjectId) {
       toast.error("Cannot add images: No shot or project selected.");
@@ -87,6 +192,50 @@ export const useDropActions = ({
     }
 
     try {
+      try {
+        const autoAdjustedAspectRatio = await maybeAutoAdjustShotAspectRatio(
+          files,
+          currentShot,
+          projectsRef.current as ProjectWithSettings[],
+          currentProjectId
+        );
+
+        if (autoAdjustedAspectRatio) {
+          const ok = await updateShotAspectRatioRef.current(
+            currentShot.id,
+            currentProjectId,
+            autoAdjustedAspectRatio.adjustedTo,
+            { immediate: true }
+          );
+
+          if (ok) {
+            setAutoAdjustedAspectRatioRef.current(autoAdjustedAspectRatio);
+            adjustedShot = {
+              ...currentShot,
+              aspect_ratio: autoAdjustedAspectRatio.adjustedTo,
+            };
+          } else {
+            normalizeAndPresentError(
+              new Error('Failed to auto-adjust shot aspect ratio for the dropped image.'),
+              {
+                context: 'DropAutoAdjustShotAspectRatio:update',
+                showToast: false,
+                logData: {
+                  shotId: currentShot.id,
+                  adjustedTo: autoAdjustedAspectRatio.adjustedTo,
+                },
+              }
+            );
+          }
+        }
+      } catch (error) {
+        normalizeAndPresentError(error, {
+          context: 'DropAutoAdjustShotAspectRatio:update',
+          showToast: false,
+          logData: { shotId: currentShot.id },
+        });
+      }
+
       actionsRef.current.setUploadingImage(true);
 
       // 1. Calculate target positions BEFORE upload
@@ -98,7 +247,7 @@ export const useDropActions = ({
       // 2. Crop images to shot aspect ratio
       const processedFiles = await cropImagesToShotAspectRatio(
         files,
-        currentShot,
+        adjustedShot ?? currentShot,
         currentProjectId,
         projectsRef.current,
         uploadSettingsRef.current
@@ -205,6 +354,7 @@ export const useDropActions = ({
   ) => {
     const currentShot = selectedShotRef.current;
     const currentProjectId = projectIdRef.current;
+    let adjustedShot: Shot | undefined;
 
     if (!currentShot?.id || !currentProjectId) {
       toast.error("Cannot add images: No shot or project selected.");
@@ -216,6 +366,50 @@ export const useDropActions = ({
     const localUrls: string[] = [];
 
     try {
+      try {
+        const autoAdjustedAspectRatio = await maybeAutoAdjustShotAspectRatio(
+          files,
+          currentShot,
+          projectsRef.current as ProjectWithSettings[],
+          currentProjectId
+        );
+
+        if (autoAdjustedAspectRatio) {
+          const ok = await updateShotAspectRatioRef.current(
+            currentShot.id,
+            currentProjectId,
+            autoAdjustedAspectRatio.adjustedTo,
+            { immediate: true }
+          );
+
+          if (ok) {
+            setAutoAdjustedAspectRatioRef.current(autoAdjustedAspectRatio);
+            adjustedShot = {
+              ...currentShot,
+              aspect_ratio: autoAdjustedAspectRatio.adjustedTo,
+            };
+          } else {
+            normalizeAndPresentError(
+              new Error('Failed to auto-adjust shot aspect ratio for the dropped image.'),
+              {
+                context: 'DropAutoAdjustShotAspectRatio:update',
+                showToast: false,
+                logData: {
+                  shotId: currentShot.id,
+                  adjustedTo: autoAdjustedAspectRatio.adjustedTo,
+                },
+              }
+            );
+          }
+        }
+      } catch (error) {
+        normalizeAndPresentError(error, {
+          context: 'DropAutoAdjustShotAspectRatio:update',
+          showToast: false,
+          logData: { shotId: currentShot.id },
+        });
+      }
+
       actionsRef.current.setUploadingImage(true);
 
       // 1. Calculate target frame positions with collision detection
@@ -278,7 +472,7 @@ export const useDropActions = ({
       // 3. Crop images
       const processedFiles = await cropImagesToShotAspectRatio(
         files,
-        currentShot,
+        adjustedShot ?? currentShot,
         currentProjectId,
         projectsRef.current,
         uploadSettingsRef.current

@@ -135,10 +135,18 @@ const SettingsModal: React.FC<SettingsModalProps> = ({
       <DialogContent
         ref={setDialogContentNode}
         className={modal.className}
-        style={{
-          ...modal.style,
-          ...(lockedHeight !== null ? { height: lockedHeight, maxHeight: '90vh', overflow: 'hidden' } : { maxHeight: '90vh' })
-        }}
+        style={(() => {
+          const desktopMaxHeight = 'calc(100vh - 24px)';
+          const maxHeight = modal.isMobile
+            ? (modal.style.maxHeight as string | undefined) ?? '90vh'
+            : desktopMaxHeight;
+          return {
+            ...modal.style,
+            ...(lockedHeight !== null
+              ? { height: lockedHeight, maxHeight, overflow: 'hidden' }
+              : { maxHeight }),
+          };
+        })()}
       >
 
         <div className={modal.headerClass}>

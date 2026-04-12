@@ -73,7 +73,7 @@ describe('StructureVideoSection', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'WAN / VACE' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'WAN 2.2' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'LTX 2.3' })).toBeInTheDocument();
     expect(screen.queryByText('Guidance Mode')).not.toBeInTheDocument();
   });
@@ -102,6 +102,6 @@ describe('StructureVideoSection', () => {
 
     await user.click(screen.getByRole('button', { name: 'LTX 2.3' }));
 
-    expect(onChange).toHaveBeenCalledWith({ selectedModel: 'ltx-2.3' });
+    expect(onChange).toHaveBeenCalledWith({ selectedModel: 'ltx-2.3-fast' });
   });
 });

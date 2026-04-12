@@ -1,44 +1,72 @@
 // @vitest-environment jsdom
 
-import { render } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
-import { DeleteGenerationConfirmDialog } from './DeleteGenerationConfirmDialog';
-
-const confirmDialogSpy = vi.fn();
-
-vi.mock('./ConfirmDialog', () => ({
-  ConfirmDialog: (props: Record<string, unknown>) => {
-    confirmDialogSpy(props);
-    return <div data-testid="confirm-dialog-stub" />;
-  },
-}));
+import { render, screen, fireEvent } from '@testing-library/react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import {
+  DeleteGenerationConfirmDialog,
+  DELETE_GENERATION_SKIP_CONFIRM_KEY,
+  shouldSkipDeleteGenerationConfirm,
+} from './DeleteGenerationConfirmDialog';
 
 describe('DeleteGenerationConfirmDialog', () => {
-  it('passes the destructive delete contract through to ConfirmDialog', () => {
-    const onOpenChange = vi.fn();
+  beforeEach(() => {
+    localStorage.clear();
+  });
+  afterEach(() => {
+    localStorage.clear();
+  });
+
+  it('renders title, description, and the "don\'t show again" checkbox', () => {
+    render(
+      <DeleteGenerationConfirmDialog
+        open
+        onOpenChange={vi.fn()}
+        onConfirm={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Delete Generation')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Are you sure you want to delete this generation? This action cannot be undone.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText(/don't show this again/i)).toBeInTheDocument();
+  });
+
+  it('does not persist the skip preference when the checkbox is left unchecked', () => {
     const onConfirm = vi.fn();
 
     render(
       <DeleteGenerationConfirmDialog
         open
-        onOpenChange={onOpenChange}
+        onOpenChange={vi.fn()}
         onConfirm={onConfirm}
-        isConfirming
       />,
     );
 
-    expect(confirmDialogSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        open: true,
-        onOpenChange,
-        onConfirm,
-        isLoading: true,
-        title: 'Delete Generation',
-        confirmText: 'Delete',
-        destructive: true,
-        description:
-          'Are you sure you want to delete this generation? This action cannot be undone.',
-      }),
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(localStorage.getItem(DELETE_GENERATION_SKIP_CONFIRM_KEY)).toBeNull();
+    expect(shouldSkipDeleteGenerationConfirm()).toBe(false);
+  });
+
+  it('persists the skip preference when the checkbox is checked at confirm time', () => {
+    const onConfirm = vi.fn();
+
+    render(
+      <DeleteGenerationConfirmDialog
+        open
+        onOpenChange={vi.fn()}
+        onConfirm={onConfirm}
+      />,
     );
+
+    fireEvent.click(screen.getByLabelText(/don't show this again/i));
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }));
+
+    expect(onConfirm).toHaveBeenCalledTimes(1);
+    expect(shouldSkipDeleteGenerationConfirm()).toBe(true);
   });
 });

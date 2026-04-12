@@ -149,6 +149,7 @@ describe('useSegmentSettings', () => {
       textBeforePrompts: '',
       textAfterPrompts: '',
       selectedModel: 'wan-2.2',
+      inferenceSteps: undefined,
       guidanceScale: undefined,
       guidanceMode: undefined,
       guidanceStrength: undefined,
@@ -156,6 +157,8 @@ describe('useSegmentSettings', () => {
       guidanceUni3cEndPercent: undefined,
       guidanceCannyIntensity: undefined,
       guidanceDepthContrast: undefined,
+      smoothContinuations: false,
+      generationTypeMode: 'i2v',
     });
   });
 

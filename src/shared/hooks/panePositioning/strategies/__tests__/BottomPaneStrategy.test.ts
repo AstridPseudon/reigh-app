@@ -26,7 +26,7 @@ describe('BottomPanePositionStrategy', () => {
     const style = strategy.getStyle(position);
     expect(style.left).toBe('50%');
     expect(style.bottom).toBe('0px');
-    expect(style.transform).toContain('translateY(-350px)');
+    expect(style.transform).toContain('translateY(-306px)');
   });
 
   it('hides below viewport when not visible', () => {

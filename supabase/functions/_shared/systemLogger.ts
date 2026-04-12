@@ -56,7 +56,8 @@ export class SystemLogger {
   }
 
   private consoleDebugEnabled(): boolean {
-    return Deno?.env?.get?.('EDGE_LOG_DEBUG') === 'true';
+    const denoEnv = typeof Deno !== 'undefined' ? Deno.env : undefined;
+    return denoEnv?.get?.('EDGE_LOG_DEBUG') === 'true';
   }
 
   private summarizeConsoleContext(context?: LogContext): Record<string, unknown> | undefined {

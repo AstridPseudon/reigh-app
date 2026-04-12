@@ -29,9 +29,9 @@ const COMPUTER_LABELS: Record<string, string> = {
 };
 
 const GPU_LABELS: Record<string, string> = {
-  'nvidia-30-40': 'NVIDIA <=40 series',
-  'nvidia-50': 'NVIDIA 50 series',
-  'non-nvidia': 'Non-NVIDIA',
+  'nvidia-30-40': '<=40 series',
+  'nvidia-50': '50 series',
+  'non-nvidia': 'Other',
 };
 
 const MEMORY_LABELS: Record<string, string> = {
@@ -49,12 +49,12 @@ const SHELL_LABELS: Record<string, string> = {
 
 const IDLE_RELEASE_OPTIONS: Array<{ value: string; label: string }> = [
   { value: '0', label: 'Never' },
-  { value: '15', label: '15 min' },
-  { value: '30', label: '30 min' },
-  { value: '45', label: '45 min' },
-  { value: '60', label: '60 min' },
-  { value: '75', label: '75 min' },
-  { value: '90', label: '90 min' },
+  { value: '15', label: '15 min idle' },
+  { value: '30', label: '30 min idle' },
+  { value: '45', label: '45 min idle' },
+  { value: '60', label: '60 min idle' },
+  { value: '75', label: '75 min idle' },
+  { value: '90', label: '90 min idle' },
 ];
 
 const IDLE_RELEASE_LABELS: Record<string, string> = Object.fromEntries(
@@ -249,7 +249,7 @@ export const GenerationTokenPanel: React.FC<GenerationTokenPanelProps> = ({
 
           <div>
             <FieldLabel
-              text="GPU:"
+              text="NVIDIA GPU:"
               colorClassName="text-violet-600 dark:text-violet-400"
               tooltip="Your graphics card type. Picks the right CUDA build of PyTorch (50-series uses cu128, ≤40-series uses cu124). Non-NVIDIA GPUs aren't supported for local generation."
             />
@@ -266,9 +266,9 @@ export const GenerationTokenPanel: React.FC<GenerationTokenPanelProps> = ({
                 <SelectValue>{(v: string | null) => GPU_LABELS[v ?? ""] ?? v}</SelectValue>
               </SelectTrigger>
               <SelectContent variant="retro">
-                <SelectItem variant="retro" value="nvidia-30-40" label="NVIDIA ≤40 series">{"NVIDIA ≤40 series"}</SelectItem>
-                <SelectItem variant="retro" value="nvidia-50" label="NVIDIA 50 series">NVIDIA 50 series</SelectItem>
-                <SelectItem variant="retro" value="non-nvidia" label="Non-NVIDIA">Non-NVIDIA</SelectItem>
+                <SelectItem variant="retro" value="nvidia-30-40" label="≤40 series">{"≤40 series"}</SelectItem>
+                <SelectItem variant="retro" value="nvidia-50" label="50 series">50 series</SelectItem>
+                <SelectItem variant="retro" value="non-nvidia" label="Other">Other</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -389,7 +389,7 @@ export const GenerationTokenPanel: React.FC<GenerationTokenPanelProps> = ({
 
           <div>
             <FieldLabel
-              text="Free GPU:"
+              text="Free Up GPU:"
               colorClassName="text-cyan-600 dark:text-cyan-400"
               tooltip="When the worker has been idle for this long, it shuts down and frees all GPU memory until a new task arrives — so you can run games or other apps in the meantime. Pick Never to keep models loaded permanently."
             />
@@ -425,11 +425,11 @@ export const GenerationTokenPanel: React.FC<GenerationTokenPanelProps> = ({
         )}
 
         {computerType === "mac" && (
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="text-sm text-amber-800">
-              Mac isn't supported yet.{" "}
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-950/40 dark:border-amber-900/50">
+            <p className="text-sm text-amber-800 dark:text-amber-200">
+              Mac processing isn't supported yet.{" "}
               <button
-                className="text-blue-600 hover:text-blue-700 underline"
+                className="text-blue-600 hover:text-blue-700 underline dark:text-blue-400 dark:hover:text-blue-300"
                 onClick={() => updateGenerationMethodsWithNotification({ onComputer: false, inCloud: true })}
               >
                 Process in the cloud
@@ -439,11 +439,11 @@ export const GenerationTokenPanel: React.FC<GenerationTokenPanelProps> = ({
         )}
 
         {(computerType === "windows" || computerType === "linux") && gpuType === "non-nvidia" && (
-          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
-            <p className="text-sm text-amber-800">
+          <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-950/40 dark:border-amber-900/50">
+            <p className="text-sm text-amber-800 dark:text-amber-200">
               Non-NVIDIA GPUs aren't supported.{" "}
               <button
-                className="text-blue-600 hover:text-blue-700 underline"
+                className="text-blue-600 hover:text-blue-700 underline dark:text-blue-400 dark:hover:text-blue-300"
                 onClick={() => updateGenerationMethodsWithNotification({ onComputer: false, inCloud: true })}
               >
                 Process in the cloud
@@ -533,6 +533,20 @@ export const GenerationTokenPanel: React.FC<GenerationTokenPanelProps> = ({
                   commandRef={installCommandRef}
                 />
 
+                <div className="flex justify-center mt-3">
+                  <div className="inline-flex items-center whitespace-nowrap rounded-full border border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 px-3 py-1 text-[11px] text-purple-900 shadow-sm dark:border-purple-900/40 dark:from-purple-950/40 dark:to-pink-950/40 dark:text-purple-100">
+                    Inference is proudly powered by{' '}
+                    <a
+                      href="https://github.com/deepbeepmeep/Wan2GP/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-1 font-semibold underline decoration-purple-400/60 underline-offset-2 hover:decoration-purple-500"
+                    >
+                      Wan2GP
+                    </a>
+                    <span className="ml-1">by Deepbeepmeep</span>
+                  </div>
+                </div>
                 <div className="flex justify-center mt-1">
                   <GenerationHelpPopover
                     isMobile={isMobile}
@@ -561,6 +575,20 @@ export const GenerationTokenPanel: React.FC<GenerationTokenPanelProps> = ({
                   commandRef={runCommandRef}
                 />
 
+                <div className="flex justify-center mt-3">
+                  <div className="inline-flex items-center whitespace-nowrap rounded-full border border-purple-200 bg-gradient-to-r from-purple-50 to-pink-50 px-3 py-1 text-[11px] text-purple-900 shadow-sm dark:border-purple-900/40 dark:from-purple-950/40 dark:to-pink-950/40 dark:text-purple-100">
+                    Inference is proudly powered by{' '}
+                    <a
+                      href="https://github.com/deepbeepmeep/Wan2GP/"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="ml-1 font-semibold underline decoration-purple-400/60 underline-offset-2 hover:decoration-purple-500"
+                    >
+                      Wan2GP
+                    </a>
+                    <span className="ml-1">by Deepbeepmeep</span>
+                  </div>
+                </div>
                 <div className="flex justify-center mt-1">
                   <GenerationHelpPopover
                     isMobile={false}

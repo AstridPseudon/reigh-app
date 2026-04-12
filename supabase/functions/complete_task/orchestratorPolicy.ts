@@ -146,7 +146,10 @@ export function resolveExpectedSegmentCount(
     return null;
   };
 
-  if (taskType === TASK_TYPES.TRAVEL_SEGMENT) {
+  if (
+    taskType === TASK_TYPES.TRAVEL_SEGMENT
+    || taskType === TASK_TYPES.INDIVIDUAL_TRAVEL_SEGMENT
+  ) {
     return (
       resolveFromCandidate(
         orchestratorDetails.num_new_segments_to_generate,

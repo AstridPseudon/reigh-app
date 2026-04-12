@@ -16,9 +16,6 @@ describe('buildOrchestrationContract', () => {
       shotId: 'shot-1',
       basedOn: 'gen-1',
       createAsGeneration: false,
-      generationRouting: 'variant_child',
-      siblingLookup: 'run_id',
-      segmentRegenerationMode: 'segment_regen_from_pair',
     });
 
     expect(contract).toEqual({
@@ -32,9 +29,6 @@ describe('buildOrchestrationContract', () => {
       shot_id: 'shot-1',
       based_on: 'gen-1',
       create_as_generation: false,
-      generation_routing: 'variant_child',
-      sibling_lookup: 'run_id',
-      segment_regen_mode: 'segment_regen_from_pair',
     });
   });
 

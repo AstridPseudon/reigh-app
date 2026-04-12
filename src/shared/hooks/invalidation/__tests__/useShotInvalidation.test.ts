@@ -16,7 +16,7 @@ describe('useShotInvalidation', () => {
 
   describe('queryKeys used for invalidation', () => {
     it('has correct shots list key', () => {
-      expect(queryKeys.shots.list('proj-1')).toEqual(['shots', 'proj-1', undefined]);
+      expect(queryKeys.shots.list('proj-1')).toEqual(['shots', 'proj-1', 0]);
     });
 
     it('has correct shots detail key', () => {

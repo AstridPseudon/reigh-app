@@ -1495,32 +1495,6 @@ describe('generateVideoService', () => {
       })).toThrowError('image_generation_ids');
     });
 
-    it('omits image_variant_ids when empty', () => {
-      const result = _buildTravelRequestBodyV2(baseParams);
-      expect(result.image_variant_ids).toBeUndefined();
-    });
-
-    it('includes image_variant_ids when matching count', () => {
-      const result = _buildTravelRequestBodyV2({
-        ...baseParams,
-        imagePayload: {
-          ...baseParams.imagePayload,
-          imageVariantIds: ['v-1', 'v-2'],
-        },
-      });
-      expect(result.image_variant_ids).toEqual(['v-1', 'v-2']);
-    });
-
-    it('throws when image_variant_ids count does not match', () => {
-      expect(() => _buildTravelRequestBodyV2({
-        ...baseParams,
-        imagePayload: {
-          ...baseParams.imagePayload,
-          imageVariantIds: ['v-1'],
-        },
-      })).toThrowError('image_variant_ids');
-    });
-
     it('includes parent_generation_id when provided', () => {
       const result = _buildTravelRequestBodyV2({
         ...baseParams,
@@ -1697,7 +1671,6 @@ describe('generateVideoService', () => {
     it('sets static fields correctly', () => {
       const result = _buildTravelRequestBodyV2(baseParams);
       expect(result.model_type).toBe('i2v');
-      expect(result.regenerate_anchors).toBe(false);
       expect(result.independent_segments).toBe(true);
       expect(result.chain_segments).toBe(false);
       expect(result.use_svi).toBeUndefined();

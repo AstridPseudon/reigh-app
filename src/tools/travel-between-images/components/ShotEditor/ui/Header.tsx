@@ -1,15 +1,15 @@
 import React from 'react';
-import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Shot } from "@/domains/generation/types";
 import { ChevronLeft, ChevronRight, ArrowLeft } from 'lucide-react';
 import { AspectRatioSelector } from '@/shared/components/GenerationControls/AspectRatioSelector';
-import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
-import { useQueryClient } from '@tanstack/react-query';
-import { queryKeys } from '@/shared/lib/queryKeys';
-import { toJson } from '@/shared/lib/supabaseTypeHelpers';
-import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { useUpdateShotAspectRatio } from '@/shared/hooks/shots';
+
+type AutoAdjustedAspectRatioInfo = {
+  previousAspectRatio: string | null;
+  adjustedTo: string;
+} | null;
 
 interface HeaderProps {
   selectedShot: Shot;
@@ -27,6 +27,9 @@ interface HeaderProps {
   onNameCancel: (e?: React.MouseEvent) => void;
   onNameKeyDown: (e: React.KeyboardEvent) => void;
   onEditingNameChange: (value: string) => void;
+  autoAdjustedInfo?: AutoAdjustedAspectRatioInfo;
+  onRevertAspectRatio?: () => void | Promise<void>;
+  onManualAspectRatioChange?: () => void;
   projectAspectRatio?: string;
   projectId?: string;
   centerSectionRef?: React.RefObject<HTMLDivElement>;
@@ -51,89 +54,36 @@ const HeaderComponent: React.FC<HeaderProps> = ({
   onNameCancel,
   onNameKeyDown,
   onEditingNameChange,
+  autoAdjustedInfo = null,
+  onRevertAspectRatio,
+  onManualAspectRatioChange,
   projectAspectRatio,
   projectId,
   centerSectionRef,
   isSticky = false,
 }) => {
-  const queryClient = useQueryClient();
-  const updateTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const { updateShotAspectRatio } = useUpdateShotAspectRatio();
 
   const handleAspectRatioChange = async (newAspectRatio: string) => {
     if (!selectedShot?.id || !projectId) return;
-    
-    // Optimistically update ALL shots cache variants (with different maxImagesPerShot values)
-    // This ensures both desktop (maxImagesPerShot=0) and mobile (maxImagesPerShot=2) caches are updated
-    [0, 2].forEach(maxImages => {
-      queryClient.setQueryData(queryKeys.shots.list(projectId, maxImages), (oldData: Shot[] | undefined) => {
-        if (!oldData) return oldData;
-        return oldData.map((shot: Shot) => 
-          shot.id === selectedShot.id 
-            ? { ...shot, aspect_ratio: newAspectRatio }
-            : shot
-        );
-      });
-    });
-    
-    // Clear any pending database update
-    if (updateTimeoutRef.current) {
-      clearTimeout(updateTimeoutRef.current);
-    }
-    
-    // Debounce database update to avoid race conditions with rapid changes
-    updateTimeoutRef.current = setTimeout(async () => {
-      try {
-        // First, get current settings to preserve other settings while clearing custom dimensions
-        const { data: currentShot } = await supabase().from('shots')
-          .select('settings')
-          .eq('id', selectedShot.id)
-          .single();
-        
-        const currentSettings = (currentShot?.settings as Record<string, unknown>) || {};
-        const travelSettings = (currentSettings[TOOL_IDS.TRAVEL_BETWEEN_IMAGES] || {}) as Record<string, unknown>;
-
-        // Clear custom dimension settings when aspect ratio changes
-        // This ensures the new aspect ratio takes precedence
-        const updatedTravelSettings = {
-          ...travelSettings,
-          dimensionSource: 'firstImage', // Reset to default
-          customWidth: undefined,
-          customHeight: undefined,
-        };
-
-        // Update both aspect_ratio and settings
-        const { error } = await supabase().from('shots')
-          .update({
-            aspect_ratio: newAspectRatio,
-            settings: toJson({
-              ...currentSettings,
-              [TOOL_IDS.TRAVEL_BETWEEN_IMAGES]: updatedTravelSettings
-            })
-          })
-          .eq('id', selectedShot.id);
-        
-        if (error) {
-          normalizeAndPresentError(error, { context: 'ShotEditorHeader' });
-          queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(projectId) });
-        } else {
-          // Invalidate tool settings to refresh UI with cleared custom dimensions
-          queryClient.invalidateQueries({ queryKey: queryKeys.settings.tool(TOOL_IDS.TRAVEL_BETWEEN_IMAGES, projectId, selectedShot.id) });
-        }
-      } catch (error) {
-        normalizeAndPresentError(error, { context: 'ShotEditorHeader' });
-        queryClient.invalidateQueries({ queryKey: queryKeys.shots.list(projectId) });
-      }
-    }, 300); // Wait 300ms after last change before updating database
+    onManualAspectRatioChange?.();
+    await updateShotAspectRatio(selectedShot.id, projectId, newAspectRatio);
   };
-  
-  // Cleanup timeout on unmount
-  React.useEffect(() => {
-    return () => {
-      if (updateTimeoutRef.current) {
-        clearTimeout(updateTimeoutRef.current);
-      }
-    };
-  }, []);
+
+  const autoAdjustNotice = autoAdjustedInfo ? (
+    <div className="absolute bottom-[calc(100%+4px)] left-0 right-0 rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">
+      <span className="leading-tight">Adjusted to match dropped image</span>
+      <Button
+        type="button"
+        variant="ghost"
+        size="sm"
+        onClick={onRevertAspectRatio}
+        className="mt-1 h-auto px-1.5 py-0 text-xs text-muted-foreground"
+      >
+        Revert
+      </Button>
+    </div>
+  ) : null;
 
   return (
     <div
@@ -223,7 +173,8 @@ const HeaderComponent: React.FC<HeaderProps> = ({
         </div>
         
         {/* Aspect Ratio Selector on the right - fixed width container, no visualizer */}
-        <div className="w-[100px]">
+        <div className="relative w-[100px]">
+          {autoAdjustNotice}
           <AspectRatioSelector
             value={selectedShot?.aspect_ratio || projectAspectRatio || '16:9'}
             onValueChange={handleAspectRatioChange}
@@ -311,7 +262,7 @@ const HeaderComponent: React.FC<HeaderProps> = ({
             </div>
             
             {/* Aspect Ratio Selector on the right - fixed width container */}
-            <div className="w-[75px]">
+            <div className="relative w-[75px]">
               <AspectRatioSelector
                 value={selectedShot?.aspect_ratio || projectAspectRatio || '16:9'}
                 onValueChange={handleAspectRatioChange}

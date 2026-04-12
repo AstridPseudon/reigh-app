@@ -177,7 +177,7 @@ describe('useSegmentMutations', () => {
           id: 'shot-1',
           patch: { prompt: 'test value' },
         }),
-        'immediate'
+        { mode: 'immediate' }
       );
     });
   });

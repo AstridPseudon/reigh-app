@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const supabaseClientFactoryMock = vi.hoisted(() => vi.fn());
 const normalizeAndPresentErrorMock = vi.hoisted(() => vi.fn());
+const coerceRawGenerationDbRowsMock = vi.hoisted(() => vi.fn((rows: unknown[]) => rows));
 const transformToGenerationRowMock = vi.hoisted(() => vi.fn((row: { id: string }) => ({
   id: `mapped-${row.id}`,
 } as never)));
@@ -25,6 +26,7 @@ vi.mock('@/shared/lib/queryKeys/segments', () => ({
 }));
 
 vi.mock('../segmentDataTransforms', () => ({
+  coerceRawGenerationDbRows: (...args: unknown[]) => coerceRawGenerationDbRowsMock(...args),
   transformToGenerationRow: (...args: unknown[]) => transformToGenerationRowMock(...args),
 }));
 
@@ -94,6 +96,7 @@ describe('segmentOutputsQueries', () => {
     expect(spies.eqShot).toHaveBeenCalledWith('shot_id', 'shot-1');
     expect(spies.eqProject).toHaveBeenCalledWith('project_id', 'project-1');
     expect(spies.order).toHaveBeenCalledWith('created_at', { ascending: false });
+    expect(coerceRawGenerationDbRowsMock).toHaveBeenCalledWith(raw);
     expect(transformToGenerationRowMock).toHaveBeenCalledTimes(2);
     expect(result).toEqual([{ id: 'mapped-p1' }, { id: 'mapped-p2' }]);
   });
@@ -129,6 +132,7 @@ describe('segmentOutputsQueries', () => {
     expect(spies.eqParent).toHaveBeenCalledWith('parent_generation_id', 'parent-1');
     expect(spies.orderByChildOrder).toHaveBeenCalledWith('child_order', { ascending: true });
     expect(spies.orderByCreatedAt).toHaveBeenCalledWith('created_at', { ascending: false });
+    expect(coerceRawGenerationDbRowsMock).toHaveBeenCalledWith(raw);
     expect(result).toEqual([{ id: 'mapped-c1' }, { id: 'mapped-c2' }]);
   });
 

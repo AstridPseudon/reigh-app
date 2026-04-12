@@ -217,26 +217,32 @@ const applyOuterClipEdgeMove = (
   edge: ResizeDir,
   newBoundaryTime: number,
 ): ApplyClipEdgeMoveResult => {
-  const draggedChild = edge === 'left'
-    ? context.groupChildrenSnapshot[0]
-    : context.groupChildrenSnapshot[context.groupChildrenSnapshot.length - 1];
-  if (!draggedChild) {
-    return { updates: [], wasClamped: false };
-  }
-
+  const initialGroup = {
+    start: context.groupInitialStart,
+    end: context.groupInitialEnd,
+  };
   const resized = computeGroupEdgeResize({
     dir: edge,
-    initial: { start: draggedChild.start, end: draggedChild.end },
+    initial: initialGroup,
     proposedBoundary: newBoundaryTime,
     minimumDuration: MIN_CLIP_EDGE_RESIZE_DURATION,
   });
 
+  const originalDuration = context.groupInitialEnd - context.groupInitialStart;
+  const resizedDuration = resized.end - resized.start;
+  if (originalDuration <= 0 || resizedDuration <= 0) {
+    return { updates: [], wasClamped: false };
+  }
+
+  const scale = resizedDuration / originalDuration;
+  const updates = context.groupChildrenSnapshot.map((child) => ({
+    clipId: child.clipId,
+    start: resized.start + (child.start - context.groupInitialStart) * scale,
+    end: resized.start + (child.end - context.groupInitialStart) * scale,
+  }));
+
   return {
-    updates: [{
-      clipId: draggedChild.clipId,
-      start: resized.start,
-      end: resized.end,
-    }],
+    updates,
     wasClamped: resized.wasClamped,
   };
 };

@@ -27,7 +27,7 @@ function buildParams(): BuildTravelRequestBodyParams {
         'https://example.com/img-2.png',
       ],
       imageGenerationIds: ['gen-1', 'gen-2'],
-      imageVariantIds: ['variant-1', 'variant-2'],
+      imageVariantIds: [],
       pairShotGenerationIds: ['sg-1'],
     },
     pairConfig: {
@@ -78,7 +78,6 @@ describe('requestBody', () => {
       'https://example.com/img-2.png',
     ]);
     expect(result.image_generation_ids).toEqual(['gen-1', 'gen-2']);
-    expect(result.image_variant_ids).toEqual(['variant-1', 'variant-2']);
     expect(result.pair_shot_generation_ids).toEqual(['sg-1']);
     expect(result.parent_generation_id).toBe('parent-1');
     expect(result.base_prompt).toBe('Base prompt');
@@ -141,7 +140,6 @@ describe('requestBody', () => {
     });
 
     expect(result.image_generation_ids).toBeUndefined();
-    expect(result.image_variant_ids).toBeUndefined();
     expect(result.pair_shot_generation_ids).toBeUndefined();
     expect(result.parent_generation_id).toBeUndefined();
     expect(result.enhanced_prompts).toBeUndefined();

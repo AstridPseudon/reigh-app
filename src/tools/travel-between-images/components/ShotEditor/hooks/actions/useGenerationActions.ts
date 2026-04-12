@@ -14,6 +14,7 @@ type GenerationActionSet = Pick<
   | 'setDuplicatingImageId'
   | 'setDuplicateSuccessImageId'
   | 'setPendingFramePositions'
+  | 'setAutoAdjustedAspectRatio'
 >;
 
 interface UseGenerationActionsProps {

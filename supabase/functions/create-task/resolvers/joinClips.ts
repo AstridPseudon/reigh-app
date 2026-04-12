@@ -389,8 +389,6 @@ function buildJoinClipsPayload(
       parentGenerationId: input.parent_generation_id,
       shotId: input.shot_id,
       basedOn: input.based_on,
-      generationRouting: "orchestrator",
-      siblingLookup: "run_id",
     },
     taskViewInput: {
       inputImages: clipSequence.map((clip) => clip.url),

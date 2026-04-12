@@ -120,7 +120,8 @@ describe('useDeleteVariant', () => {
 
   it('deletes from generation_variants table', async () => {
     const deleteSelect = vi.fn().mockResolvedValue({ data: [{ id: 'variant-123' }], error: null });
-    const deleteGenerationEq = vi.fn().mockReturnValue({ select: deleteSelect });
+    const deleteVariantTypeNeq = vi.fn().mockReturnValue({ select: deleteSelect });
+    const deleteGenerationEq = vi.fn().mockReturnValue({ neq: deleteVariantTypeNeq });
     const deleteIdEq = vi.fn().mockReturnValue({ eq: deleteGenerationEq });
     mockFrom.mockReturnValue({
       delete: vi.fn().mockReturnValue({
@@ -136,6 +137,7 @@ describe('useDeleteVariant', () => {
     });
 
     expect(mockFrom).toHaveBeenCalledWith('generation_variants');
+    expect(deleteVariantTypeNeq).toHaveBeenCalledWith('variant_type', 'original');
   });
 });
 

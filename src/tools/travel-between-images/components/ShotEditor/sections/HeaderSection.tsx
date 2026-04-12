@@ -8,6 +8,7 @@
 import React from 'react';
 import { Header } from '../ui/Header';
 import { useShotSettingsContext } from '../ShotSettingsContext';
+import { useUpdateShotAspectRatio } from '@/shared/hooks/shots';
 import type { HeaderSectionCallbacks, HeaderSectionLayout } from './headerSectionTypes';
 
 interface HeaderSectionProps {
@@ -20,7 +21,44 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
   layout,
 }) => {
   // Get shared state from context
-  const { selectedShot, state, actions, effectiveAspectRatio, projectId } = useShotSettingsContext();
+  const {
+    selectedShot,
+    selectedShotId,
+    projectId,
+    projects,
+    state,
+    actions,
+    effectiveAspectRatio,
+  } = useShotSettingsContext();
+  const { updateShotAspectRatio } = useUpdateShotAspectRatio();
+
+  const onRevertAspectRatio = React.useCallback(async () => {
+    if (!selectedShot?.id || !projectId) {
+      return;
+    }
+
+    const project = projects.find((candidate) => candidate.id === projectId) as
+      | {
+        aspectRatio?: string;
+        settings?: { aspectRatio?: string };
+      }
+      | undefined;
+    const projectDefault =
+      project?.aspectRatio ??
+      project?.settings?.aspectRatio ??
+      '16:9';
+
+    await updateShotAspectRatio(selectedShot.id, projectId, projectDefault, { immediate: true });
+    actions.setAutoAdjustedAspectRatio(null);
+  }, [actions, projectId, projects, selectedShot, updateShotAspectRatio]);
+
+  const onManualAspectRatioChange = React.useCallback(() => {
+    actions.setAutoAdjustedAspectRatio(null);
+  }, [actions]);
+
+  React.useEffect(() => {
+    actions.setAutoAdjustedAspectRatio(null);
+  }, [actions, selectedShotId]);
 
   return (
     <div ref={layout.headerContainerRef}>
@@ -40,6 +78,9 @@ export const HeaderSection: React.FC<HeaderSectionProps> = ({
         onNameCancel={callbacks.onNameCancel}
         onNameKeyDown={callbacks.onNameKeyDown}
         onEditingNameChange={actions.setEditingNameValue}
+        autoAdjustedInfo={state.autoAdjustedAspectRatio}
+        onRevertAspectRatio={onRevertAspectRatio}
+        onManualAspectRatioChange={onManualAspectRatioChange}
         projectAspectRatio={effectiveAspectRatio}
         projectId={projectId}
         centerSectionRef={layout.centerSectionRef}

@@ -115,17 +115,17 @@ const GenerationSection: React.FC<GenerationSectionProps> = ({
           <div className="space-y-3 sm:space-y-4">
             {!hasValidToken ? (
               <div className="space-y-3 sm:space-y-4">
-                <div className="p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <div className="p-3 sm:p-4 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950/40 dark:border-blue-900/50">
                   <div className="flex items-center gap-2 mb-2">
-                    <Key className="h-5 w-5 text-blue-600" />
-                    <h4 className="font-light text-blue-900">
+                    <Key className="h-5 w-5 text-blue-600 dark:text-blue-400" />
+                    <h4 className="font-light text-blue-900 dark:text-blue-100">
                       To generate locally, you need an API key.
                     </h4>
                   </div>
                   <Button
                     onClick={handleGenerateToken}
                     disabled={isGenerating}
-                    className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-500"
                   >
                     {isGenerating ? 'Generating...' : 'Generate Key & Show Instructions'}
                   </Button>

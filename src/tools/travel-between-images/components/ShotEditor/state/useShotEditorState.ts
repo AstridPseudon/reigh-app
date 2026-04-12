@@ -21,6 +21,7 @@ const createInitialState = (): ShotEditorState => ({
   showStepsNotification: false,
   hasInitializedShot: null,
   hasInitializedUISettings: null,
+  autoAdjustedAspectRatio: null,
 });
 
 // Reducer function
@@ -81,6 +82,9 @@ const shotEditorReducer = (state: ShotEditorState, action: ShotEditorAction): Sh
     case 'SET_HAS_INITIALIZED_UI_SETTINGS':
       if (action.payload === state.hasInitializedUISettings) return state;
       return { ...state, hasInitializedUISettings: action.payload };
+    case 'SET_AUTO_ADJUSTED_ASPECT_RATIO':
+      if (action.payload === state.autoAdjustedAspectRatio) return state;
+      return { ...state, autoAdjustedAspectRatio: action.payload };
     default:
       return state;
   }
@@ -105,6 +109,7 @@ export interface ShotEditorActions {
   setShowStepsNotification: (value: boolean) => void;
   setHasInitializedShot: (value: string | null) => void;
   setHasInitializedUISettings: (value: string | null) => void;
+  setAutoAdjustedAspectRatio: (value: ShotEditorState['autoAdjustedAspectRatio']) => void;
 }
 
 // Custom hook for state management
@@ -165,6 +170,9 @@ export const useShotEditorState = (): { state: ShotEditorState; actions: ShotEdi
   const setHasInitializedUISettings = useCallback((value: string | null) => {
     dispatch({ type: 'SET_HAS_INITIALIZED_UI_SETTINGS', payload: value });
   }, []);
+  const setAutoAdjustedAspectRatio = useCallback((value: ShotEditorState['autoAdjustedAspectRatio']) => {
+    dispatch({ type: 'SET_AUTO_ADJUSTED_ASPECT_RATIO', payload: value });
+  }, []);
 
   // Memoize actions object — all callbacks have [] deps so this object is truly
   // stable. Without memoization, a new actions object every render causes the
@@ -187,12 +195,14 @@ export const useShotEditorState = (): { state: ShotEditorState; actions: ShotEdi
     setShowStepsNotification,
     setHasInitializedShot,
     setHasInitializedUISettings,
+    setAutoAdjustedAspectRatio,
   }), [
     setUploadingImage, setUploadProgress, setFileInputKey, setDeletingVideoId,
     setDuplicatingImageId, setDuplicateSuccessImageId, setPendingFramePositions,
     setCreatingTaskId, setSettingsModalOpen, setModeReady, setSettingsError,
     setEditingName, setEditingNameValue, setTransitioningFromNameEdit,
     setShowStepsNotification, setHasInitializedShot, setHasInitializedUISettings,
+    setAutoAdjustedAspectRatio,
   ]);
 
   return {

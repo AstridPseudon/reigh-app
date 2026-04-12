@@ -104,6 +104,7 @@ describe('ai-prompt edge entrypoint', () => {
       ok: true,
       value: {
         supabaseAdmin: {},
+        logger: { info: vi.fn() },
         auth: { userId: 'user-1' },
         body: {
           task: 'generate_prompts',
@@ -138,6 +139,7 @@ describe('ai-prompt edge entrypoint', () => {
       ok: true,
       value: {
         supabaseAdmin: {},
+        logger: { info: vi.fn() },
         auth: { userId: '' },
         body: { task: 'generate_prompts' },
       },
@@ -177,7 +179,7 @@ describe('ai-prompt edge entrypoint', () => {
     });
     expect(mocks.groqChatCreate).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'moonshotai/kimi-k2-instruct',
+        model: 'moonshotai/kimi-k2-instruct-0905',
       }),
     );
   });

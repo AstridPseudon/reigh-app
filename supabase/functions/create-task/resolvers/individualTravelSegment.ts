@@ -249,13 +249,9 @@ function buildIndividualTravelSegmentParams(
     ...(input.travel_guidance ? { travel_guidance: input.travel_guidance } : {}),
   };
 
-  const generationRouting = childGenerationId ? "variant_child" : "child_generation";
   const hasPairShotGenerationId = Boolean(
     input.pair_shot_generation_id || input.start_image_variant_id || input.end_image_variant_id,
   );
-  const segmentRegenerationMode = hasPairShotGenerationId
-    ? "segment_regen_from_pair"
-    : "segment_regen_from_order";
 
   const composedPayload = composeTaskFamilyPayload({
     taskFamily: "individual_travel_segment",
@@ -266,9 +262,6 @@ function buildIndividualTravelSegmentParams(
       childGenerationId,
       childOrder: input.segment_index,
       shotId: input.shot_id,
-      generationRouting,
-      siblingLookup: "orchestrator_task_id",
-      segmentRegenerationMode,
     },
     taskViewInput: {
       inputImages,
@@ -279,8 +272,6 @@ function buildIndividualTravelSegmentParams(
       resolution: finalResolution,
     },
     familyContract: buildIndividualSegmentFamilyContract({
-      segmentRegenerationMode,
-      generationRouting,
       segmentIndex: input.segment_index,
       hasEndImage: Boolean(input.end_image_url),
       hasPairShotGenerationId,

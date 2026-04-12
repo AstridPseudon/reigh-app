@@ -28,6 +28,11 @@ export const SEGMENT_TYPE_CONFIG: Record<string, SegmentTypeConfig> = {
   [TASK_TYPES.TRAVEL_SEGMENT]: {
     segmentType: TASK_TYPES.TRAVEL_SEGMENT,
   },
+  [TASK_TYPES.INDIVIDUAL_TRAVEL_SEGMENT]: {
+    // Individual segment regenerations can still be orchestrated via orchestrator_task_id_ref/run_id.
+    // Treat them like travel segments for sibling counting and orchestrator completion.
+    segmentType: TASK_TYPES.INDIVIDUAL_TRAVEL_SEGMENT,
+  },
   [TASK_TYPES.JOIN_CLIPS_SEGMENT]: {
     segmentType: TASK_TYPES.JOIN_CLIPS_SEGMENT,
     waitForFinalStepType: TASK_TYPES.JOIN_FINAL_STITCH,

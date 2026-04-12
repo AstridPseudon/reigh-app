@@ -142,7 +142,7 @@ describe('applyClipEdgeMove', () => {
     ]);
   });
 
-  it('outer left edge resizes only the first child of the group', () => {
+  it('outer left edge rescales every child in the group from the new boundary', () => {
     const result = applyClipEdgeMove({
       kind: 'outer',
       shotId: 'shot-1',
@@ -157,10 +157,13 @@ describe('applyClipEdgeMove', () => {
     }, 'left', 8);
 
     expect(result.wasClamped).toBe(false);
-    expect(result.updates).toEqual([{ clipId: 'clip-a', start: 8, end: 13 }]);
+    expect(result.updates).toEqual([
+      { clipId: 'clip-a', start: 8, end: 11.6 },
+      { clipId: 'clip-b', start: 11.6, end: 20 },
+    ]);
   });
 
-  it('outer right edge resizes only the last child of the group', () => {
+  it('outer right edge rescales every child in the group from the fixed start', () => {
     const result = applyClipEdgeMove({
       kind: 'outer',
       shotId: 'shot-1',
@@ -176,10 +179,14 @@ describe('applyClipEdgeMove', () => {
     }, 'right', 18);
 
     expect(result.wasClamped).toBe(false);
-    expect(result.updates).toEqual([{ clipId: 'clip-c', start: 16, end: 18 }]);
+    expect(result.updates).toEqual([
+      { clipId: 'clip-a', start: 10, end: 12.4 },
+      { clipId: 'clip-b', start: 12.4, end: 14.8 },
+      { clipId: 'clip-c', start: 14.8, end: 18 },
+    ]);
   });
 
-  it('clamps outer edge resizes against the dragged child minimum duration', () => {
+  it('clamps outer edge resizes against the whole group minimum duration', () => {
     const result = applyClipEdgeMove({
       kind: 'outer',
       shotId: 'shot-1',
@@ -193,8 +200,14 @@ describe('applyClipEdgeMove', () => {
       ],
     }, 'right', 11.01);
 
-    expect(result.wasClamped).toBe(true);
-    expect(result.updates).toEqual([{ clipId: 'clip-b', start: 11, end: 11.05 }]);
+    expect(result.wasClamped).toBe(false);
+    expect(result.updates).toHaveLength(2);
+    expect(result.updates[0].clipId).toBe('clip-a');
+    expect(result.updates[0].start).toBe(10);
+    expect(result.updates[0].end).toBeCloseTo(10.505, 10);
+    expect(result.updates[1].clipId).toBe('clip-b');
+    expect(result.updates[1].start).toBeCloseTo(10.505, 10);
+    expect(result.updates[1].end).toBe(11.01);
   });
 });
 

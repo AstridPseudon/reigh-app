@@ -111,7 +111,6 @@ export const crossfadeJoinResolver: TaskFamilyResolver = (request, context): Res
           runId,
           parentGenerationId: input.parent_generation_id,
           shotId: input.shot_id,
-          generationRouting: "variant_parent",
         }),
         ...(input.audio_url ? { audio_url: input.audio_url } : {}),
         ...(input.tool_type ? { tool_type: input.tool_type } : {}),

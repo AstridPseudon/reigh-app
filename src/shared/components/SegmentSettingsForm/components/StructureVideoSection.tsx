@@ -482,6 +482,7 @@ export const StructureVideoSection: React.FC<StructureVideoSectionProps> = ({
 
       <TravelGuidanceEditor
         selectedModel={effectiveSelectedModel}
+        onSelectedModelChange={onModelChange ?? ((model) => onChange({ selectedModel: model }))}
         hasStructureVideo={!!structureVideoUrl}
         guidanceMode={settings.guidanceMode ?? structureVideoDefaults?.mode ?? structureVideoType ?? null}
         onGuidanceModeChange={(value) => onChange({ guidanceMode: value })}

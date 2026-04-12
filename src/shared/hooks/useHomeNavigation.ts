@@ -50,6 +50,16 @@ export function useHomeNavigation() {
   );
 
   const navigateHome = useCallback(() => {
+    // Inside a video travel shot (deep-linked via hash): back out to the
+    // shot list view first instead of the usual home behavior.
+    if (
+      location.pathname === '/tools/travel-between-images' &&
+      location.hash
+    ) {
+      navigate(location.pathname, { replace: true, state: { fromShotClick: false } });
+      return;
+    }
+
     if (isHomeToolPathActive(location.pathname, targetPath)) {
       setIsShotsPaneLocked(true);
       return;
@@ -57,7 +67,7 @@ export function useHomeNavigation() {
 
     setIsShotsPaneLocked(false);
     navigate(targetPath);
-  }, [location.pathname, navigate, setIsShotsPaneLocked, targetPath]);
+  }, [location.pathname, location.hash, navigate, setIsShotsPaneLocked, targetPath]);
 
   return {
     targetPath,

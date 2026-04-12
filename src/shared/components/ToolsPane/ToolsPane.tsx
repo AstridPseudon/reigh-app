@@ -114,7 +114,7 @@ const ToolCard = memo(({ item, isCurrentTool, isDefault, isVisible, onNavigate, 
             <h3 className="text-sm font-medium text-zinc-100 truncate">
               {item.name}
             </h3>
-            <p className="text-xs text-zinc-400 truncate">
+            <p className="text-xs text-zinc-400 line-clamp-2">
               {item.description}
             </p>
           </div>
