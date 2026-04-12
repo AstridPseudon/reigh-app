@@ -26,6 +26,15 @@ import {
 } from './generation-parent.ts';
 import { CompletionError, toCompletionError } from './errors.ts';
 
+const VIDEO_EXTENSIONS = /\.(mp4|webm|mov)(\?|$)/i;
+
+/** Resolve media type from explicit content_type, falling back to URL extension. */
+function resolveMediaType(contentType: string | undefined, url?: string): string {
+  if (contentType) return contentType;
+  if (url && VIDEO_EXTENSIONS.test(url)) return 'video';
+  return 'image';
+}
+
 // Re-export child generation handlers and shared types for backward compatibility
 export {
   type HandlerContext,
@@ -115,7 +124,7 @@ export async function handleVariantCreation(
       variant_id: variant.id,
       location: publicUrl,
       ...(thumbnailUrl ? { thumbnail_url: thumbnailUrl } : {}),
-      media_type: taskData.content_type || 'image',
+      media_type: resolveMediaType(taskData.content_type, publicUrl),
       created_as: 'variant',
     };
   } catch (variantErr) {
@@ -401,7 +410,7 @@ export async function handleStandaloneGeneration(ctx: HandlerContext): Promise<u
     }
   }
 
-  const generationType = taskData.content_type || 'image';
+  const generationType = resolveMediaType(taskData.content_type, publicUrl);
   const generationParams = buildGenerationParams(
     taskData.params, taskData.tool_type, generationType, shotId, thumbnailUrl || undefined, taskId
   );

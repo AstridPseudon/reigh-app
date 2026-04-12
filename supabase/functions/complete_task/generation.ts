@@ -13,6 +13,15 @@
 import type { SupabaseClient } from 'https://esm.sh/@supabase/supabase-js@2.49.4';
 import { extractShotAndPosition, extractBasedOn } from './params.ts';
 import { findExistingGeneration, createVariant, linkGenerationToShot } from './generation-core.ts';
+
+const VIDEO_EXTENSIONS = /\.(mp4|webm|mov)(\?|$)/i;
+
+/** Resolve media type from explicit content_type, falling back to URL extension. */
+function resolveMediaType(contentType: string | undefined, url?: string): string {
+  if (contentType) return contentType;
+  if (url && VIDEO_EXTENSIONS.test(url)) return 'video';
+  return 'image';
+}
 import {
   handleVariantCreation,
   handleVariantOnParent,
@@ -423,7 +432,7 @@ async function handleRegeneration(
     variant_id: variant.id,
     location: publicUrl,
     ...(thumbnailUrl ? { thumbnail_url: thumbnailUrl } : {}),
-    media_type: taskData.content_type || 'image',
+    media_type: resolveMediaType(taskData.content_type, publicUrl),
     created_as: 'variant',
   };
 }
