@@ -192,6 +192,7 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
         modelName: selectedModelName,
         generationTypeMode: formProps.shotDefaults?.generationTypeMode,
         structureInput: structureVideoForTask,
+        originalParams: segmentVideoParams,
       },
       run,
       queryClient,

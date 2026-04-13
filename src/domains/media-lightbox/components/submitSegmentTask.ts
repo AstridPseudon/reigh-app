@@ -134,6 +134,9 @@ interface SegmentTaskContext {
   modelName?: string;
   generationTypeMode?: 'i2v' | 'vace';
   structureInput: { travelGuidance: TravelGuidance; structureVideos: StructureVideoConfig[] } | null;
+  /** Original task params from the generation being retried — forwarded so the
+   *  resolver can preserve pipeline layout fields (e.g. segment_frames_expanded). */
+  originalParams?: Record<string, unknown>;
 }
 
 /** Submission configuration */
@@ -245,6 +248,7 @@ function buildSubmitParamsBuilder(
         ...(enhancedPromptParam ? { enhancedPrompt: enhancedPromptParam } : {}),
         ...(task.structureInput?.travelGuidance ? { travelGuidance: task.structureInput.travelGuidance } : {}),
         skipMotionFields: !spec.supportsMotionFields,
+        originalParams: task.originalParams,
       },
     );
   };

@@ -382,6 +382,7 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
         modelName: selectedModelName,
         generationTypeMode: formProps.shotDefaults?.generationTypeMode,
         structureInput: structureVideoForTask,
+        originalParams: initialParams,
       },
       run,
       queryClient,

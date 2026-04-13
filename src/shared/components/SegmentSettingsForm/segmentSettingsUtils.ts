@@ -154,6 +154,8 @@ export function buildTaskParams(
     travelGuidance?: TravelGuidance;
     // When true, skip phase_config and motion fields entirely (model doesn't support them)
     skipMotionFields?: boolean;
+    // Original task params from the generation being retried (preserves pipeline layout)
+    originalParams?: Record<string, unknown>;
   }
 ): IndividualTravelSegmentParams {
   const motionFields = context.skipMotionFields
@@ -204,5 +206,6 @@ export function buildTaskParams(
     ...(context.continuationConfig && { continuation_config: context.continuationConfig }),
     ...(context.frameOverlapFromPrevious !== undefined ? { frame_overlap_from_previous: context.frameOverlapFromPrevious } : {}),
     ...(context.travelGuidance && { travel_guidance: context.travelGuidance }),
+    ...(context.originalParams && { originalParams: context.originalParams }),
   };
 }
