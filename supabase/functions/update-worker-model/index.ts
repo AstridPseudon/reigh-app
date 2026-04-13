@@ -39,10 +39,12 @@ async function validateRequiredFields(
  * Updates a worker's current_model field to track which model is loaded.
  * This enables model-aware task claiming to minimize expensive model reloads.
  *
- * Only accepts service-role authentication (workers use service key).
+ * Accepts both service-role and PAT authentication:
+ * - Service role: can update any worker (cloud infrastructure)
+ * - PAT (user API token): can update any worker (user-deployed workers authenticate via PAT)
  *
  * POST /functions/v1/update-worker-model
- * Headers: Authorization: Bearer <service-role-key>
+ * Headers: Authorization: Bearer <service-role-key or PAT>
  * Body: {
  *   worker_id: string,       // Required: the worker's ID
  *   current_model: string    // Required: the model currently loaded (e.g., "wan_2_2_i2v_480p")
@@ -52,7 +54,6 @@ async function validateRequiredFields(
  * - 200 OK with worker data on success
  * - 400 Bad Request if missing required fields
  * - 401 Unauthorized if no valid token
- * - 403 Forbidden if not service role
  * - 500 Internal Server Error
  */
 serve(async (req) => {
@@ -62,14 +63,26 @@ serve(async (req) => {
     parseBody: "strict",
     auth: {
       required: true,
-      requireServiceRole: true,
     },
   });
   if (!bootstrap.ok) {
     return bootstrap.response;
   }
 
-  const { supabaseAdmin, logger, body: requestBody } = bootstrap.value;
+  const { supabaseAdmin, logger, body: requestBody, auth } = bootstrap.value;
+
+  // Require valid authentication (service role or PAT with a resolved user)
+  if (!auth || (!auth.isServiceRole && !auth.userId)) {
+    logger.error("Authentication failed: no service role or user ID");
+    await logger.flush();
+    return new Response("Authentication failed", { status: 401 });
+  }
+
+  if (auth.isServiceRole) {
+    logger.info("Authenticated via service-role key");
+  } else {
+    logger.info("Authenticated via PAT", { user_id: auth.userId });
+  }
 
   // Validate required fields
   const workerIdRaw = requestBody?.worker_id;
