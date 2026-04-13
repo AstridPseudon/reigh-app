@@ -98,19 +98,68 @@ serve(async (req) => {
       return jsonResponse({ error: "Either audio file or textInstructions is required" }, 400);
     }
 
-    // Step 2: Use the transcription to write a prompt
-    const systemMsg = `You are a helpful assistant that transforms spoken instructions into appropriate text for AI generation fields. You interpret the user's INTENT, not just their literal words.
+    // Step 2: Classify intent — is the user dictating a prompt or requesting a rewrite?
+    const classifyMsg = `You classify spoken input for an AI image generation tool. Decide whether the user is:
+
+DIRECT: Dictating actual prompt content — describing a scene, subject, or concept they want to generate. They are telling you WHAT to create. Examples:
+- "a woman walking through a forest at sunset"
+- "cyberpunk cityscape with neon lights and rain"
+- "close-up portrait, soft lighting, film grain"
+- "an old man sitting on a bench reading a newspaper"
+
+REWRITE: Giving meta-instructions about what kind of prompt they want — asking for help, elaboration, expansion, modification, or describing what they want indirectly. Examples:
+- "something like a dramatic landscape, make it moody"
+- "blur, distortion, and similar quality issues"
+- "make it more cinematic"
+- "like the previous one but at night"
+- "expand on this, add more detail"
+- "I want something with a vintage feel, maybe some film grain"
+${existingValue ? `- Any request to modify, extend, or build on the existing content` : ""}
+
+Respond with ONLY the word "direct" or "rewrite".`;
+
+    logger.info('Classifying transcription intent...');
+    let intent: "direct" | "rewrite" = "rewrite"; // default to rewrite for safety
+    try {
+      const classifyResp = await groq.chat.completions.create({
+        model: "moonshotai/kimi-k2-instruct",
+        messages: [
+          { role: "system", content: classifyMsg },
+          { role: "user", content: `INPUT: "${transcribedText}"${existingValue ? `\nEXISTING FIELD CONTENT: "${existingValue}"` : ""}` },
+        ],
+        temperature: 0,
+        max_tokens: 8,
+      });
+      const raw = classifyResp.choices[0]?.message?.content?.trim().toLowerCase() || "";
+      intent = raw.startsWith("direct") ? "direct" : "rewrite";
+      logger.info('Intent classified', { intent, raw });
+    } catch (classifyError: unknown) {
+      logger.warn('Classification failed, defaulting to rewrite', { error: classifyError?.message || String(classifyError) });
+    }
+
+    let promptText: string;
+    let usage: unknown = null;
+
+    if (intent === "direct") {
+      // Clean filler words but preserve the prompt as-is
+      promptText = transcribedText
+        .replace(/\b(um|uh|like|you know|I mean|so|well|okay so|right)\b\s*/gi, "")
+        .replace(/\s{2,}/g, " ")
+        .trim();
+      logger.info('Direct prompt (cleaned)', { preview: promptText.substring(0, 100) });
+    } else {
+      // Step 3: Rewrite via Kimi
+      const systemMsg = `You are a helpful assistant that transforms spoken instructions into appropriate text for AI generation fields. You interpret the user's INTENT, not just their literal words.
 
 Key skill: Recognize when users are giving INSTRUCTIONS vs LITERAL CONTENT:
 - "blur, distortion, and similar quality issues" → User wants a LIST of quality issues, expand it
 - "something like a sunset over mountains" → User is describing what they want, elaborate on it
 - "make it more dramatic" → User wants you to modify existing content
-- "a woman walking through a forest" → This IS the content, transform it into a good prompt
 - "just write: a cat sitting on a windowsill" → User wants EXACT text, transcribe literally
 
 Sometimes users want direct transcription without enhancement. If they say "just", "exactly", "literally", or similar, output their words verbatim.`;
 
-    let userMsg = `Transform this spoken input into appropriate text for the given context.
+      let userMsg = `Transform this spoken input into appropriate text for the given context.
 
 SPOKEN INPUT: "${transcribedText}"
 ${existingValue ? `
@@ -144,42 +193,37 @@ CRITICAL FORMATTING:
 
 Output:`;
 
-    logger.info('Calling Kimi API...');
-    
-    let resp;
-    try {
-      resp = await groq.chat.completions.create({
-        model: "moonshotai/kimi-k2-instruct",
-        messages: [
-          { role: "system", content: systemMsg },
-          { role: "user", content: userMsg },
-        ],
-        temperature: 0.6,
-        max_tokens: 2048,
-        top_p: 1,
-      });
-      logger.info('Kimi API responded successfully');
-    } catch (kimiError: unknown) {
-      logger.error('Kimi API error', { error: kimiError?.message || String(kimiError) });
-      // Fall back to transcription if Kimi fails
-      return jsonResponse({ 
-        success: true, 
-        transcription: transcribedText,
-        prompt: transcribedText,
-        usage: null,
-        warning: "AI enhancement failed, returning raw transcription"
-      });
+      logger.info('Calling Kimi API for rewrite...');
+
+      try {
+        const resp = await groq.chat.completions.create({
+          model: "moonshotai/kimi-k2-instruct",
+          messages: [
+            { role: "system", content: systemMsg },
+            { role: "user", content: userMsg },
+          ],
+          temperature: 0.6,
+          max_tokens: 2048,
+          top_p: 1,
+        });
+        logger.info('Kimi API responded successfully');
+        promptText = resp.choices[0]?.message?.content?.trim() || transcribedText;
+        usage = resp.usage;
+      } catch (kimiError: unknown) {
+        logger.error('Kimi API error', { error: kimiError?.message || String(kimiError) });
+        promptText = transcribedText;
+      }
     }
 
-    const promptText = resp.choices[0]?.message?.content?.trim() || transcribedText;
-    logger.info('Generated prompt', { preview: promptText.substring(0, 100) });
+    logger.info('Final prompt', { intent, preview: promptText.substring(0, 100) });
 
     await logger.flush();
     return jsonResponse({
       success: true,
       transcription: transcribedText,
       prompt: promptText,
-      usage: resp.usage
+      intent,
+      usage,
     });
 
   } catch (err: unknown) {
