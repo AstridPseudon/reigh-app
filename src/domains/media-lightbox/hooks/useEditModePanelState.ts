@@ -130,6 +130,12 @@ export function useEditModePanelState({
     prevEditModeRef.current = editMode;
   }, [editMode, setLoraMode]);
 
+  useEffect(() => {
+    if (!isCloudMode && qwenEditModel?.startsWith('flux-klein-')) {
+      setQwenEditModel('qwen-edit');
+    }
+  }, [isCloudMode, qwenEditModel, setQwenEditModel]);
+
   const handleClearLora = (e: React.MouseEvent) => {
     e.stopPropagation();
     setLoraMode('none');

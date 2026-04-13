@@ -18,6 +18,7 @@ import type {
   TimelineSetScaleWidth,
   TimelineSetSelectedTrackId,
   TimelineStartRender,
+  TimelineUnpatchRegistry,
   TimelineUploadFiles,
 } from '@/tools/video-editor/hooks/timeline-state-types';
 import type { ClipTab, EditorPreferences } from '@/tools/video-editor/hooks/useEditorPreferences';
@@ -81,6 +82,7 @@ interface UseTimelineEditorContextValueArgs {
   uploadFiles: TimelineUploadFiles;
   applyEdit: TimelineApplyEdit;
   patchRegistry: TimelinePatchRegistry;
+  unpatchRegistry: TimelineUnpatchRegistry;
   registerAsset: TimelineRegisterAsset;
   setInputModality: (inputModality: TimelineInputModality) => void;
   setInputModalityFromPointerType: (pointerType: string | null | undefined) => TimelineInputModality;
@@ -118,6 +120,7 @@ export function useTimelineEditorContextValue({
   uploadFiles,
   applyEdit,
   patchRegistry,
+  unpatchRegistry,
   registerAsset,
   setInputModality,
   setInputModalityFromPointerType,
@@ -214,6 +217,7 @@ export function useTimelineEditorContextValue({
     uploadFiles,
     applyEdit,
     patchRegistry,
+    unpatchRegistry,
     registerAsset,
   }), [
     compositionSize,
@@ -241,6 +245,7 @@ export function useTimelineEditorContextValue({
     uploadFiles,
     applyEdit,
     patchRegistry,
+    unpatchRegistry,
     registerAsset,
     selection.addToSelection,
     assetManagement.handleAssetDrop,

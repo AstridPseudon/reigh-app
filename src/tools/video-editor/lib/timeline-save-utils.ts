@@ -1,6 +1,10 @@
 import { assembleTimelineData, type TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import { migrateToFlatTracks, repairConfig } from '@/tools/video-editor/lib/migrate';
-import type { TimelineConfig } from '@/tools/video-editor/types';
+import type {
+  AssetRegistry,
+  ResolvedAssetRegistryEntry,
+  TimelineConfig,
+} from '@/tools/video-editor/types';
 
 export function shouldAcceptPolledData(
   editSeq: number,
@@ -45,6 +49,49 @@ export function buildDataFromCurrentRegistry(
     resolvedConfig,
     assetMap: Object.fromEntries(
       Object.entries(current.registry.assets ?? {}).map(([assetId, entry]) => [assetId, entry.file]),
+    ),
+    output: { ...migratedConfig.output },
+  });
+}
+
+export function buildDataFromSnapshot(
+  config: TimelineConfig,
+  registry: AssetRegistry,
+  current: TimelineData,
+): TimelineData {
+  const migratedConfig = migrateToFlatTracks(repairConfig(config));
+  migratedConfig.tracks = migratedConfig.tracks ?? [];
+
+  const snapshotResolvedRegistry: Record<string, ResolvedAssetRegistryEntry> = Object.fromEntries(
+    Object.entries(registry.assets ?? {}).map(([assetId, entry]) => [
+      assetId,
+      {
+        ...entry,
+        src: entry.file,
+      },
+    ]),
+  );
+  const mergedResolvedRegistry = {
+    ...snapshotResolvedRegistry,
+    ...current.resolvedConfig.registry,
+  };
+  const resolvedConfig = {
+    output: { ...migratedConfig.output },
+    tracks: migratedConfig.tracks,
+    clips: migratedConfig.clips.map((clip) => ({
+      ...clip,
+      assetEntry: clip.asset ? mergedResolvedRegistry[clip.asset] : undefined,
+    })),
+    registry: mergedResolvedRegistry,
+  };
+
+  return assembleTimelineData({
+    config: migratedConfig,
+    configVersion: current.configVersion,
+    registry,
+    resolvedConfig,
+    assetMap: Object.fromEntries(
+      Object.entries(registry.assets ?? {}).map(([assetId, entry]) => [assetId, entry.file]),
     ),
     output: { ...migratedConfig.output },
   });

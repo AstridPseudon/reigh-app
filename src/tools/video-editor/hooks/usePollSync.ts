@@ -267,6 +267,7 @@ export function usePollSync({
         savedSeq: savedSeqRef.current,
         pendingOps: pendingOpsRef.current,
         isSaving: isSavingRef.current,
+        interactionActive: isInteractionActive(interactionStateRef),
       })
       || registry === lastRegistryDataRef.current
     ) {
@@ -294,6 +295,7 @@ export function usePollSync({
           savedSeq: savedSeqRef.current,
           pendingOps: pendingOpsRef.current,
           isSaving: isSavingRef.current,
+          interactionActive: isInteractionActive(interactionStateRef),
         })) {
           return;
         }
@@ -312,6 +314,7 @@ export function usePollSync({
   }, [
     dataRef,
     editSeqRef,
+    interactionStateRef,
     isSavingRef,
     pendingOpsRef,
     provider,

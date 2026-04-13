@@ -2,7 +2,7 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { useClipResize, type ClipEdgeResizeSession } from './useClipResize';
-import { applyClipEdgeMove, type ClipEdgeResizeContext, type ResizeDir } from '../lib/resize-math';
+import { applyClipEdgeMove, type ClipEdgeResizeContext } from '../lib/resize-math';
 import { configToRows, type TimelineData } from '../lib/timeline-data';
 import { getConfigSignature, getStableConfigSignature } from '../lib/config-utils';
 import type { TimelineApplyEdit } from './timeline-state-types';
@@ -106,46 +106,27 @@ function buildSession(args: {
   };
 }
 
-function buildOuterContext(
+function buildGroupContext(
   rows: TimelineRow[],
   rowId: string,
   clipIds: string[],
+  draggedClipId: string,
 ): ClipEdgeResizeContext {
   const groupActions = clipIds.map((clipId) => getAction(rows, rowId, clipId));
+  const snapshot = groupActions.map((action) => ({
+    clipId: action.id,
+    start: action.start,
+    end: action.end,
+  }));
+  const draggedIndex = snapshot.findIndex((child) => child.clipId === draggedClipId);
   return {
-    kind: 'outer',
+    kind: 'group',
     shotId: 'shot-1',
     trackId: rowId,
-    groupInitialStart: Math.min(...groupActions.map((action) => action.start)),
-    groupInitialEnd: Math.max(...groupActions.map((action) => action.end)),
-    groupClipIds: [...clipIds],
-    groupChildrenSnapshot: groupActions.map((action) => ({
-      clipId: action.id,
-      start: action.start,
-      end: action.end,
-    })),
-  };
-}
-
-function buildInteriorContext(
-  rows: TimelineRow[],
-  rowId: string,
-  draggedClipId: string,
-  adjacentClipId: string,
-  edge: ResizeDir,
-): ClipEdgeResizeContext {
-  const dragged = getAction(rows, rowId, draggedClipId);
-  const adjacent = getAction(rows, rowId, adjacentClipId);
-  return {
-    kind: 'interior',
-    pairStart: edge === 'left' ? adjacent.start : dragged.start,
-    pairEnd: edge === 'left' ? dragged.end : adjacent.end,
     draggedClipId,
-    adjacentClipId,
-    draggedInitialStart: dragged.start,
-    draggedInitialEnd: dragged.end,
-    adjacentInitialStart: adjacent.start,
-    adjacentInitialEnd: adjacent.end,
+    draggedIndex,
+    groupClipIds: [...clipIds],
+    groupChildrenSnapshot: snapshot,
   };
 }
 
@@ -215,7 +196,7 @@ describe('useClipResize — unified clip-edge commit path', () => {
     expectRowBounds(mutation.rows, 'V2', 'free-1', { start: 5, end: 7.5 });
   });
 
-  it('commits outer-left grouped resize by scaling all children from unified updates', () => {
+  it('commits group left-edge resize on first clip, shifting nothing before it', () => {
     const data = makeData({ groupClipIds: ['a', 'b', 'c'] });
     const dataRef = { current: data };
     const applyEdit = vi.fn<Parameters<TimelineApplyEdit>>();
@@ -228,7 +209,7 @@ describe('useClipResize — unified clip-edge commit path', () => {
       rowId: 'V1',
       clipId: 'a',
       edge: 'left',
-      context: buildOuterContext(data.rows, 'V1', ['a', 'b', 'c']),
+      context: buildGroupContext(data.rows, 'V1', ['a', 'b', 'c'], 'a'),
     });
 
     act(() => {
@@ -237,7 +218,7 @@ describe('useClipResize — unified clip-edge commit path', () => {
     act(() => {
       result.current.onClipEdgeResizeEnd({
         session,
-        updates: applyClipEdgeMove(session.context, session.edge, 0.3).updates,
+        updates: applyClipEdgeMove(session.context, session.edge, -0.5).updates,
         cancelled: false,
       });
     });
@@ -248,15 +229,14 @@ describe('useClipResize — unified clip-edge commit path', () => {
       throw new Error('expected rows mutation');
     }
 
-    expect(mutation.metaUpdates?.a).toMatchObject({ hold: expect.closeTo(0.9, 5) });
-    expect(mutation.metaUpdates?.b).toMatchObject({ hold: expect.closeTo(0.9, 5) });
-    expect(mutation.metaUpdates?.c).toMatchObject({ hold: expect.closeTo(0.9, 5) });
-    expectRowBounds(mutation.rows, 'V1', 'a', { start: 0.3, end: 1.2 });
-    expectRowBounds(mutation.rows, 'V1', 'b', { start: 1.2, end: 2.1 });
-    expectRowBounds(mutation.rows, 'V1', 'c', { start: 2.1, end: 3 });
+    // First clip grows by 0.5 on the left; others unchanged
+    expect(mutation.metaUpdates?.a).toMatchObject({ hold: expect.closeTo(1.5, 5) });
+    expectRowBounds(mutation.rows, 'V1', 'a', { start: -0.5, end: 1 });
+    expectRowBounds(mutation.rows, 'V1', 'b', { start: 1, end: 2 });
+    expectRowBounds(mutation.rows, 'V1', 'c', { start: 2, end: 3 });
   });
 
-  it('commits outer-right grouped resize by scaling all children from unified updates', () => {
+  it('commits group right-edge resize on last clip, shifting nothing after it', () => {
     const data = makeData({ groupClipIds: ['a', 'b', 'c'] });
     const dataRef = { current: data };
     const applyEdit = vi.fn<Parameters<TimelineApplyEdit>>();
@@ -269,7 +249,7 @@ describe('useClipResize — unified clip-edge commit path', () => {
       rowId: 'V1',
       clipId: 'c',
       edge: 'right',
-      context: buildOuterContext(data.rows, 'V1', ['a', 'b', 'c']),
+      context: buildGroupContext(data.rows, 'V1', ['a', 'b', 'c'], 'c'),
     });
 
     act(() => {
@@ -289,15 +269,14 @@ describe('useClipResize — unified clip-edge commit path', () => {
       throw new Error('expected rows mutation');
     }
 
-    expect(mutation.metaUpdates?.a).toMatchObject({ hold: expect.closeTo(3.5 / 3, 5) });
-    expect(mutation.metaUpdates?.b).toMatchObject({ hold: expect.closeTo(3.5 / 3, 5) });
-    expect(mutation.metaUpdates?.c).toMatchObject({ hold: expect.closeTo(3.5 / 3, 5) });
-    expectRowBounds(mutation.rows, 'V1', 'a', { start: 0, end: 3.5 / 3 });
-    expectRowBounds(mutation.rows, 'V1', 'b', { start: 3.5 / 3, end: 7 / 3 });
-    expectRowBounds(mutation.rows, 'V1', 'c', { start: 7 / 3, end: 3.5 });
+    // Last clip grows by 0.5 on the right; others unchanged
+    expect(mutation.metaUpdates?.c).toMatchObject({ hold: expect.closeTo(1.5, 5) });
+    expectRowBounds(mutation.rows, 'V1', 'a', { start: 0, end: 1 });
+    expectRowBounds(mutation.rows, 'V1', 'b', { start: 1, end: 2 });
+    expectRowBounds(mutation.rows, 'V1', 'c', { start: 2, end: 3.5 });
   });
 
-  it('commits interior right-edge resize for the dragged and adjacent clips', () => {
+  it('commits group right-edge resize for middle clip, pushing subsequent clips', () => {
     const data = makeData({ groupClipIds: ['a', 'b', 'c'] });
     const dataRef = { current: data };
     const applyEdit = vi.fn<Parameters<TimelineApplyEdit>>();
@@ -310,7 +289,7 @@ describe('useClipResize — unified clip-edge commit path', () => {
       rowId: 'V1',
       clipId: 'b',
       edge: 'right',
-      context: buildInteriorContext(data.rows, 'V1', 'b', 'c', 'right'),
+      context: buildGroupContext(data.rows, 'V1', ['a', 'b', 'c'], 'b'),
     });
 
     act(() => {
@@ -331,13 +310,13 @@ describe('useClipResize — unified clip-edge commit path', () => {
     }
 
     expect(mutation.metaUpdates?.b).toMatchObject({ hold: expect.closeTo(1.3, 5) });
-    expect(mutation.metaUpdates?.c).toMatchObject({ hold: expect.closeTo(0.7, 5) });
+    expect(mutation.metaUpdates?.c).toMatchObject({ hold: expect.closeTo(1, 5) });
     expectRowBounds(mutation.rows, 'V1', 'a', { start: 0, end: 1 });
     expectRowBounds(mutation.rows, 'V1', 'b', { start: 1, end: 2.3 });
-    expectRowBounds(mutation.rows, 'V1', 'c', { start: 2.3, end: 3 });
+    expectRowBounds(mutation.rows, 'V1', 'c', { start: 2.3, end: 3.3 });
   });
 
-  it('commits interior left-edge resize for the dragged and adjacent clips', () => {
+  it('commits group left-edge resize for middle clip, pushing preceding clips', () => {
     const data = makeData({ groupClipIds: ['a', 'b', 'c'] });
     const dataRef = { current: data };
     const applyEdit = vi.fn<Parameters<TimelineApplyEdit>>();
@@ -350,7 +329,7 @@ describe('useClipResize — unified clip-edge commit path', () => {
       rowId: 'V1',
       clipId: 'b',
       edge: 'left',
-      context: buildInteriorContext(data.rows, 'V1', 'b', 'a', 'left'),
+      context: buildGroupContext(data.rows, 'V1', ['a', 'b', 'c'], 'b'),
     });
 
     act(() => {
@@ -359,7 +338,7 @@ describe('useClipResize — unified clip-edge commit path', () => {
     act(() => {
       result.current.onClipEdgeResizeEnd({
         session,
-        updates: applyClipEdgeMove(session.context, session.edge, 1.3).updates,
+        updates: applyClipEdgeMove(session.context, session.edge, 0.7).updates,
         cancelled: false,
       });
     });
@@ -370,10 +349,10 @@ describe('useClipResize — unified clip-edge commit path', () => {
       throw new Error('expected rows mutation');
     }
 
-    expect(mutation.metaUpdates?.a).toMatchObject({ hold: expect.closeTo(1.3, 5) });
-    expect(mutation.metaUpdates?.b).toMatchObject({ hold: expect.closeTo(0.7, 5) });
-    expectRowBounds(mutation.rows, 'V1', 'a', { start: 0, end: 1.3 });
-    expectRowBounds(mutation.rows, 'V1', 'b', { start: 1.3, end: 2 });
+    expect(mutation.metaUpdates?.a).toMatchObject({ hold: expect.closeTo(1, 5) });
+    expect(mutation.metaUpdates?.b).toMatchObject({ hold: expect.closeTo(1.3, 5) });
+    expectRowBounds(mutation.rows, 'V1', 'a', { start: -0.3, end: 0.7 });
+    expectRowBounds(mutation.rows, 'V1', 'b', { start: 0.7, end: 2 });
     expectRowBounds(mutation.rows, 'V1', 'c', { start: 2, end: 3 });
   });
 });

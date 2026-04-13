@@ -114,6 +114,7 @@ async function dispatchTimelineDrop({
       .filter((image): image is NonNullable<NonNullable<typeof shot>['images']>[number] => {
         return Boolean(image?.generation_id && getMediaUrl(image));
       });
+    const shotGroupDuration = shotImages.length * 5;
     const resolvedTarget = resolveAssetDropTarget({
       dataRef,
       assetKind: 'visual',
@@ -121,6 +122,8 @@ async function dispatchTimelineDrop({
       selectedTrackId,
       forceNewTrack: dropPosition.isNewTrack,
       insertAtTop,
+      time: dropPosition.time,
+      duration: shotGroupDuration,
     });
 
     if (!shot || !resolvedTarget || shotImages.length === 0) {

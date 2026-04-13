@@ -182,9 +182,9 @@ describe('T9 — soft-tag grouped drag', () => {
     ]);
   });
 
-  it('same-track colliding with a free clip: planner still emits moves; caller resolves clipIds order from post-commit at', () => {
+  it('same-track colliding with a free clip: planner resolves to nearest free track (V2)', () => {
     const { data } = buildGroupedData([
-      // A free clip sitting where the dragged group would land.
+      // A free clip sitting where the dragged group would land on V1.
       { id: 'free', row: 'V1', start: 8, end: 10 },
     ]);
     // Add the free clip to V1 row.
@@ -208,26 +208,26 @@ describe('T9 — soft-tag grouped drag', () => {
     );
 
     expect(canMove).toBe(true);
+    // Group should resolve to V2 (nearest free track) instead of shifting on V1
+    expect(moves.every((m) => m.targetRowId === 'V2')).toBe(true);
     const { nextRows } = applyMultiDragMoves(data, moves);
 
-    // All members should still be on V1 in `at` order (resolveOverlaps may
-    // shift them, but relative order is preserved).
-    const v1 = nextRows.find((r) => r.id === 'V1')!;
-    const groupActions = v1.actions
+    // All members should be on V2 at the requested times (no shifting)
+    const v2 = nextRows.find((r) => r.id === 'V2')!;
+    const groupActions = v2.actions
       .filter((a) => ['g-a', 'g-b', 'g-c'].includes(a.id))
       .sort((x, y) => x.start - y.start);
     expect(groupActions.map((a) => a.id)).toEqual(['g-a', 'g-b', 'g-c']);
 
-    // The rebuilt override reflects the post-commit `at` order — even if
-    // resolveOverlaps shifted the group, the clipIds field stays soft-tag-shaped.
+    // The rebuilt override reflects the new track
     const override = rebuildGroupAfterDrag(
       data.config.pinnedShotGroups,
       { shotId: 'shot-1', trackId: 'V1' },
-      'V1',
+      'V2',
       nextRows,
     );
     expect(override?.[0].clipIds).toEqual(['g-a', 'g-b', 'g-c']);
-    expect(override?.[0].trackId).toBe('V1');
+    expect(override?.[0].trackId).toBe('V2');
   });
 
   it('cross-track existing-row grouped drag: override trackId updates, clipIds preserved in at order', () => {

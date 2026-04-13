@@ -9,9 +9,23 @@ import { createInteractionState, notifyInteractionEndIfIdle, type InteractionSta
 import { configToRows, type TimelineData } from '../lib/timeline-data';
 import { getConfigSignature, getStableConfigSignature } from '../lib/config-utils';
 import { createDefaultTimelineConfig } from '../lib/defaults';
-import type { DataProvider } from '../data/DataProvider';
+import { TimelineVersionConflictError, type DataProvider } from '../data/DataProvider';
+import type { AssetRegistry } from '../types';
 
-function makeTimelineData(label: string): TimelineData {
+function makeRegistry(label: string): AssetRegistry {
+  return {
+    assets: {
+      [`asset-${label}`]: {
+        file: `media/${label}.mp4`,
+        type: 'video/mp4',
+        generationId: `gen-${label}`,
+        variantId: `variant-${label}`,
+      },
+    },
+  };
+}
+
+function makeTimelineData(label: string, registry: AssetRegistry = { assets: {} }): TimelineData {
   const base = createDefaultTimelineConfig();
   const config = {
     ...base,
@@ -26,47 +40,76 @@ function makeTimelineData(label: string): TimelineData {
     }],
   };
   const rowData = configToRows(config);
+  const assetMap = Object.fromEntries(
+    Object.entries(registry.assets).map(([assetId, entry]) => [assetId, entry.file]),
+  );
+  const resolvedRegistry = Object.fromEntries(
+    Object.entries(registry.assets).map(([assetId, entry]) => [assetId, { ...entry, src: entry.file }]),
+  );
   const resolvedConfig = {
     output: { ...config.output },
     tracks: (config.tracks ?? []).map((track) => ({ ...track })),
     clips: config.clips.map((clip) => ({ ...clip, assetEntry: undefined })),
-    registry: {},
+    registry: resolvedRegistry,
   };
   return {
     config,
     configVersion: 1,
-    registry: { assets: {} },
+    registry,
     resolvedConfig,
     rows: rowData.rows,
     meta: rowData.meta,
     effects: rowData.effects,
-    assetMap: {},
+    assetMap,
     output: { ...config.output },
     tracks: (config.tracks ?? []).map((track) => ({ ...track })),
     clipOrder: rowData.clipOrder,
     signature: getConfigSignature(resolvedConfig),
-    stableSignature: getStableConfigSignature(config, { assets: {} }),
+    stableSignature: getStableConfigSignature(config, registry),
   };
 }
 
 interface TestHarness {
   provider: DataProvider;
   saveTimeline: ReturnType<typeof vi.fn>;
+  loadTimeline: ReturnType<typeof vi.fn>;
+  loadAssetRegistry: ReturnType<typeof vi.fn>;
   interactionStateRef: InteractionStateRef;
+  dataRef: { current: TimelineData | null };
   scheduleSave: (data: TimelineData) => void;
 }
 
-function setup(): TestHarness {
-  const saveTimeline = vi.fn(async () => 2);
+interface SetupOptions {
+  initialData?: TimelineData;
+  saveTimelineImpl?: (
+    timelineId: string,
+    config: TimelineData['config'],
+    expectedVersion: number,
+    registry?: AssetRegistry,
+  ) => Promise<number>;
+  loadTimelineImpl?: DataProvider['loadTimeline'];
+  loadAssetRegistryImpl?: DataProvider['loadAssetRegistry'];
+}
+
+function setup(options?: SetupOptions): TestHarness {
+  const saveTimeline = vi.fn(
+    options?.saveTimelineImpl
+      ?? (async (_id: string, _config: TimelineData['config'], _version: number, _registry?: AssetRegistry) => 2),
+  );
+  const loadTimeline = vi.fn(
+    options?.loadTimelineImpl
+      ?? (async () => ({ config: createDefaultTimelineConfig(), configVersion: 1 })),
+  );
+  const loadAssetRegistry = vi.fn(options?.loadAssetRegistryImpl ?? (async () => ({ assets: {} })));
   const provider: DataProvider = {
-    loadTimeline: vi.fn(async () => ({ config: createDefaultTimelineConfig(), configVersion: 1 })),
+    loadTimeline,
     saveTimeline,
-    loadAssetRegistry: vi.fn(async () => ({ assets: {} })),
+    loadAssetRegistry,
     resolveAssetUrl: vi.fn((file: string) => file),
   };
 
   const eventBus = new TimelineEventBus();
-  const dataRef = { current: makeTimelineData('initial') };
+  const dataRef = { current: options?.initialData ?? makeTimelineData('initial') };
   const interactionStateRef: InteractionStateRef = { current: createInteractionState() };
   const commitData = vi.fn();
   const selectedClipIdRef = { current: null };
@@ -103,8 +146,12 @@ function setup(): TestHarness {
   return {
     provider,
     saveTimeline,
+    loadTimeline,
+    loadAssetRegistry,
     interactionStateRef,
+    dataRef,
     scheduleSave: (data) => {
+      dataRef.current = data;
       act(() => {
         hook.result.current.scheduleSave(data);
       });
@@ -226,5 +273,54 @@ describe('useTimelinePersistence — interaction gating', () => {
     });
 
     expect(harness.saveTimeline).toHaveBeenCalledTimes(1);
+  });
+
+  it('doSave passes registry to saveTimeline', async () => {
+    const harness = setup();
+    const registry = makeRegistry('save');
+    const nextData = makeTimelineData('with-registry', registry);
+
+    harness.scheduleSave(nextData);
+
+    await act(async () => {
+      vi.advanceTimersByTime(600);
+      await Promise.resolve();
+    });
+
+    expect(harness.saveTimeline).toHaveBeenCalledTimes(1);
+    expect(harness.saveTimeline).toHaveBeenCalledWith('timeline-1', nextData.config, 1, registry);
+  });
+
+  it('conflict retry reloads registry and updates dataRef', async () => {
+    const staleRegistry = makeRegistry('stale');
+    const freshRegistry = makeRegistry('fresh');
+    const nextData = makeTimelineData('conflict', staleRegistry);
+    let saveAttempt = 0;
+    const harness = setup({
+      initialData: nextData,
+      saveTimelineImpl: async (_id, _config, _version, _registry) => {
+        saveAttempt += 1;
+        if (saveAttempt === 1) {
+          throw new TimelineVersionConflictError();
+        }
+        return 2;
+      },
+      loadTimelineImpl: async () => ({ config: nextData.config, configVersion: 2 }),
+      loadAssetRegistryImpl: async () => freshRegistry,
+    });
+
+    harness.scheduleSave(nextData);
+
+    await act(async () => {
+      vi.advanceTimersByTime(600);
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(harness.loadAssetRegistry).toHaveBeenCalledWith('timeline-1');
+    expect(harness.saveTimeline).toHaveBeenCalledTimes(2);
+    expect(harness.saveTimeline.mock.calls[0]?.[3]).toEqual(staleRegistry);
+    expect(harness.saveTimeline.mock.calls[1]?.[3]).toEqual(freshRegistry);
+    expect(harness.dataRef.current?.registry).toEqual(freshRegistry);
   });
 });

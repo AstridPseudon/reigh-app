@@ -1,9 +1,9 @@
 import { useCallback, useMemo } from 'react';
 import { arrayMove } from '@dnd-kit/sortable';
-import { addTrack } from '@/tools/video-editor/lib/editor-utils';
+import { addTrack, getTrackIndex } from '@/tools/video-editor/lib/editor-utils';
 import { DEFAULT_VIDEO_TRACKS } from '@/tools/video-editor/lib/defaults';
 import type { PinnedShotGroup, TrackDefinition, TrackKind } from '@/tools/video-editor/types';
-import { moveClipBetweenTracks } from '@/tools/video-editor/lib/coordinate-utils';
+import { findNearestFreeTrack, moveClipBetweenTracks } from '@/tools/video-editor/lib/coordinate-utils';
 import type { ClipMeta, TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import {
   categorizeSelection,
@@ -11,7 +11,6 @@ import {
   orderClipIdsByAt,
   type PinnedGroupKey,
 } from '@/tools/video-editor/lib/pinned-group-projection';
-import { resolveOverlaps } from '@/tools/video-editor/lib/resolve-overlaps';
 import type { TimelineApplyEdit } from '@/tools/video-editor/hooks/timeline-state-types';
 import type { TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 
@@ -175,6 +174,19 @@ function getLiveGroupStart(current: Pick<TimelineData, 'rows'>, group: PinnedSho
   return Math.min(...actionStarts);
 }
 
+function getLiveGroupEnd(current: Pick<TimelineData, 'rows'>, group: PinnedShotGroup): number | null {
+  const actionEnds = current.rows
+    .flatMap((row) => row.actions)
+    .filter((action) => group.clipIds.includes(action.id))
+    .map((action) => action.end);
+
+  if (actionEnds.length === 0) {
+    return null;
+  }
+
+  return Math.max(...actionEnds);
+}
+
 export function useTimelineTrackManagement({
   dataRef,
   resolvedConfig,
@@ -188,7 +200,7 @@ export function useTimelineTrackManagement({
     newStartTime?: number,
     transactionId?: string,
   ) => {
-    const current = dataRef.current;
+    let current = dataRef.current;
     if (!current) {
       return;
     }
@@ -202,14 +214,40 @@ export function useTimelineTrackManagement({
       }
 
       const groupStart = getLiveGroupStart(current, enclosingGroup.group);
-      if (groupStart == null) {
+      const groupEnd = getLiveGroupEnd(current, enclosingGroup.group);
+      if (groupStart == null || groupEnd == null) {
         return;
       }
       const nextStart = typeof newStartTime === 'number' ? Math.max(0, newStartTime) : groupStart;
+      const groupDuration = groupEnd - groupStart;
+
+      // Find a free track for the group's bounding box, excluding the group's own clips
+      const memberSet = new Set(enclosingGroup.group.clipIds);
+      const rowsWithoutGroup = current.rows.map((row) => ({
+        ...row,
+        actions: row.actions.filter((a) => !memberSet.has(a.id)),
+      }));
+      let finalTargetId = findNearestFreeTrack(
+        current.tracks, rowsWithoutGroup, targetRowId, sourceTrack.kind,
+        nextStart, groupDuration,
+      );
+
+      if (!finalTargetId) {
+        const prefix = sourceTrack.kind === 'audio' ? 'A' : 'V';
+        const nextNumber = getTrackIndex(current.tracks, prefix) + 1;
+        finalTargetId = `${prefix}${nextNumber}`;
+        current = {
+          ...current,
+          tracks: [...current.tracks, { id: finalTargetId, kind: sourceTrack.kind, label: finalTargetId }],
+          rows: [...current.rows, { id: finalTargetId, actions: [] }],
+        };
+        dataRef.current = current;
+      }
+
       const translatedGroup = translateGroupMembers({
         current,
         group: enclosingGroup.group,
-        targetRowId,
+        targetRowId: finalTargetId,
         deltaTime: nextStart - groupStart,
       });
       applyEdit({
@@ -237,9 +275,28 @@ export function useTimelineTrackManagement({
 
     const duration = action.end - action.start;
     const nextStart = typeof newStartTime === 'number' ? Math.max(0, newStartTime) : action.start;
+
+    // Find a free track (target first, then nearest above/below), or create one
+    let finalTrackId = findNearestFreeTrack(
+      current.tracks, current.rows, targetRow.id, sourceTrack.kind,
+      nextStart, duration, clipId,
+    );
+
+    if (!finalTrackId) {
+      const prefix = sourceTrack.kind === 'audio' ? 'A' : 'V';
+      const nextNumber = getTrackIndex(current.tracks, prefix) + 1;
+      finalTrackId = `${prefix}${nextNumber}`;
+      current = {
+        ...current,
+        tracks: [...current.tracks, { id: finalTrackId, kind: sourceTrack.kind, label: finalTrackId }],
+        rows: [...current.rows, { id: finalTrackId, actions: [] }],
+      };
+      dataRef.current = current;
+    }
+
     const nextAction = { ...action, start: nextStart, end: nextStart + duration };
-    const placedRows = current.rows.map((row) => {
-      if (sourceRow.id === targetRow.id && row.id === sourceRow.id) {
+    const nextRows = current.rows.map((row) => {
+      if (row.id === sourceRow.id && row.id === finalTrackId) {
         return {
           ...row,
           actions: row.actions.map((candidate) => (candidate.id === clipId ? nextAction : candidate)),
@@ -250,29 +307,20 @@ export function useTimelineTrackManagement({
         return { ...row, actions: row.actions.filter((candidate) => candidate.id !== clipId) };
       }
 
-      if (row.id === targetRow.id) {
+      if (row.id === finalTrackId) {
         return { ...row, actions: [...row.actions, nextAction] };
       }
 
       return row;
     });
 
-    // Trim the moved clip if it overlaps existing siblings
-    const { rows: resolvedRows, metaPatches, adjustments: _adjustments } = resolveOverlaps(
-      placedRows, targetRow.id, clipId, current.meta,
-    );
-    const nextMetaUpdates = {
-      ...metaPatches,
-      [clipId]: {
-        track: targetRow.id,
-        ...metaPatches[clipId],
-      },
-    };
-    const nextClipOrder = moveClipBetweenTracks(current.clipOrder, clipId, sourceRow.id, targetRow.id);
+    const nextClipOrder = moveClipBetweenTracks(current.clipOrder, clipId, sourceRow.id, finalTrackId);
     applyEdit({
       type: 'rows',
-      rows: resolvedRows,
-      metaUpdates: nextMetaUpdates,
+      rows: nextRows,
+      metaUpdates: {
+        [clipId]: { track: finalTrackId },
+      },
       clipOrderOverride: nextClipOrder,
     }, { transactionId });
   }, [applyEdit, dataRef]);

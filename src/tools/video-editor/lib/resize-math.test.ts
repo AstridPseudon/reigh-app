@@ -1,57 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyClipEdgeMove,
-  computeGroupChildBoundaryResize,
   computeGroupEdgeResize,
   snapBoundaryToSiblings,
 } from '@/tools/video-editor/lib/resize-math';
-
-describe('computeGroupChildBoundaryResize', () => {
-  it('moves an interior right boundary symmetrically', () => {
-    const result = computeGroupChildBoundaryResize({
-      dir: 'right',
-      dragged: { start: 1, end: 2 },
-      adjacent: { start: 2, end: 3 },
-      proposedBoundary: 2.3,
-      minimumDuration: 0.05,
-    });
-
-    expect(result.wasClamped).toBe(false);
-    expect(result.boundary).toBeCloseTo(2.3, 5);
-    expect(result.dragged).toEqual({ start: 1, end: 2.3 });
-    expect(result.adjacent).toEqual({ start: 2.3, end: 3 });
-  });
-
-  it('moves an interior left boundary symmetrically', () => {
-    const result = computeGroupChildBoundaryResize({
-      dir: 'left',
-      dragged: { start: 1, end: 2 },
-      adjacent: { start: 0, end: 1 },
-      proposedBoundary: 1.3,
-      minimumDuration: 0.05,
-    });
-
-    expect(result.wasClamped).toBe(false);
-    expect(result.boundary).toBeCloseTo(1.3, 5);
-    expect(result.dragged).toEqual({ start: 1.3, end: 2 });
-    expect(result.adjacent).toEqual({ start: 0, end: 1.3 });
-  });
-
-  it('clamps the shared boundary so neither child drops below minimum duration', () => {
-    const result = computeGroupChildBoundaryResize({
-      dir: 'right',
-      dragged: { start: 1, end: 2 },
-      adjacent: { start: 2, end: 3 },
-      proposedBoundary: 2.99,
-      minimumDuration: 0.25,
-    });
-
-    expect(result.wasClamped).toBe(true);
-    expect(result.boundary).toBeCloseTo(2.75, 5);
-    expect(result.dragged).toEqual({ start: 1, end: 2.75 });
-    expect(result.adjacent).toEqual({ start: 2.75, end: 3 });
-  });
-});
 
 describe('computeGroupEdgeResize', () => {
   it('clamps the left edge at zero', () => {
@@ -122,33 +74,34 @@ describe('applyClipEdgeMove', () => {
     ]);
   });
 
-  it('returns dragged and adjacent clip updates for interior boundary moves', () => {
+  it('returns updates for all clips in group when resizing right edge of middle clip', () => {
     const result = applyClipEdgeMove({
-      kind: 'interior',
-      pairStart: 1,
-      pairEnd: 3,
+      kind: 'group',
+      shotId: 'shot-1',
+      trackId: 'row-1',
       draggedClipId: 'clip-a',
-      adjacentClipId: 'clip-b',
-      draggedInitialStart: 1,
-      draggedInitialEnd: 2,
-      adjacentInitialStart: 2,
-      adjacentInitialEnd: 3,
+      draggedIndex: 0,
+      groupClipIds: ['clip-a', 'clip-b'],
+      groupChildrenSnapshot: [
+        { clipId: 'clip-a', start: 1, end: 2 },
+        { clipId: 'clip-b', start: 2, end: 3 },
+      ],
     }, 'right', 2.25);
 
     expect(result.wasClamped).toBe(false);
     expect(result.updates).toEqual([
       { clipId: 'clip-a', start: 1, end: 2.25 },
-      { clipId: 'clip-b', start: 2.25, end: 3 },
+      { clipId: 'clip-b', start: 2.25, end: 3.25 },
     ]);
   });
 
-  it('outer left edge rescales every child in the group from the new boundary', () => {
+  it('group left edge resize shifts earlier clips by delta', () => {
     const result = applyClipEdgeMove({
-      kind: 'outer',
+      kind: 'group',
       shotId: 'shot-1',
       trackId: 'row-1',
-      groupInitialStart: 10,
-      groupInitialEnd: 20,
+      draggedClipId: 'clip-a',
+      draggedIndex: 0,
       groupClipIds: ['clip-a', 'clip-b'],
       groupChildrenSnapshot: [
         { clipId: 'clip-a', start: 10, end: 13 },
@@ -158,56 +111,82 @@ describe('applyClipEdgeMove', () => {
 
     expect(result.wasClamped).toBe(false);
     expect(result.updates).toEqual([
-      { clipId: 'clip-a', start: 8, end: 11.6 },
-      { clipId: 'clip-b', start: 11.6, end: 20 },
+      { clipId: 'clip-a', start: 8, end: 13 },
+      { clipId: 'clip-b', start: 13, end: 20 },
     ]);
   });
 
-  it('outer right edge rescales every child in the group from the fixed start', () => {
+  it('group right edge resize on last clip shifts nothing after', () => {
     const result = applyClipEdgeMove({
-      kind: 'outer',
+      kind: 'group',
       shotId: 'shot-1',
       trackId: 'row-1',
-      groupInitialStart: 10,
-      groupInitialEnd: 20,
+      draggedClipId: 'clip-c',
+      draggedIndex: 2,
       groupClipIds: ['clip-a', 'clip-b', 'clip-c'],
       groupChildrenSnapshot: [
         { clipId: 'clip-a', start: 10, end: 13 },
         { clipId: 'clip-b', start: 13, end: 16 },
         { clipId: 'clip-c', start: 16, end: 20 },
       ],
-    }, 'right', 18);
+    }, 'right', 22);
 
     expect(result.wasClamped).toBe(false);
     expect(result.updates).toEqual([
-      { clipId: 'clip-a', start: 10, end: 12.4 },
-      { clipId: 'clip-b', start: 12.4, end: 14.8 },
-      { clipId: 'clip-c', start: 14.8, end: 18 },
+      { clipId: 'clip-a', start: 10, end: 13 },
+      { clipId: 'clip-b', start: 13, end: 16 },
+      { clipId: 'clip-c', start: 16, end: 22 },
     ]);
   });
 
-  it('clamps outer edge resizes against the whole group minimum duration', () => {
+  it('group resize clamps dragged clip to minimum duration', () => {
     const result = applyClipEdgeMove({
-      kind: 'outer',
+      kind: 'group',
       shotId: 'shot-1',
       trackId: 'row-1',
-      groupInitialStart: 10,
-      groupInitialEnd: 12,
+      draggedClipId: 'clip-b',
+      draggedIndex: 1,
       groupClipIds: ['clip-a', 'clip-b'],
       groupChildrenSnapshot: [
         { clipId: 'clip-a', start: 10, end: 11 },
         { clipId: 'clip-b', start: 11, end: 12 },
       ],
-    }, 'right', 11.01);
+    }, 'left', 11.99);
 
-    expect(result.wasClamped).toBe(false);
+    // Clamped: min(12 - 0.05, 11.99) = 11.95
+    // Delta = 11.95 - 11 = 0.95
+    // clip-a (before dragged) shifts by delta: [10.95, 11.95]
+    expect(result.wasClamped).toBe(true);
     expect(result.updates).toHaveLength(2);
     expect(result.updates[0].clipId).toBe('clip-a');
-    expect(result.updates[0].start).toBe(10);
-    expect(result.updates[0].end).toBeCloseTo(10.505, 10);
+    expect(result.updates[0].start).toBeCloseTo(10.95, 5);
+    expect(result.updates[0].end).toBeCloseTo(11.95, 5);
     expect(result.updates[1].clipId).toBe('clip-b');
-    expect(result.updates[1].start).toBeCloseTo(10.505, 10);
-    expect(result.updates[1].end).toBe(11.01);
+    expect(result.updates[1].start).toBeCloseTo(11.95, 5);
+    expect(result.updates[1].end).toBe(12);
+  });
+
+  it('group resize of interior clip right edge pushes subsequent clips', () => {
+    const result = applyClipEdgeMove({
+      kind: 'group',
+      shotId: 'shot-1',
+      trackId: 'row-1',
+      draggedClipId: 'clip-b',
+      draggedIndex: 1,
+      groupClipIds: ['clip-a', 'clip-b', 'clip-c'],
+      groupChildrenSnapshot: [
+        { clipId: 'clip-a', start: 0, end: 1 },
+        { clipId: 'clip-b', start: 1, end: 2 },
+        { clipId: 'clip-c', start: 2, end: 3 },
+      ],
+    }, 'right', 2.5);
+
+    expect(result.wasClamped).toBe(false);
+    expect(result.updates).toEqual([
+      { clipId: 'clip-a', start: 0, end: 1 },
+      { clipId: 'clip-b', start: 1, end: 2.5 },
+      { clipId: 'clip-c', start: 2.5, end: 3.5 },
+    ]);
   });
 });
 

@@ -1,6 +1,17 @@
 export type EditMode = 'text' | 'inpaint' | 'annotate' | 'reposition' | 'img2img' | 'upscale';
 export type LoraMode = 'none' | 'in-scene' | 'next-scene' | 'custom';
-export type QwenEditModel = 'qwen-edit' | 'qwen-edit-2509' | 'qwen-edit-2511';
+export type QwenEditModel =
+  | 'qwen-edit'
+  | 'qwen-edit-2509'
+  | 'qwen-edit-2511'
+  | 'flux-klein-4b'
+  | 'flux-klein-9b';
+
+export type KleinModel = 'flux-klein-4b' | 'flux-klein-9b';
+
+export function isKleinModel(model: QwenEditModel): model is KleinModel {
+  return model === 'flux-klein-4b' || model === 'flux-klein-9b';
+}
 export type VideoEditSubMode = 'trim' | 'replace' | 'regenerate' | 'enhance';
 export type PanelMode = 'info' | 'edit';
 

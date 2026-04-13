@@ -31,6 +31,7 @@ export type TimelinePatchRegistry = (
   entry: AssetRegistryEntry,
   src?: string,
 ) => void;
+export type TimelineUnpatchRegistry = (assetId: string) => void;
 export type TimelineRegisterAsset = (
   assetId: string,
   entry: AssetRegistryEntry,

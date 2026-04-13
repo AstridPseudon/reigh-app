@@ -29,7 +29,7 @@ interface ClipActionProps {
   audioSrc?: string;
   clipWidth?: number;
   onSelect: (clipId: string, trackId: string) => void;
-  onDoubleClickAsset?: (assetKey: string) => void;
+  onDoubleClickAsset?: (assetKey: string, clipId?: string) => void;
   onDoubleClickVideoClip?: (clipId: string) => void;
   onSplitHere?: (clipId: string, clientX: number) => void;
   onSplitClipsAtPlayhead?: (clipIds: string[]) => void;
@@ -384,10 +384,11 @@ function ClipActionComponent({
 
   return (
     <>
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         className={cn(
-          'clip-action group relative flex h-full w-full overflow-hidden rounded-md border text-left',
+          'clip-action group relative flex h-full w-full select-none overflow-hidden rounded-md border text-left outline-none',
           isEffectLayer && isSelected
             ? 'border-violet-400 bg-violet-500/20 text-violet-50'
             : isEffectLayer
@@ -398,7 +399,16 @@ function ClipActionComponent({
         )}
         data-clip-id={action.id}
         data-row-id={clipMeta.track}
-        onPointerDown={(event) => event.stopPropagation()}
+        onKeyDown={(event) => {
+          if (event.currentTarget !== event.target) {
+            return;
+          }
+          if (event.key !== 'Enter' && event.key !== ' ') {
+            return;
+          }
+          event.preventDefault();
+          onSelect(action.id, clipMeta.track);
+        }}
         onDoubleClick={(event) => {
           event.stopPropagation();
           if (isEffectLayer || clipMeta.clipType === 'text') return;
@@ -412,7 +422,7 @@ function ClipActionComponent({
           if (isVideoClip && onDoubleClickVideoClip) {
             onDoubleClickVideoClip(action.id);
           } else if (clipMeta.asset) {
-            onDoubleClickAsset?.(clipMeta.asset);
+            onDoubleClickAsset?.(clipMeta.asset, action.id);
           }
         }}
         onContextMenu={handleContextMenu}
@@ -432,7 +442,7 @@ function ClipActionComponent({
             {icon}
           </div>
         )}
-        <div className="relative z-10 min-w-0 flex-1 px-2 py-1">
+        <div className={`relative z-10 min-w-0 flex-1 px-2 py-1 transition-opacity ${isSelected ? 'opacity-100' : 'opacity-20'}`}>
           <div className="truncate text-[11px] font-medium">
             {isEffectLayer
               ? (clipMeta.continuous?.type || 'Effect Layer')
@@ -476,12 +486,12 @@ function ClipActionComponent({
           <div
             role="button"
             tabIndex={0}
+            data-no-clip-drag
             className={cn(
               'absolute bottom-0 right-0 z-20 flex h-10 w-10 items-center justify-center rounded-tl-md bg-background/80 text-muted-foreground shadow-sm transition-colors',
               'hover:bg-accent hover:text-accent-foreground',
             )}
             aria-label={hasBatchSelection ? `Open actions for ${selectedClipIds.length} selected clips` : 'Open clip actions'}
-            onPointerDown={(event) => event.stopPropagation()}
             onClick={(event) => {
               event.stopPropagation();
               const { clientX, clientY } = event;
@@ -500,7 +510,7 @@ function ClipActionComponent({
             <Ellipsis className="h-4 w-4" />
           </div>
         )}
-      </button>
+      </div>
 
       {contextMenu && (
         <ClipContextMenu

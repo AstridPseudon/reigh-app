@@ -3,6 +3,7 @@ import { characterAnimateResolver } from "./characterAnimate.ts";
 import { crossfadeJoinResolver } from "./crossfadeJoin.ts";
 import { editVideoOrchestratorResolver } from "./editVideoOrchestrator.ts";
 import { imageGenerationResolver } from "./imageGeneration.ts";
+import { kleinEditResolver } from "./kleinEdit.ts";
 import { imageUpscaleResolver } from "./imageUpscale.ts";
 import { individualTravelSegmentResolver } from "./individualTravelSegment.ts";
 import { joinClipsResolver } from "./joinClips.ts";
@@ -25,6 +26,7 @@ const TASK_FAMILY_RESOLVERS: Record<string, TaskFamilyResolver> = {
   crossfade_join: crossfadeJoinResolver,
   edit_video_orchestrator: editVideoOrchestratorResolver,
   character_animate: characterAnimateResolver,
+  klein_edit: kleinEditResolver,
 };
 
 export function getTaskFamilyResolver(family: string): TaskFamilyResolver | undefined {

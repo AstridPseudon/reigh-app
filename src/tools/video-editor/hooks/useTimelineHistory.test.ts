@@ -6,6 +6,7 @@ import { DataProviderWrapper } from '../contexts/DataProviderContext';
 import type { DataProvider } from '../data/DataProvider';
 import { getConfigSignature, getStableConfigSignature } from '../lib/config-utils';
 import { createDefaultTimelineConfig } from '../lib/defaults';
+import { createInteractionState } from '../lib/interaction-state';
 import { configToRows, type TimelineData } from '../lib/timeline-data';
 import { useTimelineHistory } from './useTimelineHistory';
 import type { Checkpoint } from '../types/history';
@@ -92,6 +93,7 @@ function setup(options: {
 } = {}) {
   const provider = makeProvider(options.providerOverrides);
   const dataRef = { current: makeTimelineData(options.initialStep ?? 0) };
+  const interactionStateRef = { current: createInteractionState() };
   const commitCalls: CommitCall[] = [];
   const commitData = vi.fn((nextData: TimelineData, commitOptions?: CommitCall['options']) => {
     dataRef.current = nextData;
@@ -112,7 +114,7 @@ function setup(options: {
   );
 
   const hook = renderHook(
-    () => useTimelineHistory({ dataRef, commitData }),
+    () => useTimelineHistory({ dataRef, commitData, interactionStateRef }),
     { wrapper },
   );
 

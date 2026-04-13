@@ -4,7 +4,7 @@ import type { PinnedGroupKey } from '@/tools/video-editor/lib/pinned-group-proje
 import { getSourceTime, type ClipMeta, type ClipOrderMap, type TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 import type { PinnedShotGroup, ResolvedTimelineConfig, TrackKind } from '@/tools/video-editor/types';
-import { moveClipBetweenTracks } from '@/tools/video-editor/lib/coordinate-utils';
+import { findNearestFreeTrack, moveClipBetweenTracks } from '@/tools/video-editor/lib/coordinate-utils';
 import {
   findBestGroupStart,
   type GroupExtent,
@@ -220,31 +220,58 @@ export function planMultiDragMoves(
       && candidate.trackId === groupDragEntry.groupKey.trackId
     ));
 
+    // Collect member positions so we can compute the bounding box
+    const memberPositions: Array<{ clipId: string; start: number; end: number }> = [];
     for (const memberClipId of group?.clipIds ?? []) {
-      pinnedGroupClipIds.add(memberClipId);
-      // Find the member clip's current row+start from clipOffsets (or fall back
-      // to a lookup on the live rows).
       const memberOffset = clipOffsets.find((o) => o.clipId === memberClipId);
       let memberStart: number | null = null;
+      let memberEnd: number | null = null;
       if (memberOffset) {
         memberStart = memberOffset.initialStart;
+        memberEnd = memberOffset.initialEnd;
       } else {
         for (const row of data.rows) {
           const action = row.actions.find((a) => a.id === memberClipId);
           if (action) {
             memberStart = action.start;
+            memberEnd = action.end;
             break;
           }
         }
       }
-      if (memberStart === null) continue;
+      if (memberStart === null || memberEnd === null) continue;
+      memberPositions.push({ clipId: memberClipId, start: memberStart, end: memberEnd });
+    }
 
+    // Compute the group's bounding box after the time delta
+    const groupStart = Math.min(...memberPositions.map((m) => m.start + timeDelta));
+    const groupEnd = Math.max(...memberPositions.map((m) => m.end + timeDelta));
+    const groupDuration = groupEnd - groupStart;
+
+    // Exclude group members from rows so they don't block themselves
+    const memberClipIdSet = new Set(memberPositions.map((m) => m.clipId));
+    const rowsWithoutGroup = data.rows.map((row) => ({
+      ...row,
+      actions: row.actions.filter((a) => !memberClipIdSet.has(a.id)),
+    }));
+
+    // Find nearest free track for the group's bounding box.
+    // Fall back to the requested target if every track is occupied — the
+    // caller (commitDraggingSession) can create a new track if needed,
+    // and applyMultiDragMoves will shift to the nearest gap as a last resort.
+    const resolvedTargetRowId = findNearestFreeTrack(
+      data.tracks, rowsWithoutGroup, anchorTargetRowId, sourceTrack.kind,
+      groupStart, groupDuration,
+    ) ?? anchorTargetRowId;
+
+    for (const member of memberPositions) {
+      pinnedGroupClipIds.add(member.clipId);
       moves.push({
         kind: 'clip',
-        clipId: memberClipId,
+        clipId: member.clipId,
         sourceRowId: groupDragEntry.originTrackId,
-        targetRowId: anchorTargetRowId,
-        newStart: memberStart + timeDelta,
+        targetRowId: resolvedTargetRowId,
+        newStart: member.start + timeDelta,
       });
     }
   }

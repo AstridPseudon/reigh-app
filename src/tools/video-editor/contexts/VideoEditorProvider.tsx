@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { MediaLightbox } from '@/domains/media-lightbox/MediaLightbox';
+import { useShots } from '@/shared/contexts/ShotsContext';
 import type { GenerationRow } from '@/domains/generation/types';
+import { VideoEditorLightboxOverlay } from '@/tools/video-editor/components/VideoEditorLightboxOverlay';
 import type { DataProvider } from '@/tools/video-editor/data/DataProvider';
 import { DataProviderWrapper } from '@/tools/video-editor/contexts/DataProviderContext';
 import { TimelineChromeContextProvider } from '@/tools/video-editor/contexts/TimelineChromeContext';
@@ -20,23 +22,13 @@ import type {
   TimelineEditorDataContextValue,
   TimelineEditorOpsContextValue,
 } from '@/tools/video-editor/hooks/useTimelineState.types';
+import { useVideoEditorLightboxNavigation } from '@/tools/video-editor/hooks/useVideoEditorLightboxNavigation';
+import { isOpenableAssetType } from '@/tools/video-editor/lib/editor-utils';
 import { loadGenerationForLightbox } from '@/tools/video-editor/lib/generation-utils';
 import { useRenderDiagnostic } from '@/tools/video-editor/hooks/usePerfDiagnostics';
 import type { ResolvedAssetRegistryEntry } from '@/tools/video-editor/types';
 
 const log = import.meta.env.DEV ? (...args: Parameters<typeof console.log>) => console.log(...args) : () => {};
-
-function isOpenableAssetType(type: string | undefined, url: string | undefined): boolean {
-  if (typeof type === 'string' && (type.startsWith('video/') || type.startsWith('image/'))) {
-    return true;
-  }
-
-  if (!url) {
-    return false;
-  }
-
-  return /\.(mp4|mov|webm|m4v|png|jpe?g|webp|gif|avif)(\?.*)?$/i.test(url);
-}
 
 export function buildVideoEditorLightboxMedia(
   assetKey: string | null,
@@ -84,7 +76,9 @@ function InnerProvider({
     effectResources.effects,
   );
   const { editor, chrome, playback } = useTimelineState();
+  const { shots } = useShots();
   const [lightboxAssetKey, setLightboxAssetKey] = useState<string | null>(null);
+  const [lightboxClipId, setLightboxClipId] = useState<string | null>(null);
   const lightboxAsset = lightboxAssetKey ? editor.resolvedConfig?.registry[lightboxAssetKey] : undefined;
   const lightboxFallbackMedia = useMemo(
     () => buildVideoEditorLightboxMedia(lightboxAssetKey, lightboxAsset),
@@ -111,15 +105,27 @@ function InnerProvider({
 
     log('[video-editor] lightbox query returned no data; clearing asset key', {
       assetKey: lightboxAssetKey,
+      clipId: lightboxClipId,
       generationId: lightboxGenerationId,
     });
     setLightboxAssetKey(null);
-  }, [lightboxAssetKey, lightboxFallbackMedia, lightboxGenerationId, lightboxQuery.data, lightboxQuery.isLoading]);
+    setLightboxClipId(null);
+  }, [lightboxAssetKey, lightboxClipId, lightboxFallbackMedia, lightboxGenerationId, lightboxQuery.data, lightboxQuery.isLoading]);
 
-  const onDoubleClickAsset = useCallback((assetKey: string) => {
+  const navResult = useVideoEditorLightboxNavigation({
+    lightboxAssetKey,
+    lightboxClipId,
+    data: editor.data,
+    shots,
+    setLightboxAssetKey,
+    setLightboxClipId,
+  });
+
+  const onDoubleClickAsset = useCallback((assetKey: string, clipId?: string) => {
     const asset = editor.resolvedConfig?.registry[assetKey];
     log('[video-editor] onDoubleClickAsset', {
       assetKey,
+      clipId: clipId ?? null,
       hasAsset: Boolean(asset),
       generationId: asset?.generationId ?? null,
       file: asset?.file ?? null,
@@ -129,6 +135,7 @@ function InnerProvider({
       return;
     }
 
+    setLightboxClipId(clipId ?? null);
     setLightboxAssetKey(assetKey);
   }, [editor.resolvedConfig]);
 
@@ -139,6 +146,7 @@ function InnerProvider({
 
     log('[video-editor] lightbox state', {
       assetKey: lightboxAssetKey,
+      clipId: lightboxClipId,
       generationId: lightboxGenerationId,
       isLoading: lightboxQuery.isLoading,
       hasData: Boolean(lightboxQuery.data),
@@ -147,7 +155,7 @@ function InnerProvider({
       mediaType: lightboxQuery.data?.type ?? null,
       mediaLocation: lightboxQuery.data?.location ?? null,
     });
-  }, [lightboxAssetKey, lightboxFallbackMedia, lightboxGenerationId, lightboxQuery.data, lightboxQuery.isLoading]);
+  }, [lightboxAssetKey, lightboxClipId, lightboxFallbackMedia, lightboxGenerationId, lightboxQuery.data, lightboxQuery.isLoading]);
 
   const editorData = useMemo<TimelineEditorDataContextValue>(() => ({
     data: editor.data,
@@ -239,6 +247,7 @@ function InnerProvider({
     uploadFiles: editor.uploadFiles,
     applyEdit: editor.applyEdit,
     patchRegistry: editor.patchRegistry,
+    unpatchRegistry: editor.unpatchRegistry,
     registerAsset: editor.registerAsset,
     onDoubleClickAsset,
     setLightboxAssetKey,
@@ -253,12 +262,19 @@ function InnerProvider({
           <TimelinePlaybackContextProvider value={playback}>
             {children}
             {lightboxAssetKey && resolvedLightboxMedia && (
-              <MediaLightbox
-                media={resolvedLightboxMedia}
-                initialVariantId={lightboxAsset?.variantId ?? resolvedLightboxMedia.primary_variant_id ?? undefined}
-                onClose={() => setLightboxAssetKey(null)}
-                features={{ showDownload: true, showTaskDetails: true }}
-              />
+              <>
+                <MediaLightbox
+                  media={resolvedLightboxMedia}
+                  navigation={navResult.navigation}
+                  initialVariantId={lightboxAsset?.variantId ?? resolvedLightboxMedia.primary_variant_id ?? undefined}
+                  onClose={() => {
+                    setLightboxAssetKey(null);
+                    setLightboxClipId(null);
+                  }}
+                  features={{ showDownload: true, showTaskDetails: true }}
+                />
+                {navResult.indicator ? <VideoEditorLightboxOverlay indicator={navResult.indicator} /> : null}
+              </>
             )}
           </TimelinePlaybackContextProvider>
         </TimelineChromeContextProvider>

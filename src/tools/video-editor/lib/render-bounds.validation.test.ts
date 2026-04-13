@@ -35,7 +35,6 @@ const roundTripConfig = (config: TimelineConfig): TimelineConfig => {
     config.output,
     clipOrder,
     tracks,
-    config.customEffects,
     config.pinnedShotGroups,
   );
 };

@@ -93,7 +93,6 @@ describe('repairConfig — legacy pinnedShotGroups migration', () => {
       repaired.output,
       clipOrder,
       repaired.tracks ?? [],
-      repaired.customEffects,
       repaired.pinnedShotGroups,
     );
 

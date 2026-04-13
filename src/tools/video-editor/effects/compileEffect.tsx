@@ -18,25 +18,8 @@ async function getTransform() {
   return transformSync;
 }
 
-const CompileErrorEffect: FC<EffectComponentProps & { error: string }> = ({ children, error }) => {
-  return (
-    <AbsoluteFill style={{ width: '100%', height: '100%' }}>
-      {children}
-      <AbsoluteFill
-        style={{
-          background: 'rgba(120, 0, 0, 0.85)',
-          color: '#fff',
-          fontFamily: 'monospace',
-          fontSize: 20,
-          padding: 24,
-          whiteSpace: 'pre-wrap',
-          overflow: 'hidden',
-        }}
-      >
-        {error}
-      </AbsoluteFill>
-    </AbsoluteFill>
-  );
+const CompileErrorEffect: FC<EffectComponentProps & { error: string }> = ({ children }) => {
+  return <>{children}</>;
 };
 
 function createFailedEffect(message: string): FC<EffectComponentProps> {

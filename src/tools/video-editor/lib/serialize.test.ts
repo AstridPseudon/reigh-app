@@ -44,14 +44,9 @@ describe('video-editor serialization', () => {
       },
     } as unknown as ResolvedTimelineConfig;
 
-    const serialized = serializeForDisk(resolved, {
-      glow: { code: 'export default function Effect(){ return null; }', category: 'continuous' },
-    });
+    const serialized = serializeForDisk(resolved);
 
     expect(serialized.output.background_scale).toBe(1);
-    expect(serialized.customEffects).toEqual({
-      glow: { code: 'export default function Effect(){ return null; }', category: 'continuous' },
-    });
     expect(serialized.clips[0]).not.toHaveProperty('assetEntry');
     expect(serialized.clips[0]).not.toHaveProperty('extra');
     expect(serialized.tracks?.[0]).not.toHaveProperty('extra');
@@ -108,7 +103,7 @@ describe('video-editor serialization', () => {
       },
     ];
 
-    const serialized = serializeForDisk(resolved, undefined, pinnedShotGroups);
+    const serialized = serializeForDisk(resolved, pinnedShotGroups);
 
     expect(() => validateSerializedConfig(serialized)).not.toThrow();
     expect(serialized.pinnedShotGroups).toEqual(pinnedShotGroups);
@@ -191,7 +186,7 @@ describe('video-editor serialization', () => {
       tracks: repaired.tracks ?? [],
       clips: repaired.clips,
       registry: {},
-    } as unknown as ResolvedTimelineConfig, undefined, repaired.pinnedShotGroups);
+    } as unknown as ResolvedTimelineConfig, repaired.pinnedShotGroups);
 
     expect(() => validateSerializedConfig(serialized)).not.toThrow();
     expect(serialized.pinnedShotGroups).toEqual(repaired.pinnedShotGroups);

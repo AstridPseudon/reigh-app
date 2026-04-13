@@ -250,49 +250,60 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
           )}
 
           {/* Model Selector + LoRA Selector - Shown for non-img2img/upscale edit modes */}
-          {editMode !== 'img2img' && editMode !== 'upscale' && editLoraManager && (
-            <div className={generationsSpacing}>
-              <SectionLabel>Model & LoRAs</SectionLabel>
-              <div className={cn("flex items-center gap-2", isMobile ? "mb-1" : "mb-2")}>
-                {/* Model Selector (40% width) */}
-                {setQwenEditModel && (
-                  <Select value={qwenEditModel} onValueChange={(value) => value && setQwenEditModel(value)}>
-                    <SelectTrigger variant="retro" className={cn("w-[40%]", isMobile ? "h-7 text-xs" : "h-10")}>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent variant="retro" className="z-[100001]">
-                      <SelectItem variant="retro" value="qwen-edit">Qwen-Edit</SelectItem>
-                      <SelectItem variant="retro" value="qwen-edit-2509">Qwen-Edit-2509</SelectItem>
-                      <SelectItem variant="retro" value="qwen-edit-2511">Qwen-Edit-2511</SelectItem>
-                    </SelectContent>
-                  </Select>
-                )}
-                {/* LoRA button (40% width) */}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => editLoraManager.setIsLoraModalOpen(true)}
-                  className={cn("w-[40%] h-10 px-2 text-xs flex items-center justify-center gap-1", isMobile && "h-6 text-[10px]")}
-                >
-                  <Plus className={cn(isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
-                  <span>LoRA</span>
-                </Button>
-                {/* 20% empty space is implicit from the remaining width */}
-              </div>
+          {editMode !== 'img2img' && editMode !== 'upscale' && (editLoraManager || setQwenEditModel) && (() => {
+            const isKleinModel = qwenEditModel?.startsWith('flux-klein-');
+            return (
+              <div className={generationsSpacing}>
+                <SectionLabel>{isKleinModel ? 'Model' : 'Model & LoRAs'}</SectionLabel>
+                <div className={cn("flex items-center gap-2", isMobile ? "mb-1" : "mb-2")}>
+                  {/* Model Selector (40% width) */}
+                  {setQwenEditModel && (
+                    <Select value={qwenEditModel} onValueChange={(value) => value && setQwenEditModel(value)}>
+                      <SelectTrigger variant="retro" className={cn("w-[40%]", isMobile ? "h-7 text-xs" : "h-10")}>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent variant="retro" className="z-[100001]">
+                        <SelectItem variant="retro" value="qwen-edit">Qwen-Edit</SelectItem>
+                        <SelectItem variant="retro" value="qwen-edit-2509">Qwen-Edit-2509</SelectItem>
+                        <SelectItem variant="retro" value="qwen-edit-2511">Qwen-Edit-2511</SelectItem>
+                        {isCloudMode && (
+                          <>
+                            <SelectItem variant="retro" value="flux-klein-4b">Klein 4B</SelectItem>
+                            <SelectItem variant="retro" value="flux-klein-9b">Klein 9B</SelectItem>
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
+                  )}
+                  {/* LoRA button (40% width) - hidden for Klein models */}
+                  {editLoraManager && !isKleinModel && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => editLoraManager.setIsLoraModalOpen(true)}
+                      className={cn("w-[40%] h-10 px-2 text-xs flex items-center justify-center gap-1", isMobile && "h-6 text-[10px]")}
+                    >
+                      <Plus className={cn(isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
+                      <span>LoRA</span>
+                    </Button>
+                  )}
+                  {/* 20% empty space is implicit from the remaining width */}
+                </div>
 
-              {/* Display selected LoRAs */}
-              {editLoraManager.selectedLoras.length > 0 && (
-                <ActiveLoRAsDisplay
-                  selectedLoras={editLoraManager.selectedLoras}
-                  onRemoveLora={editLoraManager.handleRemoveLora}
-                  onLoraStrengthChange={editLoraManager.handleLoraStrengthChange}
-                  isGenerating={isGeneratingInpaint || isCreatingMagicEditTasks}
-                  availableLoras={availableLoras}
-                  className={isMobile ? "mt-1" : "mt-2"}
-                />
-              )}
-            </div>
-          )}
+                {/* Display selected LoRAs - hidden for Klein models */}
+                {editLoraManager && !isKleinModel && editLoraManager.selectedLoras.length > 0 && (
+                  <ActiveLoRAsDisplay
+                    selectedLoras={editLoraManager.selectedLoras}
+                    onRemoveLora={editLoraManager.handleRemoveLora}
+                    onLoraStrengthChange={editLoraManager.handleLoraStrengthChange}
+                    isGenerating={isGeneratingInpaint || isCreatingMagicEditTasks}
+                    availableLoras={availableLoras}
+                    className={isMobile ? "mt-1" : "mt-2"}
+                  />
+                )}
+              </div>
+            );
+          })()}
 
           {/* Upscale Mode - Shows ImageUpscaleForm */}
           {editMode === 'upscale' && handleUpscale && (
@@ -304,8 +315,8 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
             />
           )}
 
-          {/* Legacy LoRA Selector - Fallback for when editLoraManager is not provided */}
-          {editMode !== 'img2img' && editMode !== 'upscale' && !editLoraManager && (
+          {/* Legacy LoRA Selector - Fallback for when editLoraManager is not provided (hidden for Klein models) */}
+          {editMode !== 'img2img' && editMode !== 'upscale' && !editLoraManager && !qwenEditModel?.startsWith('flux-klein-') && (
           <div>
             <SectionLabel>Style LoRA</SectionLabel>
             <div className="flex items-center gap-2">
@@ -356,8 +367,8 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
           </div>
           )}
 
-          {/* Advanced Settings - shown for edit modes that support hires fix (not img2img/upscale) */}
-          {advancedSettings && setAdvancedSettings && editMode !== 'img2img' && editMode !== 'upscale' && !isMobile && (
+          {/* Advanced Settings - shown for edit modes that support hires fix (not img2img/upscale/Klein) */}
+          {advancedSettings && setAdvancedSettings && editMode !== 'img2img' && editMode !== 'upscale' && !qwenEditModel?.startsWith('flux-klein-') && !isMobile && (
             <EditAdvancedSettings
               settings={advancedSettings}
               onSettingsChange={setAdvancedSettings}

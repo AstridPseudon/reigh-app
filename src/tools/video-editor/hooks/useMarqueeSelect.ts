@@ -19,7 +19,6 @@ export interface MarqueeRect {
 
 interface UseMarqueeSelectArgs {
   editAreaRef: MutableRefObject<HTMLElement | null>;
-  dragSessionRef: MutableRefObject<unknown>;
   deviceClass: TimelineDeviceClass;
   interactionMode: TimelineInteractionMode;
   gestureOwner: TimelineGestureOwner;
@@ -59,7 +58,6 @@ const intersects = (
 
 export function useMarqueeSelect({
   editAreaRef,
-  dragSessionRef,
   deviceClass,
   interactionMode,
   gestureOwner,
@@ -99,7 +97,7 @@ export function useMarqueeSelect({
   }, [setGestureOwner]);
 
   const onPointerDown = useCallback((event: ReactPointerEvent<HTMLElement>) => {
-    if (event.button !== 0 || dragSessionRef.current) {
+    if (event.button !== 0) {
       return;
     }
 
@@ -163,7 +161,7 @@ export function useMarqueeSelect({
         return;
       }
 
-      if (dragSessionRef.current) {
+      if (gestureOwnerRef.current === 'clip') {
         clearSession(session);
         return;
       }
@@ -197,14 +195,14 @@ export function useMarqueeSelect({
         return;
       }
 
-      if (session.hasMoved && !dragSessionRef.current) {
+      if (session.hasMoved) {
         const clipIds = intersectedClipIdsRef.current;
         if (session.additive) {
           addToSelection(clipIds);
         } else {
           selectClips(clipIds);
         }
-      } else if (!session.hasMoved && !session.additive && !dragSessionRef.current) {
+      } else if (!session.additive) {
         // Only clear selection if the pointer-up landed inside the edit area.
         // Portal menus (context menus, lightboxes) live outside the edit area DOM,
         // so a pointer-up there should not be treated as "click on empty timeline".
@@ -248,7 +246,6 @@ export function useMarqueeSelect({
     clearSelection,
     clearSession,
     deviceClass,
-    dragSessionRef,
     editAreaRef,
     interactionMode,
     selectClips,

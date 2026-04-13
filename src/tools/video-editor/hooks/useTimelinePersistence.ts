@@ -8,7 +8,7 @@ import {
   type DataProvider,
 } from '@/tools/video-editor/data/DataProvider';
 import { buildTimelineData, type TimelineData } from '@/tools/video-editor/lib/timeline-data';
-import type { TimelineConfig } from '@/tools/video-editor/types';
+import type { AssetRegistry, TimelineConfig } from '@/tools/video-editor/types';
 import type { CommitDataOptions, ScheduleSaveFn } from '@/tools/video-editor/hooks/useTimelineCommit';
 
 export type SaveStatus = 'saved' | 'saving' | 'dirty' | 'error';
@@ -91,18 +91,32 @@ export function useTimelinePersistence({
   }, []);
 
   const saveMutation = useMutation({
-    mutationFn: ({ config, expectedVersion }: { config: TimelineConfig; expectedVersion: number }) => {
-      return provider.saveTimeline(timelineId, config, expectedVersion);
+    mutationFn: ({
+      config,
+      expectedVersion,
+      registry,
+    }: {
+      config: TimelineConfig;
+      expectedVersion: number;
+      registry?: AssetRegistry;
+    }) => {
+      return provider.saveTimeline(timelineId, config, expectedVersion, registry);
     },
     retry: false,
   });
 
   const loadConflictRetryVersion = useCallback(async (): Promise<number> => {
-    const loaded = await provider.loadTimeline(timelineId);
+    const [loaded, registry] = await Promise.all([
+      provider.loadTimeline(timelineId),
+      provider.loadAssetRegistry(timelineId),
+    ]);
     logConfigVersionUpdate('conflict-retry', loaded.configVersion);
     configVersionRef.current = loaded.configVersion;
+    if (dataRef.current) {
+      dataRef.current = { ...dataRef.current, registry };
+    }
     return loaded.configVersion;
-  }, [configVersionRef, logConfigVersionUpdate, provider, timelineId]);
+  }, [configVersionRef, dataRef, logConfigVersionUpdate, provider, timelineId]);
 
   const doSave = useCallback(async (
     nextData: TimelineData,
@@ -130,6 +144,7 @@ export function useTimelinePersistence({
         {
           config: nextData.config,
           expectedVersion,
+          registry: nextData.registry,
         },
         {
           onSuccess: (nextVersion) => {
@@ -298,6 +313,11 @@ export function useTimelinePersistence({
 
     if (saveTimer.current) {
       clearTimeout(saveTimer.current);
+    }
+
+    if (isSavingRef.current) {
+      pendingSaveRef.current = { data: nextData, seq: editSeqRef.current };
+      return;
     }
 
     saveTimer.current = setTimeout(() => {

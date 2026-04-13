@@ -320,114 +320,7 @@ afterEach(() => {
 });
 
 describe('useClipDrag', () => {
-  it('increments on pointerdown and returns pendingOpsRef to 0 on pointerup', () => {
-    const pendingOpsRef = { current: 0 };
-    const { clip, wrapper, cleanup } = setupDom();
-    const timelineWrapperRef = { current: wrapper };
-    const dataRef = { current: makeData() };
-
-    try {
-      renderHook(() => useClipDrag({
-        timelineWrapperRef,
-        dataRef,
-        pendingOpsRef,
-        deviceClass: 'desktop',
-        interactionMode: 'select',
-        gestureOwner: 'none',
-        setGestureOwner: vi.fn(),
-        setInputModalityFromPointerType: vi.fn(() => 'mouse'),
-        moveClipToRow: vi.fn(),
-        createTrackAndMoveClip: vi.fn(),
-        selectClip: vi.fn(),
-        selectClips: vi.fn(),
-        selectedClipIdsRef: { current: new Set<string>() },
-        additiveSelectionRef: { current: false },
-        applyEdit: vi.fn(),
-        coordinator: makeCoordinator(),
-        rowHeight: 48,
-        scale: 1,
-        scaleWidth: 100,
-        startLeft: 0,
-      }));
-
-      act(() => {
-        fireEvent.pointerDown(clip, {
-          button: 0,
-          pointerId: 1,
-          clientX: 24,
-          clientY: 12,
-        });
-      });
-      expect(pendingOpsRef.current).toBe(1);
-
-      act(() => {
-        fireEvent.pointerUp(window, {
-          pointerId: 1,
-          clientX: 24,
-          clientY: 12,
-        });
-      });
-      expect(pendingOpsRef.current).toBe(0);
-    } finally {
-      cleanup();
-    }
-  });
-
-  it('returns pendingOpsRef to 0 on pointercancel', () => {
-    const pendingOpsRef = { current: 0 };
-    const { clip, wrapper, cleanup } = setupDom();
-    const timelineWrapperRef = { current: wrapper };
-    const dataRef = { current: makeData() };
-
-    try {
-      renderHook(() => useClipDrag({
-        timelineWrapperRef,
-        dataRef,
-        pendingOpsRef,
-        deviceClass: 'desktop',
-        interactionMode: 'select',
-        gestureOwner: 'none',
-        setGestureOwner: vi.fn(),
-        setInputModalityFromPointerType: vi.fn(() => 'mouse'),
-        moveClipToRow: vi.fn(),
-        createTrackAndMoveClip: vi.fn(),
-        selectClip: vi.fn(),
-        selectClips: vi.fn(),
-        selectedClipIdsRef: { current: new Set<string>() },
-        additiveSelectionRef: { current: false },
-        applyEdit: vi.fn(),
-        coordinator: makeCoordinator(),
-        rowHeight: 48,
-        scale: 1,
-        scaleWidth: 100,
-        startLeft: 0,
-      }));
-
-      act(() => {
-        fireEvent.pointerDown(clip, {
-          button: 0,
-          pointerId: 2,
-          clientX: 24,
-          clientY: 12,
-        });
-      });
-      expect(pendingOpsRef.current).toBe(1);
-
-      act(() => {
-        fireEvent.pointerCancel(window, {
-          pointerId: 2,
-          clientX: 24,
-          clientY: 12,
-        });
-      });
-      expect(pendingOpsRef.current).toBe(0);
-    } finally {
-      cleanup();
-    }
-  });
-
   it('toggles interactionStateRef.drag only after the drag threshold is crossed', () => {
-    const pendingOpsRef = { current: 0 };
     const interactionStateRef = { current: createInteractionState() };
     const { clip, wrapper, cleanup } = setupDom();
     const timelineWrapperRef = { current: wrapper };
@@ -437,7 +330,7 @@ describe('useClipDrag', () => {
       renderHook(() => useClipDrag({
         timelineWrapperRef,
         dataRef,
-        pendingOpsRef,
+
         interactionStateRef,
         deviceClass: 'desktop',
         interactionMode: 'select',
@@ -504,7 +397,7 @@ describe('useClipDrag', () => {
   });
 
   it('toggles touch selection in select mode without desktop modifier keys', () => {
-    const pendingOpsRef = { current: 0 };
+
     const selectClip = vi.fn();
     const { clip, wrapper, cleanup } = setupDom();
     const timelineWrapperRef = { current: wrapper };
@@ -514,7 +407,7 @@ describe('useClipDrag', () => {
       renderHook(() => useClipDrag({
         timelineWrapperRef,
         dataRef,
-        pendingOpsRef,
+
         deviceClass: 'phone',
         interactionMode: 'select',
         gestureOwner: 'none',
@@ -559,7 +452,7 @@ describe('useClipDrag', () => {
   });
 
   it('preserves additive touch selection on move-mode taps that do not start a drag', () => {
-    const pendingOpsRef = { current: 0 };
+
     const selectClip = vi.fn();
     const { clip, wrapper, cleanup } = setupDom();
     const timelineWrapperRef = { current: wrapper };
@@ -569,7 +462,7 @@ describe('useClipDrag', () => {
       renderHook(() => useClipDrag({
         timelineWrapperRef,
         dataRef,
-        pendingOpsRef,
+
         deviceClass: 'phone',
         interactionMode: 'move',
         gestureOwner: 'none',
@@ -614,7 +507,7 @@ describe('useClipDrag', () => {
   });
 
   it('keeps tablet touch select-mode drags dormant while tablet mouse still follows desktop drag behavior', () => {
-    const touchPendingOpsRef = { current: 0 };
+
     const touchInteractionStateRef = { current: createInteractionState() };
     const touchSetGestureOwner = vi.fn();
     const touchDom = setupDom();
@@ -625,7 +518,7 @@ describe('useClipDrag', () => {
       renderHook(() => useClipDrag({
         timelineWrapperRef: touchTimelineWrapperRef,
         dataRef: touchDataRef,
-        pendingOpsRef: touchPendingOpsRef,
+
         interactionStateRef: touchInteractionStateRef,
         deviceClass: 'tablet',
         interactionMode: 'select',
@@ -677,12 +570,12 @@ describe('useClipDrag', () => {
         });
       });
 
-      expect(touchPendingOpsRef.current).toBe(0);
+
     } finally {
       touchDom.cleanup();
     }
 
-    const mousePendingOpsRef = { current: 0 };
+
     const mouseInteractionStateRef = { current: createInteractionState() };
     const mouseSetGestureOwner = vi.fn();
     const mouseDom = setupDom();
@@ -693,7 +586,7 @@ describe('useClipDrag', () => {
       renderHook(() => useClipDrag({
         timelineWrapperRef: mouseTimelineWrapperRef,
         dataRef: mouseDataRef,
-        pendingOpsRef: mousePendingOpsRef,
+
         interactionStateRef: mouseInteractionStateRef,
         deviceClass: 'tablet',
         interactionMode: 'select',
@@ -746,14 +639,14 @@ describe('useClipDrag', () => {
       });
 
       expect(mouseInteractionStateRef.current.drag).toBe(false);
-      expect(mousePendingOpsRef.current).toBe(0);
+
     } finally {
       mouseDom.cleanup();
     }
   });
 
   it('arms tablet touch clip dragging in move mode only after the drag threshold is crossed', () => {
-    const pendingOpsRef = { current: 0 };
+
     const interactionStateRef = { current: createInteractionState() };
     const setGestureOwner = vi.fn();
     const { clip, wrapper, cleanup } = setupDom();
@@ -764,7 +657,7 @@ describe('useClipDrag', () => {
       renderHook(() => useClipDrag({
         timelineWrapperRef,
         dataRef,
-        pendingOpsRef,
+
         interactionStateRef,
         deviceClass: 'tablet',
         interactionMode: 'move',
@@ -829,14 +722,14 @@ describe('useClipDrag', () => {
       });
 
       expect(interactionStateRef.current.drag).toBe(false);
-      expect(pendingOpsRef.current).toBe(0);
+
     } finally {
       cleanup();
     }
   });
 
   it('commits a config edit when a free multi-clip drag drops onto a new bottom track', () => {
-    const pendingOpsRef = { current: 0 };
+
     const applyEdit = vi.fn();
     const selectClips = vi.fn();
     const coordinator = makeCoordinator({
@@ -865,7 +758,7 @@ describe('useClipDrag', () => {
       renderHook(() => useClipDrag({
         timelineWrapperRef,
         dataRef,
-        pendingOpsRef,
+
         deviceClass: 'desktop',
         interactionMode: 'select',
         gestureOwner: 'none',
@@ -922,14 +815,14 @@ describe('useClipDrag', () => {
       expect(edit.pinnedShotGroupsOverride).toBeUndefined();
       expect(selectClips).toHaveBeenCalledWith(['clip-2', 'clip-1']);
       expect(coordinator.showSecondaryGhosts).toHaveBeenCalled();
-      expect(pendingOpsRef.current).toBe(0);
+
     } finally {
       cleanup();
     }
   });
 
   it('drags only the clicked clip when a stale multi-selection was not built additively', () => {
-    const pendingOpsRef = { current: 0 };
+
     const { clip, wrapper, cleanup } = setupDom('clip-2', 'V2');
     const timelineWrapperRef = { current: wrapper };
     const dataRef = { current: makeMultiClipData() };
@@ -938,7 +831,7 @@ describe('useClipDrag', () => {
       const { result } = renderHook(() => useClipDrag({
         timelineWrapperRef,
         dataRef,
-        pendingOpsRef,
+
         deviceClass: 'desktop',
         interactionMode: 'select',
         gestureOwner: 'none',
@@ -976,7 +869,7 @@ describe('useClipDrag', () => {
   });
 
   it('records a group drag entry when pointerdown starts on a pinned-group member', () => {
-    const pendingOpsRef = { current: 0 };
+
     const { clip, wrapper, cleanup } = setupDom('clip-1', 'V1');
     const timelineWrapperRef = { current: wrapper };
     const dataRef = { current: makePinnedGroupData() };
@@ -985,7 +878,7 @@ describe('useClipDrag', () => {
       const { result } = renderHook(() => useClipDrag({
         timelineWrapperRef,
         dataRef,
-        pendingOpsRef,
+
         deviceClass: 'desktop',
         interactionMode: 'select',
         gestureOwner: 'none',
@@ -1029,7 +922,7 @@ describe('useClipDrag', () => {
   });
 
   it('drags only the clicked pinned group when a stale multi-selection was not built additively', () => {
-    const pendingOpsRef = { current: 0 };
+
     const { label, wrapper, cleanup } = setupPinnedGroupLabelDom('clip-1', 'V1');
     const timelineWrapperRef = { current: wrapper };
     const dataRef = { current: makePinnedGroupDataWithExtraSelection() };
@@ -1038,7 +931,7 @@ describe('useClipDrag', () => {
       const { result } = renderHook(() => useClipDrag({
         timelineWrapperRef,
         dataRef,
-        pendingOpsRef,
+
         deviceClass: 'desktop',
         interactionMode: 'select',
         gestureOwner: 'none',
@@ -1083,7 +976,7 @@ describe('useClipDrag', () => {
   });
 
   it('records a group drag entry when pointerdown starts on a pinned-group label', () => {
-    const pendingOpsRef = { current: 0 };
+
     const { label, wrapper, cleanup } = setupPinnedGroupLabelDom('clip-1', 'V1');
     const timelineWrapperRef = { current: wrapper };
     const dataRef = { current: makePinnedGroupData() };
@@ -1092,7 +985,7 @@ describe('useClipDrag', () => {
       const { result } = renderHook(() => useClipDrag({
         timelineWrapperRef,
         dataRef,
-        pendingOpsRef,
+
         deviceClass: 'desktop',
         interactionMode: 'select',
         gestureOwner: 'none',
@@ -1137,7 +1030,7 @@ describe('useClipDrag', () => {
   });
 
   it('adjusts label-start drags downward into the associated clip row before updating the coordinator', () => {
-    const pendingOpsRef = { current: 0 };
+
     const coordinator = makeCoordinator();
     const { label, wrapper, cleanup } = setupPinnedGroupLabelDom('clip-1', 'V1');
     const timelineWrapperRef = { current: wrapper };
@@ -1147,7 +1040,7 @@ describe('useClipDrag', () => {
       renderHook(() => useClipDrag({
         timelineWrapperRef,
         dataRef,
-        pendingOpsRef,
+
         deviceClass: 'desktop',
         interactionMode: 'select',
         gestureOwner: 'none',
@@ -1194,7 +1087,7 @@ describe('useClipDrag', () => {
   });
 
   it('updates pinnedShotGroupsOverride when a pinned group is dragged across tracks', () => {
-    const pendingOpsRef = { current: 0 };
+
     const applyEdit = vi.fn();
     const selectClips = vi.fn();
     const coordinator = makeCoordinator({
@@ -1220,7 +1113,7 @@ describe('useClipDrag', () => {
       renderHook(() => useClipDrag({
         timelineWrapperRef,
         dataRef,
-        pendingOpsRef,
+
         deviceClass: 'desktop',
         interactionMode: 'select',
         gestureOwner: 'none',
@@ -1305,7 +1198,7 @@ describe('useClipDrag', () => {
   });
 
   it('updates pinnedShotGroupsOverride when a pinned group is dragged onto a new track', () => {
-    const pendingOpsRef = { current: 0 };
+
     const applyEdit = vi.fn();
     const coordinator = makeCoordinator({
       time: 3,
@@ -1333,7 +1226,7 @@ describe('useClipDrag', () => {
       renderHook(() => useClipDrag({
         timelineWrapperRef,
         dataRef,
-        pendingOpsRef,
+
         deviceClass: 'desktop',
         interactionMode: 'select',
         gestureOwner: 'none',

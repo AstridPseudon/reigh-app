@@ -444,12 +444,6 @@ describe('timeline save utils regression coverage', () => {
       output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
       tracks: [makeTrack('V1')],
       clips: [{ id: 'clip-1', at: 0, track: 'V1', clipType: 'hold', asset: 'asset-1', hold: 2 }],
-      customEffects: {
-        zoom: {
-          category: 'entrance',
-          code: 'return frame;',
-        },
-      },
     };
     const registryA: AssetRegistry = {
       assets: {

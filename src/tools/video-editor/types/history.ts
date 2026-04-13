@@ -1,7 +1,8 @@
-import type { TimelineConfig } from './index';
+import type { AssetRegistry, TimelineConfig } from './index';
 
 export type UndoSnapshot = {
   config: TimelineConfig;
+  registry?: AssetRegistry;
   signature: string;
 };
 

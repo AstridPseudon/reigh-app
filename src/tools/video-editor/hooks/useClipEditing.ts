@@ -2,23 +2,11 @@ import { useCallback, useLayoutEffect, useRef } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import {
-  detachAudioFromVideo,
-  getVisualTracks,
-  splitClipAtPlayhead,
-  updateClipInConfig,
-} from '@/tools/video-editor/lib/editor-utils';
-import {
   patchAffectsDuration,
   recalcActionEnd,
-  splitIntersectingClipsAtPlayhead,
 } from '@/tools/video-editor/lib/clip-editing-utils';
-import {
-  updateClipOrder,
-} from '@/tools/video-editor/lib/coordinate-utils';
 import { findEnclosingPinnedGroup } from '@/tools/video-editor/lib/pinned-group-projection';
-import { resolveOverlaps } from '@/tools/video-editor/lib/resolve-overlaps';
 import {
-  getNextClipId,
   type ClipMeta,
   type TimelineData,
 } from '@/tools/video-editor/lib/timeline-data';
@@ -27,11 +15,15 @@ import type {
   TimelineApplyEdit,
   TimelineSelectedTrack,
 } from '@/tools/video-editor/hooks/timeline-state-types';
-import type { TimelineAction } from '@/tools/video-editor/types/timeline-canvas';
-
-type DeleteClipOptions = {
-  allowPinnedGroupDelete?: boolean;
-};
+import {
+  useClipAudioManagement,
+  useClipDeletion,
+  useClipPositioning,
+  useClipSplitting,
+  useClipTextOverlay,
+} from './clip-editing';
+import type { ClipEditingContext } from './clip-editing';
+import type { DeleteClipOptions } from './clip-editing/types';
 
 export interface UseClipEditingArgs {
   dataRef: MutableRefObject<TimelineData | null>;
@@ -64,6 +56,7 @@ export interface UseClipEditingResult {
 }
 
 export { DURATION_KEYS, patchAffectsDuration, recalcActionEnd } from '@/tools/video-editor/lib/clip-editing-utils';
+export type { DeleteClipOptions } from './clip-editing/types';
 
 const PINNED_GROUP_EDIT_MESSAGE = 'Use Delete shot from the shot menu';
 
@@ -238,34 +231,6 @@ export function useClipEditing({
     applyRowsEdit(current.rows, metaUpdates);
   }, [applyRowsEdit, dataRef, getValidClipIds]);
 
-  const handleDeleteClips = useCallback((clipIds: string[], options?: DeleteClipOptions) => {
-    const current = dataRef.current;
-    if (!current) {
-      return;
-    }
-
-    const validClipIds = getValidClipIds(clipIds);
-    const clipIdSet = new Set(validClipIds);
-    if (clipIdSet.size === 0) {
-      return;
-    }
-
-    if (!options?.allowPinnedGroupDelete && validClipIds.some((clipId) => isPinnedGroupMember(clipId))) {
-      notifyPinnedGroupEditBlocked();
-      return;
-    }
-
-    const nextRows = current.rows.map((row) => ({
-      ...row,
-      actions: row.actions.filter((action) => !clipIdSet.has(action.id)),
-    }));
-    applyRowsEdit(nextRows, undefined, [...clipIdSet], undefined, { semantic: true });
-  }, [applyRowsEdit, dataRef, getValidClipIds, isPinnedGroupMember, notifyPinnedGroupEditBlocked]);
-
-  const handleDeleteClip = useCallback((clipId: string, options?: DeleteClipOptions) => {
-    handleDeleteClips([clipId], options);
-  }, [handleDeleteClips]);
-
   const handleSelectedClipChange = useCallback((patch: Partial<ClipMeta> & { at?: number }) => {
     const current = dataRef.current;
     if (!current || !selectedClipId) {
@@ -316,282 +281,36 @@ export function useClipEditing({
     applyRowsEdit(nextRows, { [selectedClipId]: metaPatch });
   }, [applyRowsEdit, dataRef, selectedClipId]);
 
-  const handleResetClipPosition = useCallback(() => {
-    if (!selectedClipId || !resolvedConfig) {
-      return;
-    }
+  const clipEditingContext: ClipEditingContext = {
+    dataRef,
+    resolvedConfig,
+    selectedClipId,
+    selectedTrack,
+    currentTimeRef,
+    applyRowsEdit,
+    applyConfigEdit,
+    isPinnedGroupMember,
+    notifyPinnedGroupEditBlocked,
+    getValidClipIds,
+    setSelectedClipId,
+    setSelectedTrackId,
+  };
 
-    const nextConfig = updateClipInConfig(resolvedConfig, selectedClipId, (clip) => ({
-      ...clip,
-      x: undefined,
-      y: undefined,
-      width: undefined,
-      height: undefined,
-      cropTop: undefined,
-      cropBottom: undefined,
-      cropLeft: undefined,
-      cropRight: undefined,
-    }));
-    applyConfigEdit(nextConfig, { selectedClipId });
-  }, [applyConfigEdit, resolvedConfig, selectedClipId]);
-
-  const handleResetClipsPosition = useCallback((clipIds: string[]) => {
-    const current = dataRef.current;
-    if (!current) {
-      return;
-    }
-
-    const validClipIds = getValidClipIds(clipIds);
-    if (validClipIds.length === 0) {
-      return;
-    }
-
-    const metaUpdates = Object.fromEntries(
-      validClipIds.map((clipId) => [clipId, {
-        x: undefined,
-        y: undefined,
-        width: undefined,
-        height: undefined,
-        cropTop: undefined,
-        cropBottom: undefined,
-        cropLeft: undefined,
-        cropRight: undefined,
-      }]),
-    ) as Record<string, Partial<ClipMeta>>;
-
-    applyRowsEdit(current.rows, metaUpdates);
-  }, [applyRowsEdit, dataRef, getValidClipIds]);
-
-  const handleSplitSelectedClip = useCallback(() => {
-    if (!selectedClipId || !resolvedConfig) {
-      return;
-    }
-
-    if (isPinnedGroupMember(selectedClipId)) {
-      notifyPinnedGroupEditBlocked();
-      return;
-    }
-
-    const splitResult = splitClipAtPlayhead(resolvedConfig, selectedClipId, currentTimeRef.current);
-    if (!splitResult.nextSelectedClipId) {
-      return;
-    }
-
-    applyConfigEdit(splitResult.config, { selectedClipId: splitResult.nextSelectedClipId });
-  }, [applyConfigEdit, isPinnedGroupMember, notifyPinnedGroupEditBlocked, resolvedConfig, selectedClipId]);
-
-  const handleSplitClipAtTime = useCallback((clipId: string, timeSeconds: number) => {
-    if (!resolvedConfig) {
-      return;
-    }
-
-    if (isPinnedGroupMember(clipId)) {
-      notifyPinnedGroupEditBlocked();
-      return;
-    }
-
-    const splitResult = splitClipAtPlayhead(resolvedConfig, clipId, timeSeconds);
-    if (!splitResult.nextSelectedClipId) {
-      return;
-    }
-
-    applyConfigEdit(splitResult.config, { selectedClipId: splitResult.nextSelectedClipId });
-  }, [applyConfigEdit, isPinnedGroupMember, notifyPinnedGroupEditBlocked, resolvedConfig]);
-
-  const handleSplitClipsAtPlayhead = useCallback((clipIds: string[]) => {
-    const current = dataRef.current;
-    if (!current || !resolvedConfig) {
-      return;
-    }
-
-    const validClipIds = getValidClipIds(clipIds);
-    if (validClipIds.length === 0) {
-      return;
-    }
-
-    if (validClipIds.some((clipId) => isPinnedGroupMember(clipId))) {
-      notifyPinnedGroupEditBlocked();
-      return;
-    }
-
-    const { config: nextResolvedConfig, didSplit } = splitIntersectingClipsAtPlayhead(
-      resolvedConfig,
-      current.rows,
-      validClipIds,
-      currentTimeRef.current,
-    );
-    if (!didSplit) {
-      return;
-    }
-
-    applyConfigEdit(nextResolvedConfig);
-  }, [applyConfigEdit, dataRef, getValidClipIds, isPinnedGroupMember, notifyPinnedGroupEditBlocked, resolvedConfig]);
-
-  const handleToggleMuteClips = useCallback((clipIds: string[]) => {
-    const current = dataRef.current;
-    if (!current) {
-      return;
-    }
-
-    const validClipIds = getValidClipIds(clipIds);
-    if (validClipIds.length === 0) {
-      return;
-    }
-
-    const metaUpdates = Object.fromEntries(
-      validClipIds.map((clipId) => {
-        const volume = current.meta[clipId]?.volume ?? 1;
-        return [clipId, { volume: volume <= 0 ? 1 : 0 }];
-      }),
-    ) as Record<string, Partial<ClipMeta>>;
-
-    applyRowsEdit(current.rows, metaUpdates);
-  }, [applyRowsEdit, dataRef, getValidClipIds]);
-
-  const handleToggleMute = useCallback(() => {
-    if (!selectedClipId || !resolvedConfig) {
-      return;
-    }
-
-    handleToggleMuteClips([selectedClipId]);
-  }, [handleToggleMuteClips, resolvedConfig, selectedClipId]);
-
-  const handleDetachAudioClip = useCallback((clipId: string) => {
-    if (!resolvedConfig) {
-      return;
-    }
-
-    const nextConfig = detachAudioFromVideo(resolvedConfig, clipId);
-    if (nextConfig === resolvedConfig) {
-      return;
-    }
-
-    applyConfigEdit(nextConfig, { selectedClipId: clipId });
-  }, [applyConfigEdit, resolvedConfig]);
-
-  const handleAddText = useCallback(() => {
-    const current = dataRef.current;
-    if (!current) {
-      return;
-    }
-
-    const visualTrack = selectedTrack?.kind === 'visual'
-      ? selectedTrack
-      : getVisualTracks(current.resolvedConfig)[0];
-    if (!visualTrack) {
-      return;
-    }
-
-    const clipId = getNextClipId(current.meta);
-    const textDuration = 5;
-    const action: TimelineAction = {
-      id: clipId,
-      start: currentTimeRef.current,
-      end: currentTimeRef.current + textDuration,
-      effectId: `effect-${clipId}`,
-    };
-    const rowsWithClip = current.rows.map((row) => (
-      row.id === visualTrack.id
-        ? { ...row, actions: [...row.actions, action] }
-        : row
-    ));
-    // Resolve overlaps so the text clip doesn't land on top of existing clips
-    const { rows: nextRows, metaPatches, adjustments: _adjustments } = resolveOverlaps(
-      rowsWithClip, visualTrack.id, clipId, current.meta,
-    );
-    const nextClipOrder = updateClipOrder(current.clipOrder, visualTrack.id, (ids) => [...ids, clipId]);
-    applyRowsEdit(nextRows, {
-      ...metaPatches,
-      [clipId]: {
-        track: visualTrack.id,
-        clipType: 'text',
-        text: {
-          content: 'Double-click to edit',
-          fontSize: 64,
-          color: '#ffffff',
-          align: 'center',
-        },
-        x: 120,
-        y: 120,
-        width: 640,
-        height: 180,
-        opacity: 1,
-      },
-    }, undefined, nextClipOrder);
-    setSelectedClipId(clipId);
-    setSelectedTrackId(visualTrack.id);
-  }, [applyRowsEdit, dataRef, selectedTrack, setSelectedClipId, setSelectedTrackId]);
-
-  const handleAddTextAt = useCallback((trackId: string, time: number) => {
-    const current = dataRef.current;
-    if (!current) {
-      return;
-    }
-
-    // Ensure the target track is visual; fall back to first visual track
-    const targetTrack = current.tracks.find((t) => t.id === trackId);
-    const visualTrack = targetTrack?.kind === 'visual'
-      ? targetTrack
-      : getVisualTracks(current.resolvedConfig)[0];
-    if (!visualTrack) {
-      return;
-    }
-
-    const clipId = getNextClipId(current.meta);
-    const textDuration = 5;
-    const action: TimelineAction = {
-      id: clipId,
-      start: Math.max(0, time),
-      end: Math.max(0, time) + textDuration,
-      effectId: `effect-${clipId}`,
-    };
-    const rowsWithClip = current.rows.map((row) => (
-      row.id === visualTrack.id
-        ? { ...row, actions: [...row.actions, action] }
-        : row
-    ));
-    const { rows: nextRows, metaPatches, adjustments: _adjustments } = resolveOverlaps(
-      rowsWithClip, visualTrack.id, clipId, current.meta,
-    );
-    const nextClipOrder = updateClipOrder(current.clipOrder, visualTrack.id, (ids) => [...ids, clipId]);
-    applyRowsEdit(nextRows, {
-      ...metaPatches,
-      [clipId]: {
-        track: visualTrack.id,
-        clipType: 'text',
-        text: {
-          content: 'Double-click to edit',
-          fontSize: 64,
-          color: '#ffffff',
-          align: 'center',
-        },
-        x: 120,
-        y: 120,
-        width: 640,
-        height: 180,
-        opacity: 1,
-      },
-    }, undefined, nextClipOrder);
-    setSelectedClipId(clipId);
-    setSelectedTrackId(visualTrack.id);
-  }, [applyRowsEdit, dataRef, setSelectedClipId, setSelectedTrackId]);
+  const clipDeletion = useClipDeletion(clipEditingContext);
+  const clipPositioning = useClipPositioning(clipEditingContext);
+  const clipSplitting = useClipSplitting(clipEditingContext);
+  const clipAudioManagement = useClipAudioManagement(clipEditingContext);
+  const clipTextOverlay = useClipTextOverlay(clipEditingContext);
 
   return {
     onOverlayChange,
     handleUpdateClips,
     handleUpdateClipsDeep,
-    handleDeleteClips,
-    handleDeleteClip,
+    ...clipDeletion,
     handleSelectedClipChange,
-    handleResetClipPosition,
-    handleResetClipsPosition,
-    handleSplitSelectedClip,
-    handleSplitClipAtTime,
-    handleSplitClipsAtPlayhead,
-    handleToggleMuteClips,
-    handleToggleMute,
-    handleDetachAudioClip,
-    handleAddText,
-    handleAddTextAt,
+    ...clipPositioning,
+    ...clipSplitting,
+    ...clipAudioManagement,
+    ...clipTextOverlay,
   };
 }

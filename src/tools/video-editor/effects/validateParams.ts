@@ -23,7 +23,7 @@ export function validateAndCoerceParams(
     const value = params?.[parameter.name];
     if (parameter.type === 'number') {
       result[parameter.name] = typeof value === 'number' && Number.isFinite(value)
-        ? Math.min(parameter.max ?? value, Math.max(parameter.min ?? value, value))
+        ? Math.max(parameter.min ?? -Number.MAX_VALUE, Math.min(parameter.max ?? Number.MAX_VALUE, value))
         : fallback;
     } else if (parameter.type === 'boolean') {
       result[parameter.name] = typeof value === 'boolean' ? value : fallback;

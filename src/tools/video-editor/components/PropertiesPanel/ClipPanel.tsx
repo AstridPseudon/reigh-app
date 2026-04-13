@@ -112,7 +112,7 @@ function getEffectDisplayLabel(type: string | undefined, effects: EffectResource
   const effect = findEffectResourceByType(type, effects);
   if (effect) return effect.name;
   const id = type.slice(7);
-  return `Effect ${id.slice(0, 8)}…`;
+  return `Effect ${id.slice(0, 8)}… (missing)`;
 }
 
 /** Check if a custom effect type is already in the resource list */
@@ -310,7 +310,7 @@ export function ClipPanel({
                         <div className="my-1 h-px bg-border" />
                         {!isCustomEffectInList(clip.entrance?.type, effectResources.entrance) && clip.entrance?.type && (
                           <SelectItem value={clip.entrance.type}>
-                            {getEffectDisplayLabel(clip.entrance.type, effectResources.effects) ?? clip.entrance.type}
+                            <span className="text-muted-foreground">{getEffectDisplayLabel(clip.entrance.type, effectResources.effects) ?? clip.entrance.type}</span>
                           </SelectItem>
                         )}
                         {effectResources.entrance.map((effect) => (
@@ -378,7 +378,7 @@ export function ClipPanel({
                         <div className="my-1 h-px bg-border" />
                         {!isCustomEffectInList(clip.exit?.type, effectResources.exit) && clip.exit?.type && (
                           <SelectItem value={clip.exit.type}>
-                            {getEffectDisplayLabel(clip.exit.type, effectResources.effects) ?? clip.exit.type}
+                            <span className="text-muted-foreground">{getEffectDisplayLabel(clip.exit.type, effectResources.effects) ?? clip.exit.type}</span>
                           </SelectItem>
                         )}
                         {effectResources.exit.map((effect) => (
@@ -445,7 +445,7 @@ export function ClipPanel({
                         <div className="my-1 h-px bg-border" />
                         {!isCustomEffectInList(clip.continuous?.type, effectResources.continuous) && clip.continuous?.type && (
                           <SelectItem value={clip.continuous.type}>
-                            {getEffectDisplayLabel(clip.continuous.type, effectResources.effects) ?? clip.continuous.type}
+                            <span className="text-muted-foreground">{getEffectDisplayLabel(clip.continuous.type, effectResources.effects) ?? clip.continuous.type}</span>
                           </SelectItem>
                         )}
                         {effectResources.continuous.map((effect) => (

@@ -10,7 +10,7 @@ import {
   resolveTimelineConfig as resolveTimelineConfigShared,
   type UrlResolver,
 } from '@/tools/video-editor/lib/config-utils';
-import { migrateToFlatTracks, repairConfig } from '@/tools/video-editor/lib/migrate';
+import { migrateToFlatTracks, repairConfig, repairShotGroupContiguity } from '@/tools/video-editor/lib/migrate';
 import { TIMELINE_CLIP_FIELDS, validateSerializedConfig } from '@/tools/video-editor/lib/serialize';
 import type { DataProvider } from '@/tools/video-editor/data/DataProvider';
 import type {
@@ -209,7 +209,6 @@ export const rowsToConfig = (
   output: TimelineOutput,
   clipOrder: ClipOrderMap,
   tracks: TrackDefinition[],
-  customEffects?: TimelineConfig['customEffects'],
   pinnedShotGroups?: TimelineConfig['pinnedShotGroups'],
 ): TimelineConfig => {
   const actionMap = new Map<string, TimelineAction>();
@@ -314,9 +313,6 @@ export const rowsToConfig = (
     tracks: tracks.map((track) => ({ ...track })),
     clips,
   };
-  if (customEffects && Object.keys(customEffects).length > 0) {
-    config.customEffects = customEffects;
-  }
   if (pinnedShotGroups && pinnedShotGroups.length > 0) {
     config.pinnedShotGroups = clonePinnedShotGroups(pinnedShotGroups);
   }
@@ -370,10 +366,12 @@ export const buildTimelineData = async (
   urlResolver?: UrlResolver,
   configVersion = 1,
 ): Promise<TimelineData> => {
-  // Repair first (dedup corrupted data), then migrate (structural transform).
-  // repairConfig is a no-op on clean data. This only runs on load from server.
+  // Repair first (dedup corrupted data), then migrate (structural transform),
+  // then fix any non-contiguous clips in shot groups.
+  // All repair steps are no-ops on clean data. This only runs on load from server.
   const repairedConfig = repairConfig(config);
-  const migratedConfig = migrateToFlatTracks(repairedConfig);
+  const contiguousConfig = repairShotGroupContiguity(repairedConfig);
+  const migratedConfig = migrateToFlatTracks(contiguousConfig);
   migratedConfig.tracks = migratedConfig.tracks ?? [];
   const resolvedConfig = await resolveTimelineConfig(migratedConfig, registry, urlResolver);
 

@@ -42,6 +42,17 @@ vi.mock('@/tools/video-editor/hooks/useEffectResources', () => ({
   useEffectResources: () => ({ effects: [] }),
 }));
 
+vi.mock('@/shared/contexts/ShotsContext', () => ({
+  useShots: () => ({
+    shots: [],
+    isLoading: false,
+    error: null,
+    refetchShots: vi.fn(),
+    allImagesCount: 0,
+    noShotImagesCount: 0,
+  }),
+}));
+
 vi.mock('@/tools/video-editor/hooks/useTimelineState', () => ({
   useTimelineState: () => ({
     editor: {

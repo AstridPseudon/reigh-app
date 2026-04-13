@@ -24,6 +24,7 @@ import type {
   TimelineSetSelectedClipId,
   TimelineSetSelectedTrackId,
   TimelineStartRender,
+  TimelineUnpatchRegistry,
   TimelineUploadFiles,
 } from '@/tools/video-editor/hooks/timeline-state-types';
 import type { ClipTab, EditorPreferences } from '@/tools/video-editor/hooks/useEditorPreferences';
@@ -140,8 +141,9 @@ export interface TimelineEditorOpsContextValue {
   uploadFiles: TimelineUploadFiles;
   applyEdit: TimelineApplyEdit;
   patchRegistry: TimelinePatchRegistry;
+  unpatchRegistry: TimelineUnpatchRegistry;
   registerAsset: TimelineRegisterAsset;
-  onDoubleClickAsset?: (assetKey: string) => void;
+  onDoubleClickAsset?: (assetKey: string, clipId?: string) => void;
   setLightboxAssetKey?: (assetKey: string | null) => void;
 }
 

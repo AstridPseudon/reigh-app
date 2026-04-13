@@ -150,6 +150,24 @@
         "coverage_complete"
       ],
       "additionalProperties": false
+    },
+    "baseline_test_failures": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "type": "string"
+      }
+    },
+    "baseline_test_command": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "baseline_test_note": {
+      "type": "string"
     }
   },
   "required": [
@@ -157,7 +175,10 @@
     "watch_items",
     "sense_checks",
     "meta_commentary",
-    "validation"
+    "validation",
+    "baseline_test_failures",
+    "baseline_test_command",
+    "baseline_test_note"
   ],
   "additionalProperties": false
 }

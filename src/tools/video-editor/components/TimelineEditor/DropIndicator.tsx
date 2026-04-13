@@ -69,6 +69,8 @@ export const DropIndicator = forwardRef<DropIndicatorHandle, DropIndicatorProps>
     // (not for kind-mismatch redirects — those resolve silently to a compatible track)
     const showNewTrack = position?.isNewTrack === true && position?.trackId === undefined;
     editArea.classList.toggle('drop-target-new-track', showNewTrack);
+    const wrapper = editArea.closest('.timeline-wrapper');
+    wrapper?.classList.toggle('drop-target-new-track', showNewTrack);
 
     if (showNewTrack) {
       const kind = position?.newTrackKind ?? 'visual';
@@ -80,6 +82,7 @@ export const DropIndicator = forwardRef<DropIndicatorHandle, DropIndicatorProps>
 
     return () => {
       editArea.classList.remove('drop-target-new-track');
+      wrapper?.classList.remove('drop-target-new-track');
       onNewTrackLabel?.(null);
     };
   }, [editAreaRef, onNewTrackLabel, position?.isNewTrack, position?.isNewTrackTop, position?.newTrackKind, position?.trackId]);
@@ -91,18 +94,40 @@ export const DropIndicator = forwardRef<DropIndicatorHandle, DropIndicatorProps>
   const labelLeft = position.lineLeft - 30;
   const labelTop = position.rowTop - 16;
 
+  // New-track edge indicator: glow along top or bottom of the timeline
+  const editArea = editAreaRef.current;
+  const showNewTrackEdge = position.isNewTrack && position.trackId === undefined && editArea;
+  let edgeTop = 0;
+  if (showNewTrackEdge) {
+    const editRect = editArea.getBoundingClientRect();
+    edgeTop = position.isNewTrackTop ? editRect.top : editRect.bottom;
+  }
+
   return createPortal(
     <>
-      <div
-        className={position.reject ? 'drop-indicator-row drop-indicator-row--reject' : 'drop-indicator-row'}
-        style={{
-          left: position.rowLeft,
-          top: position.rowTop,
-          width: position.rowWidth,
-          height: position.rowHeight,
-          zIndex: 99998,
-        }}
-      />
+      {showNewTrackEdge && (
+        <div
+          className="drop-indicator-new-track-edge"
+          style={{
+            left: position.rowLeft,
+            top: edgeTop - 1,
+            width: position.rowWidth,
+            zIndex: 99999,
+          }}
+        />
+      )}
+      {!showNewTrackEdge && (
+        <div
+          className={position.reject ? 'drop-indicator-row drop-indicator-row--reject' : 'drop-indicator-row'}
+          style={{
+            left: position.rowLeft,
+            top: position.rowTop,
+            width: position.rowWidth,
+            height: position.rowHeight,
+            zIndex: 99998,
+          }}
+        />
+      )}
       {!position.isNewTrack && (
         <>
           <div

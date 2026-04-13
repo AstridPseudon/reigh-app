@@ -182,7 +182,6 @@ export type TimelineConfig = {
   output: TimelineOutput;
   clips: TimelineClip[];
   tracks?: TrackDefinition[];
-  customEffects?: Record<string, CustomEffectEntry>;
   pinnedShotGroups?: PinnedShotGroup[];
 };
 

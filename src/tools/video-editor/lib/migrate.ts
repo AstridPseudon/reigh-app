@@ -199,7 +199,6 @@ export const migrateToFlatTracks = (config: TimelineConfig): TimelineConfig => {
         clipType: clip.clipType
           ?? (clip.text ? 'text' : typeof clip.hold === 'number' ? 'hold' : 'media'),
       })),
-      customEffects: config.customEffects ? { ...config.customEffects } : undefined,
       pinnedShotGroups: clonePinnedShotGroups(config.pinnedShotGroups),
     };
   }
@@ -208,9 +207,79 @@ export const migrateToFlatTracks = (config: TimelineConfig): TimelineConfig => {
     output: { ...config.output },
     tracks: getDefaultTracks(config),
     clips: ensureBackgroundClip(config),
-    customEffects: config.customEffects ? { ...config.customEffects } : undefined,
     pinnedShotGroups: clonePinnedShotGroups(config.pinnedShotGroups),
   };
+};
+
+const CONTIGUITY_EPSILON = 0.001;
+
+/**
+ * Repair non-contiguous clips within pinned shot groups.
+ * Runs once on load (not on every edit). For each shot group, orders its clips
+ * by timeline position and snaps each subsequent clip's `at` so it starts
+ * exactly where the previous clip ends — preserving each clip's duration.
+ * Returns the original config unchanged when no repairs are needed.
+ */
+export const repairShotGroupContiguity = (config: TimelineConfig): TimelineConfig => {
+  if (!config.pinnedShotGroups?.length) return config;
+
+  const clipById = new Map<string, TimelineClip>();
+  for (const clip of config.clips) {
+    clipById.set(clip.id, clip);
+  }
+
+  let totalFixed = 0;
+  // Track which clip ids need their `at` updated, and to what value
+  const clipAtOverrides = new Map<string, number>();
+
+  for (const group of config.pinnedShotGroups) {
+    if (group.clipIds.length < 2) continue;
+
+    // Resolve clips in the group's declared order
+    const groupClips: TimelineClip[] = [];
+    for (const clipId of group.clipIds) {
+      const clip = clipById.get(clipId);
+      if (clip) groupClips.push(clip);
+    }
+    if (groupClips.length < 2) continue;
+
+    // Sort by current timeline position to handle any ordering quirks
+    groupClips.sort((a, b) => a.at - b.at);
+
+    let fixedInGroup = 0;
+    let cursor = groupClips[0].at + getClipTimelineDuration(groupClips[0]);
+
+    for (let i = 1; i < groupClips.length; i++) {
+      const clip = groupClips[i];
+      const gap = Math.abs(clip.at - cursor);
+
+      if (gap > CONTIGUITY_EPSILON) {
+        clipAtOverrides.set(clip.id, roundTimelineValue(cursor));
+        fixedInGroup++;
+      }
+
+      // Advance cursor by this clip's duration regardless
+      const duration = getClipTimelineDuration(clip);
+      cursor = (clipAtOverrides.get(clip.id) ?? clip.at) + duration;
+    }
+
+    if (fixedInGroup > 0) {
+      console.warn(
+        `[timeline-repair] Fixed ${fixedInGroup} non-contiguous clips in shot group ${group.shotId}`,
+      );
+      totalFixed += fixedInGroup;
+    }
+  }
+
+  if (totalFixed === 0) return config;
+
+  // Apply overrides immutably
+  const nextClips = config.clips.map((clip) => {
+    const override = clipAtOverrides.get(clip.id);
+    return override !== undefined ? { ...clip, at: override } : clip;
+  });
+
+  return { ...config, clips: nextClips, pinnedShotGroups: config.pinnedShotGroups };
 };
 
 /** Strip cascading `-dup-N` suffixes from a clip id back to its base. */

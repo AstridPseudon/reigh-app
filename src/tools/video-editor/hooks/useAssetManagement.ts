@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
+import { toast } from '@/shared/components/ui/runtime/sonner';
 import type { GenerationDropData } from '@/shared/lib/dnd/dragDrop';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { getMediaUrl, getThumbnailUrl } from '@/shared/lib/media/mediaTypeHelpers';
@@ -9,7 +10,7 @@ import { extractVideoPosterFrame } from '@/shared/lib/media/videoPosterExtractor
 import { generateClientThumbnail, uploadImageWithThumbnail } from '@/shared/media/clientThumbnailGenerator';
 import { createExternalUploadGeneration } from '@/integrations/supabase/repositories/generationMutationsRepository';
 import { generateUUID } from '@/shared/lib/taskCreation/ids';
-import { getCompatibleTrackId, updateClipOrder } from '@/tools/video-editor/lib/coordinate-utils';
+import { findNearestFreeTrack, getCompatibleTrackId, updateClipOrder } from '@/tools/video-editor/lib/coordinate-utils';
 import { getTrackIndex } from '@/tools/video-editor/lib/editor-utils';
 import {
   getNextClipId,
@@ -22,10 +23,20 @@ import type {
   TimelineInvalidateAssetRegistry,
   TimelinePatchRegistry,
   TimelineRegisterAsset,
+  TimelineUnpatchRegistry,
   TimelineUploadAsset,
 } from '@/tools/video-editor/hooks/timeline-state-types';
 import type { TimelineAction } from '@/tools/video-editor/types/timeline-canvas';
 import type { AssetRegistryEntry, ClipType } from '@/tools/video-editor/types';
+
+function estimateAssetDuration(
+  assetEntry: AssetRegistryEntry | undefined,
+  assetKind: 'audio' | 'visual',
+): number {
+  if (assetKind === 'audio') return assetEntry?.duration ?? 10;
+  if (assetEntry?.type?.startsWith('image')) return 5;
+  return assetEntry?.duration ?? 5;
+}
 
 type UploadedGenerationData = GenerationDropData & {
   durationSeconds?: number;
@@ -39,6 +50,7 @@ export interface UseAssetManagementArgs {
   setSelectedTrackId: Dispatch<SetStateAction<string | null>>;
   applyEdit: TimelineApplyEdit;
   patchRegistry: TimelinePatchRegistry;
+  unpatchRegistry: TimelineUnpatchRegistry;
   registerAsset: TimelineRegisterAsset;
   uploadAsset: TimelineUploadAsset;
   invalidateAssetRegistry: TimelineInvalidateAssetRegistry;
@@ -91,6 +103,8 @@ export function resolveAssetDropTarget({
   selectedTrackId,
   forceNewTrack = false,
   insertAtTop = false,
+  time,
+  duration,
 }: {
   dataRef: MutableRefObject<TimelineData | null>;
   assetKind: 'audio' | 'visual';
@@ -98,6 +112,8 @@ export function resolveAssetDropTarget({
   selectedTrackId: string | null;
   forceNewTrack?: boolean;
   insertAtTop?: boolean;
+  time?: number;
+  duration?: number;
 }): AssetDropTargetResolution | null {
   let current = dataRef.current;
   if (!current) {
@@ -108,13 +124,21 @@ export function resolveAssetDropTarget({
     ? null
     : getCompatibleTrackId(current.tracks, trackId, assetKind, selectedTrackId);
 
+  // When time/duration are provided, find the nearest free track (above or below)
+  if (resolvedTrackId && time != null && duration != null) {
+    resolvedTrackId = findNearestFreeTrack(
+      current.tracks, current.rows, resolvedTrackId, assetKind, time, duration,
+    );
+  }
+
   if (!resolvedTrackId) {
     const latest = dataRef.current;
     if (!latest) {
       return null;
     }
 
-    const existingTrackId = forceNewTrack
+    // When overlap search exhausted all tracks, skip re-check and create a new track
+    const existingTrackId = (forceNewTrack || (time != null && duration != null))
       ? null
       : getCompatibleTrackId(latest.tracks, trackId, assetKind, selectedTrackId);
     if (existingTrackId) {
@@ -241,6 +265,7 @@ export function useAssetManagement({
   setSelectedTrackId,
   applyEdit,
   patchRegistry,
+  unpatchRegistry,
   registerAsset,
 }: UseAssetManagementArgs): UseAssetManagementResult {
   const registerGenerationAsset = useCallback((generationData: UploadedGenerationData | null) => {
@@ -292,10 +317,12 @@ export function useAssetManagement({
     patchRegistry(assetId, entry, imageUrl);
     void registerAsset(assetId, entry).catch((error) => {
       console.error('[video-editor] Failed to persist generation asset:', error);
+      unpatchRegistry(assetId);
+      toast.error('Failed to save asset');
     });
 
     return assetId;
-  }, [patchRegistry, registerAsset]);
+  }, [patchRegistry, registerAsset, unpatchRegistry]);
 
   const uploadImageGeneration = useCallback(async (file: File) => {
     if (!selectedProjectId) {
@@ -397,13 +424,17 @@ export function useAssetManagement({
   }, [selectedProjectId]);
 
   const handleAssetDrop = useCallback((assetKey: string, trackId: string | undefined, time: number, forceNewTrack = false, insertAtTop = false) => {
+    const assetKind = inferTrackType(dataRef.current?.registry.assets[assetKey]?.file ?? assetKey);
+    const duration = estimateAssetDuration(dataRef.current?.registry.assets[assetKey], assetKind);
     const resolvedTarget = resolveAssetDropTarget({
       dataRef,
-      assetKind: inferTrackType(dataRef.current?.registry.assets[assetKey]?.file ?? assetKey),
+      assetKind,
       trackId,
       selectedTrackId,
       forceNewTrack,
       insertAtTop,
+      time,
+      duration,
     });
     if (!resolvedTarget) {
       return;

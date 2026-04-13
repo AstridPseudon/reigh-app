@@ -76,6 +76,7 @@ export function useTimelineSave(
     setSelectedTrackId: commit.setSelectedTrackId,
     applyEdit: commit.applyEdit,
     patchRegistry: commit.patchRegistry,
+    unpatchRegistry: commit.unpatchRegistry,
     commitData: commit.commitData,
     eventBus: eventBusRef.current,
     reloadFromServer: persistence.reloadFromServer,

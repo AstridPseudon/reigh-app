@@ -52,7 +52,12 @@ export function isTimelineNotFoundError(error: unknown): error is TimelineNotFou
 
 export interface DataProvider {
   loadTimeline(timelineId: string): Promise<LoadedTimeline>;
-  saveTimeline(timelineId: string, config: TimelineConfig, expectedVersion: number): Promise<number>;
+  saveTimeline(
+    timelineId: string,
+    config: TimelineConfig,
+    expectedVersion: number,
+    registry?: AssetRegistry,
+  ): Promise<number>;
   saveCheckpoint?(timelineId: string, checkpoint: Omit<Checkpoint, 'id'>): Promise<string>;
   loadCheckpoints?(timelineId: string): Promise<Checkpoint[]>;
   loadAssetRegistry(timelineId: string): Promise<AssetRegistry>;

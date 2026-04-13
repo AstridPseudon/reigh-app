@@ -18,10 +18,12 @@ const MAX_CACHE_ENTRIES = 64;
 const decodedBufferCache = new Map<string, Promise<AudioBuffer>>();
 
 const evictOldest = () => {
-  if (decodedBufferCache.size <= MAX_CACHE_ENTRIES) return;
   // Map iterates in insertion order — first key is oldest
-  const oldest = decodedBufferCache.keys().next().value;
-  if (oldest !== undefined) decodedBufferCache.delete(oldest);
+  while (decodedBufferCache.size > MAX_CACHE_ENTRIES) {
+    const oldest = decodedBufferCache.keys().next().value;
+    if (oldest !== undefined) decodedBufferCache.delete(oldest);
+    else break;
+  }
 };
 
 const getDecodedBuffer = (src: string): Promise<AudioBuffer> => {

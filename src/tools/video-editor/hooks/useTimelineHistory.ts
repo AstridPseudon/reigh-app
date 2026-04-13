@@ -1,6 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type MutableRefObject } from 'react';
 import { useVideoEditorRuntime } from '@/tools/video-editor/contexts/DataProviderContext';
-import { buildDataFromCurrentRegistry } from '@/tools/video-editor/lib/timeline-save-utils';
+import {
+  isInteractionActive,
+  type InteractionStateRef,
+} from '@/tools/video-editor/lib/interaction-state';
+import {
+  buildDataFromCurrentRegistry,
+  buildDataFromSnapshot,
+} from '@/tools/video-editor/lib/timeline-save-utils';
 import type { TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { TimelineConfig } from '@/tools/video-editor/types';
 import type {
@@ -35,6 +42,7 @@ type CommitDataOptions = {
 export interface UseTimelineHistoryArgs {
   dataRef: MutableRefObject<TimelineData | null>;
   commitData: (nextData: TimelineData, options?: CommitDataOptions) => void;
+  interactionStateRef: InteractionStateRef;
 }
 
 export interface UseTimelineHistoryResult {
@@ -56,6 +64,7 @@ function cloneConfig(config: TimelineConfig): TimelineConfig {
 function buildSnapshot(currentData: TimelineData): UndoSnapshot {
   return {
     config: cloneConfig(currentData.config),
+    registry: structuredClone(currentData.registry),
     signature: currentData.signature,
   };
 }
@@ -90,6 +99,7 @@ function defaultCheckpointLabel(triggerType: CheckpointTriggerType): string {
 export function useTimelineHistory({
   dataRef,
   commitData,
+  interactionStateRef,
 }: UseTimelineHistoryArgs): UseTimelineHistoryResult {
   const { provider, timelineId } = useVideoEditorRuntime();
   const undoStackRef = useRef<UndoEntry[]>([]);
@@ -161,8 +171,11 @@ export function useTimelineHistory({
       return;
     }
 
+    const nextConfig = cloneConfig(snapshot.config);
     commitData(
-      buildDataFromCurrentRegistry(cloneConfig(snapshot.config), current),
+      snapshot.registry
+        ? buildDataFromSnapshot(nextConfig, snapshot.registry, current)
+        : buildDataFromCurrentRegistry(nextConfig, current),
       { save: true, skipHistory: true },
     );
     lastEditTimestampRef.current = Date.now();
@@ -236,7 +249,7 @@ export function useTimelineHistory({
   const undo = useCallback(() => {
     const current = dataRef.current;
     const entry = undoStackRef.current[undoStackRef.current.length - 1];
-    if (!current || !entry) {
+    if (!current || !entry || isInteractionActive(interactionStateRef)) {
       return;
     }
 
@@ -250,12 +263,12 @@ export function useTimelineHistory({
     ].slice(-UNDO_STACK_LIMIT);
     syncHistoryState();
     restoreSnapshot(entry.snapshot);
-  }, [dataRef, restoreSnapshot, syncHistoryState]);
+  }, [dataRef, interactionStateRef, restoreSnapshot, syncHistoryState]);
 
   const redo = useCallback(() => {
     const current = dataRef.current;
     const entry = redoStackRef.current[redoStackRef.current.length - 1];
-    if (!current || !entry) {
+    if (!current || !entry || isInteractionActive(interactionStateRef)) {
       return;
     }
 
@@ -269,7 +282,7 @@ export function useTimelineHistory({
     ].slice(-UNDO_STACK_LIMIT);
     syncHistoryState();
     restoreSnapshot(entry.snapshot);
-  }, [dataRef, restoreSnapshot, syncHistoryState]);
+  }, [dataRef, interactionStateRef, restoreSnapshot, syncHistoryState]);
 
   const jumpToCheckpoint = useCallback((checkpointId: string) => {
     const current = dataRef.current;

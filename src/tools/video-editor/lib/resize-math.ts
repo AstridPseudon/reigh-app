@@ -7,27 +7,12 @@ export interface ResizeRange {
 
 const MIN_CLIP_EDGE_RESIZE_DURATION = 0.05;
 
-interface GroupChildBoundaryResizeArgs {
-  dir: ResizeDir;
-  dragged: ResizeRange;
-  adjacent: ResizeRange;
-  proposedBoundary: number;
-  minimumDuration: number;
-}
-
 interface GroupEdgeResizeArgs {
   dir: ResizeDir;
   initial: ResizeRange;
   proposedBoundary: number;
   minimumDuration: number;
   minimumStart?: number;
-}
-
-interface GroupChildBoundaryResizeResult {
-  boundary: number;
-  wasClamped: boolean;
-  dragged: ResizeRange;
-  adjacent: ResizeRange;
 }
 
 interface GroupEdgeResizeResult extends ResizeRange {
@@ -48,32 +33,19 @@ export interface FreeClipEdgeResizeContext {
   maxEnd?: number;
 }
 
-export interface InteriorClipEdgeResizeContext {
-  kind: 'interior';
-  pairStart: number;
-  pairEnd: number;
-  draggedClipId: string;
-  adjacentClipId: string;
-  draggedInitialStart: number;
-  draggedInitialEnd: number;
-  adjacentInitialStart: number;
-  adjacentInitialEnd: number;
-}
-
-export interface OuterClipEdgeResizeContext {
-  kind: 'outer';
+export interface GroupClipEdgeResizeContext {
+  kind: 'group';
   shotId: string;
   trackId: string;
-  groupInitialStart: number;
-  groupInitialEnd: number;
+  draggedClipId: string;
+  draggedIndex: number;
   groupClipIds: string[];
   groupChildrenSnapshot: ClipEdgeResizeUpdate[];
 }
 
 export type ClipEdgeResizeContext =
   | FreeClipEdgeResizeContext
-  | InteriorClipEdgeResizeContext
-  | OuterClipEdgeResizeContext;
+  | GroupClipEdgeResizeContext;
 
 export interface ApplyClipEdgeMoveResult {
   updates: ClipEdgeResizeUpdate[];
@@ -81,29 +53,6 @@ export interface ApplyClipEdgeMoveResult {
 }
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
-
-export function computeGroupChildBoundaryResize({
-  dir,
-  dragged,
-  adjacent,
-  proposedBoundary,
-  minimumDuration,
-}: GroupChildBoundaryResizeArgs): GroupChildBoundaryResizeResult {
-  const pairStart = dir === 'left' ? adjacent.start : dragged.start;
-  const pairEnd = dir === 'left' ? dragged.end : adjacent.end;
-  const boundary = clamp(proposedBoundary, pairStart + minimumDuration, pairEnd - minimumDuration);
-
-  return {
-    boundary,
-    wasClamped: boundary !== proposedBoundary,
-    dragged: dir === 'left'
-      ? { start: boundary, end: dragged.end }
-      : { start: dragged.start, end: boundary },
-    adjacent: dir === 'left'
-      ? { start: adjacent.start, end: boundary }
-      : { start: boundary, end: adjacent.end },
-  };
-}
 
 export function computeGroupEdgeResize({
   dir,
@@ -190,61 +139,65 @@ const applyFreeClipEdgeMove = (
   };
 };
 
-const applyInteriorClipEdgeMove = (
-  context: InteriorClipEdgeResizeContext,
+const applyGroupClipEdgeMove = (
+  context: GroupClipEdgeResizeContext,
   edge: ResizeDir,
   newBoundaryTime: number,
 ): ApplyClipEdgeMoveResult => {
-  const resized = computeGroupChildBoundaryResize({
-    dir: edge,
-    dragged: { start: context.draggedInitialStart, end: context.draggedInitialEnd },
-    adjacent: { start: context.adjacentInitialStart, end: context.adjacentInitialEnd },
-    proposedBoundary: newBoundaryTime,
-    minimumDuration: MIN_CLIP_EDGE_RESIZE_DURATION,
-  });
-
-  return {
-    updates: [
-      { clipId: context.draggedClipId, start: resized.dragged.start, end: resized.dragged.end },
-      { clipId: context.adjacentClipId, start: resized.adjacent.start, end: resized.adjacent.end },
-    ],
-    wasClamped: resized.wasClamped,
-  };
-};
-
-const applyOuterClipEdgeMove = (
-  context: OuterClipEdgeResizeContext,
-  edge: ResizeDir,
-  newBoundaryTime: number,
-): ApplyClipEdgeMoveResult => {
-  const initialGroup = {
-    start: context.groupInitialStart,
-    end: context.groupInitialEnd,
-  };
-  const resized = computeGroupEdgeResize({
-    dir: edge,
-    initial: initialGroup,
-    proposedBoundary: newBoundaryTime,
-    minimumDuration: MIN_CLIP_EDGE_RESIZE_DURATION,
-  });
-
-  const originalDuration = context.groupInitialEnd - context.groupInitialStart;
-  const resizedDuration = resized.end - resized.start;
-  if (originalDuration <= 0 || resizedDuration <= 0) {
+  const children = context.groupChildrenSnapshot;
+  if (children.length === 0) {
     return { updates: [], wasClamped: false };
   }
 
-  const scale = resizedDuration / originalDuration;
-  const updates = context.groupChildrenSnapshot.map((child) => ({
-    clipId: child.clipId,
-    start: resized.start + (child.start - context.groupInitialStart) * scale,
-    end: resized.start + (child.end - context.groupInitialStart) * scale,
-  }));
+  const draggedIndex = context.draggedIndex;
+  const dragged = children[draggedIndex];
 
-  return {
-    updates,
-    wasClamped: resized.wasClamped,
-  };
+  // Clamp so the dragged clip can't collapse below minimum duration
+  const boundary = edge === 'right'
+    ? Math.max(dragged.start + MIN_CLIP_EDGE_RESIZE_DURATION, newBoundaryTime)
+    : Math.min(dragged.end - MIN_CLIP_EDGE_RESIZE_DURATION, newBoundaryTime);
+
+  const wasClamped = boundary !== newBoundaryTime;
+
+  // The old boundary position before the resize
+  const oldBoundary = edge === 'right' ? dragged.end : dragged.start;
+  const delta = boundary - oldBoundary;
+
+  const updates: ClipEdgeResizeUpdate[] = [];
+
+  if (edge === 'right') {
+    // Clips before the dragged clip: unchanged
+    for (let i = 0; i < draggedIndex; i++) {
+      updates.push({ clipId: children[i].clipId, start: children[i].start, end: children[i].end });
+    }
+    // Dragged clip: resize right edge
+    updates.push({ clipId: dragged.clipId, start: dragged.start, end: boundary });
+    // Clips after the dragged clip: shift by delta
+    for (let i = draggedIndex + 1; i < children.length; i++) {
+      updates.push({
+        clipId: children[i].clipId,
+        start: children[i].start + delta,
+        end: children[i].end + delta,
+      });
+    }
+  } else {
+    // Clips before the dragged clip: shift by delta
+    for (let i = 0; i < draggedIndex; i++) {
+      updates.push({
+        clipId: children[i].clipId,
+        start: children[i].start + delta,
+        end: children[i].end + delta,
+      });
+    }
+    // Dragged clip: resize left edge
+    updates.push({ clipId: dragged.clipId, start: boundary, end: dragged.end });
+    // Clips after the dragged clip: unchanged
+    for (let i = draggedIndex + 1; i < children.length; i++) {
+      updates.push({ clipId: children[i].clipId, start: children[i].start, end: children[i].end });
+    }
+  }
+
+  return { updates, wasClamped };
 };
 
 export function applyClipEdgeMove(
@@ -255,9 +208,7 @@ export function applyClipEdgeMove(
   switch (context.kind) {
     case 'free':
       return applyFreeClipEdgeMove(context, edge, newBoundaryTime);
-    case 'interior':
-      return applyInteriorClipEdgeMove(context, edge, newBoundaryTime);
-    case 'outer':
-      return applyOuterClipEdgeMove(context, edge, newBoundaryTime);
+    case 'group':
+      return applyGroupClipEdgeMove(context, edge, newBoundaryTime);
   }
 }

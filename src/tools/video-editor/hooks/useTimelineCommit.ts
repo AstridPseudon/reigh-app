@@ -84,6 +84,7 @@ export interface UseTimelineCommitResult {
   setSelectedTrackId: Dispatch<SetStateAction<string | null>>;
   applyEdit: (mutation: TimelineEditMutation, options?: ApplyEditOptions) => void;
   patchRegistry: (assetId: string, entry: AssetRegistryEntry, src?: string) => void;
+  unpatchRegistry: (assetId: string) => void;
   commitData: (nextData: TimelineData, options?: CommitDataOptions) => void;
   materializeData: (
     current: TimelineData,
@@ -143,7 +144,6 @@ export function useTimelineCommit({
       current.output,
       clipOrder,
       current.tracks,
-      current.config.customEffects,
       current.config.pinnedShotGroups,
     );
 
@@ -283,7 +283,6 @@ export function useTimelineCommit({
         buildDataFromCurrentRegistry(
           serializeForDisk(
             mutation.resolvedConfig,
-            current.config.customEffects,
             mutation.pinnedShotGroupsOverride ?? current.config.pinnedShotGroups,
           ),
           current,
@@ -319,12 +318,7 @@ export function useTimelineCommit({
         src: src ?? current.resolvedConfig.registry[assetId]?.src ?? entry.file,
       },
     };
-    const nextConfig = {
-      ...current.config,
-      customEffects: current.config.customEffects
-        ? { ...current.config.customEffects }
-        : undefined,
-    };
+    const nextConfig = { ...current.config };
     const migratedConfig = migrateToFlatTracks(nextConfig);
     migratedConfig.tracks = migratedConfig.tracks ?? [];
 
@@ -355,6 +349,50 @@ export function useTimelineCommit({
     });
   }, [commitData]);
 
+  const unpatchRegistry = useCallback((assetId: string) => {
+    const current = dataRef.current;
+    if (!current) {
+      return;
+    }
+
+    const { [assetId]: removedAsset, ...remainingAssets } = current.registry.assets ?? {};
+    void removedAsset;
+    const nextRegistry = {
+      ...current.registry,
+      assets: remainingAssets,
+    };
+    const { [assetId]: removedResolvedAsset, ...remainingResolvedRegistry } = current.resolvedConfig.registry;
+    void removedResolvedAsset;
+    const nextConfig = { ...current.config };
+    const migratedConfig = migrateToFlatTracks(nextConfig);
+    migratedConfig.tracks = migratedConfig.tracks ?? [];
+
+    const nextData = assembleTimelineData({
+      config: migratedConfig,
+      configVersion: current.configVersion,
+      registry: nextRegistry,
+      resolvedConfig: {
+        output: { ...migratedConfig.output },
+        tracks: migratedConfig.tracks,
+        clips: migratedConfig.clips.map((clip) => ({
+          ...clip,
+          assetEntry: clip.asset ? remainingResolvedRegistry[clip.asset] : undefined,
+        })),
+        registry: remainingResolvedRegistry,
+      },
+      assetMap: Object.fromEntries(
+        Object.entries(remainingAssets).map(([nextAssetId, nextEntry]) => [nextAssetId, nextEntry.file]),
+      ),
+      output: { ...migratedConfig.output },
+    });
+
+    commitData(nextData, {
+      save: false,
+      selectedClipId: selectedClipIdRef.current,
+      selectedTrackId: selectedTrackIdRef.current,
+    });
+  }, [commitData]);
+
   return {
     data,
     dataRef,
@@ -364,6 +402,7 @@ export function useTimelineCommit({
     setSelectedTrackId,
     applyEdit,
     patchRegistry,
+    unpatchRegistry,
     commitData,
     materializeData,
     editSeqRef,

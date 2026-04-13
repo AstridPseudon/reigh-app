@@ -157,6 +157,7 @@ interface InlineEditSidebarProps {
 
 interface InlineEditSidebarModel {
   isSpecialEditMode: boolean;
+  isCloudMode: boolean;
   currentMediaId: string;
   generation: {
     handleUnifiedGenerate: InlineEditStateResult['generationState']['handleUnifiedGenerate'];
@@ -185,6 +186,7 @@ interface InlineEditSidebarModel {
 function buildInlineEditSidebarModel(state: InlineEditStateResult): InlineEditSidebarModel {
   return {
     isSpecialEditMode: state.inpaintingState.isSpecialEditMode,
+    isCloudMode: state.canvasEnvironment.isCloudMode,
     currentMediaId: state.media.id,
     generation: {
       handleUnifiedGenerate: state.generationState.handleUnifiedGenerate,
@@ -232,6 +234,7 @@ function InlineEditSidebar({ variant, model, onClose }: InlineEditSidebarProps) 
         img2imgLoraManager: model.generation.img2imgLoraManager,
         availableLoras: model.availableLoras,
       }}
+      upscale={{ isCloudMode: model.isCloudMode }}
       stateOverrides={{
         coreState: { onClose },
         imageEditState: model.imageEditValue,

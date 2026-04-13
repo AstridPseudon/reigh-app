@@ -20,6 +20,7 @@ export interface DragCoordinator {
     sourceKind: TrackKind | null;
     clipDuration?: number;
     clipOffsetX?: number;
+    excludeClipIds?: Set<string>;
   }): DropPosition;
   /** Show ghost outlines for secondary clips (non-anchor) during multi-drag. */
   showSecondaryGhosts(ghosts: GhostRect[]): void;
@@ -124,6 +125,7 @@ export function useDragCoordinator({
     sourceKind: TrackKind | null;
     clipDuration?: number;
     clipOffsetX?: number;
+    excludeClipIds?: Set<string>;
   }): DropPosition => {
     const wrapper = editAreaRef.current?.closest<HTMLDivElement>('.timeline-wrapper');
     if (!wrapper) {
@@ -144,6 +146,7 @@ export function useDragCoordinator({
       sourceKind: params.sourceKind,
       clipDuration: params.clipDuration,
       clipOffsetX: params.clipOffsetX,
+      excludeClipIds: params.excludeClipIds,
     });
 
     lastPositionRef.current = nextPosition;

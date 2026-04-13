@@ -1,6 +1,6 @@
 import type { DragEvent as ReactDragEvent, MutableRefObject } from 'react';
 import { getDragType } from '@/shared/lib/dnd/dragDrop';
-import { rawRowIndexFromY } from '@/tools/video-editor/lib/coordinate-utils';
+import { findNearestFreeTrack, rawRowIndexFromY } from '@/tools/video-editor/lib/coordinate-utils';
 import { createTimelineScale } from '@/tools/video-editor/lib/timeline-scale';
 import type { TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { TrackKind } from '@/tools/video-editor/types';
@@ -48,6 +48,7 @@ export interface ComputeDropPositionParams {
   sourceKind?: TrackKind | null;
   clipDuration?: number;
   clipOffsetX?: number;
+  excludeClipIds?: Set<string>;
 }
 
 const timelineDomNodeCache = new WeakMap<HTMLDivElement, Omit<TimelineDomNodes, 'wrapper'>>();
@@ -85,6 +86,7 @@ export const computeDropPosition = ({
   sourceKind = null,
   clipDuration = 5,
   clipOffsetX,
+  excludeClipIds,
 }: ComputeDropPositionParams): DropPosition => {
   const current = dataRef.current;
   const { editArea, grid } = getTimelineDomNodes(wrapper);
@@ -175,6 +177,30 @@ export const computeDropPosition = ({
     resolvedTrackName = '';
   }
 
+  // Overlap resolution: if the resolved track is occupied at this time, find the nearest free one
+  let finalRowTop = rowTop;
+  if (!needsNewTrack && current && resolvedTrackId && resolvedTrackKind) {
+    const freeTrackId = findNearestFreeTrack(
+      current.tracks, current.rows, resolvedTrackId, resolvedTrackKind,
+      time, clipDuration, excludeClipIds,
+    );
+    if (freeTrackId && freeTrackId !== resolvedTrackId) {
+      const freeIndex = current.tracks.findIndex((t) => t.id === freeTrackId);
+      const freeTrack = current.tracks[freeIndex];
+      if (freeTrack) {
+        resolvedTrackId = freeTrackId;
+        resolvedTrackName = freeTrack.label ?? freeTrack.id;
+        resolvedTrackKind = freeTrack.kind;
+        finalRowTop = editRect.top + freeIndex * rowHeight - scrollTop;
+      }
+    } else if (!freeTrackId) {
+      needsNewTrack = true;
+      newTrackKind = resolvedTrackKind;
+      resolvedTrackId = undefined;
+      resolvedTrackName = '';
+    }
+  }
+
   return {
     time,
     rowIndex,
@@ -186,7 +212,7 @@ export const computeDropPosition = ({
     isReject: false,
     newTrackKind,
     screenCoords: {
-      rowTop,
+      rowTop: finalRowTop,
       rowLeft: wrapperRect.left,
       rowWidth: wrapperRect.width,
       rowHeight,

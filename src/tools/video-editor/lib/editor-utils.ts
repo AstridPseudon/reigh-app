@@ -244,6 +244,19 @@ export const detachAudioFromVideo = (
   };
 };
 
+/** Whether a URL or MIME type represents a media asset openable in the lightbox. */
+export function isOpenableAssetType(type: string | undefined, url: string | undefined): boolean {
+  if (typeof type === 'string' && (type.startsWith('video/') || type.startsWith('image/'))) {
+    return true;
+  }
+
+  if (!url) {
+    return false;
+  }
+
+  return /\.(mp4|mov|webm|m4v|png|jpe?g|webp|gif|avif)(\?.*)?$/i.test(url);
+}
+
 export const canSplitClipAtTime = (clip: ResolvedTimelineClip, playheadSeconds: number): boolean => {
   return playheadSeconds > clip.at + SPLIT_EPSILON && playheadSeconds < getClipEndSeconds(clip) - SPLIT_EPSILON;
 };

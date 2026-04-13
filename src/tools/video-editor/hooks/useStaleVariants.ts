@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getSupabaseClient } from '@/integrations/supabase/client';
+import { toast } from '@/shared/components/ui/runtime/sonner';
 import { realtimeEventProcessor } from '@/shared/realtime/RealtimeEventProcessor';
 import type { AssetRegistryEntry, ResolvedAssetRegistryEntry } from '@/tools/video-editor/types';
 import type {
@@ -189,6 +190,8 @@ export function useStaleVariants({ registry, patchRegistry, registerAsset }: Use
 
     const newVariant = data.primary_variant as { id: string; location: string; thumbnail_url: string | null };
     const newLocation = newVariant.location;
+    const previousEntry = entry;
+    const previousFile = entry.file;
 
     const updatedEntry: AssetRegistryEntry = {
       ...entry,
@@ -202,6 +205,8 @@ export function useStaleVariants({ registry, patchRegistry, registerAsset }: Use
     // Persist to DB
     void registerAsset(assetKey, updatedEntry).catch((err) => {
       console.error('[StaleVariants] Failed to persist variant update:', err);
+      patchRegistry(assetKey, previousEntry, previousFile);
+      toast.error('Failed to update variant');
     });
 
     // Clear dismiss state (it's now up to date)

@@ -65,6 +65,7 @@ export function useTimelineState(): UseTimelineStateResult {
   const history = useTimelineHistory({
     dataRef: save.dataRef,
     commitData: save.commitData,
+    interactionStateRef,
   });
   const derived = useDerivedTimeline(save.data, save.selectedClipId, save.selectedTrackId);
   const render = useRenderState(derived.resolvedConfig, derived.renderMetadata);
@@ -87,6 +88,7 @@ export function useTimelineState(): UseTimelineStateResult {
     setSelectedTrackId,
     applyEdit,
     patchRegistry,
+    unpatchRegistry,
     reloadFromServer,
     retrySaveAfterConflict,
     pendingOpsRef,
@@ -204,6 +206,7 @@ export function useTimelineState(): UseTimelineStateResult {
     setSelectedTrackId,
     applyEdit,
     patchRegistry,
+    unpatchRegistry,
     registerAsset,
     uploadAsset,
     invalidateAssetRegistry,
@@ -282,6 +285,7 @@ export function useTimelineState(): UseTimelineStateResult {
     uploadFiles,
     applyEdit,
     patchRegistry,
+    unpatchRegistry,
     registerAsset,
     setInputModality,
     setInputModalityFromPointerType,

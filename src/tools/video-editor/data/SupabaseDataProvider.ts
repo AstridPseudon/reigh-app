@@ -71,16 +71,31 @@ export class SupabaseDataProvider implements DataProvider {
     };
   }
 
-  async saveTimeline(timelineId: string, config: TimelineConfig, expectedVersion: number): Promise<number> {
+  async saveTimeline(
+    timelineId: string,
+    config: TimelineConfig,
+    expectedVersion: number,
+    registry?: AssetRegistry,
+  ): Promise<number> {
     validateSerializedConfig(config);
 
     const supabase = getSupabaseClient() as any;
-    const { data, error } = await supabase
-      .rpc('update_timeline_config_versioned' as never, {
-        p_timeline_id: timelineId,
-        p_expected_version: expectedVersion,
-        p_config: config,
-      } as never);
+    const rpcName = registry !== undefined
+      ? 'update_timeline_versioned'
+      : 'update_timeline_config_versioned';
+    const rpcParams = registry !== undefined
+      ? {
+          p_timeline_id: timelineId,
+          p_expected_version: expectedVersion,
+          p_config: config,
+          p_asset_registry: registry,
+        }
+      : {
+          p_timeline_id: timelineId,
+          p_expected_version: expectedVersion,
+          p_config: config,
+        };
+    const { data, error } = await supabase.rpc(rpcName as never, rpcParams as never);
 
     if (error) {
       throw error;

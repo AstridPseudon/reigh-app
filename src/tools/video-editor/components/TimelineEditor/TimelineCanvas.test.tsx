@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React, { useMemo, useState } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TimelineCanvas } from '@/tools/video-editor/components/TimelineEditor/TimelineCanvas';
 import { createInteractionState, onInteractionEnd } from '@/tools/video-editor/lib/interaction-state';
 import type { TrackDefinition } from '@/tools/video-editor/types';
@@ -19,18 +19,6 @@ vi.mock('@/tools/video-editor/contexts/TimelineEditorContext', async () => {
     useTimelineEditorData: () => useTimelineEditorDataMock(),
   };
 });
-
-let pointerCaptures = new WeakMap<HTMLElement, Set<number>>();
-
-function getPointerCaptures(element: HTMLElement) {
-  let captures = pointerCaptures.get(element);
-  if (!captures) {
-    captures = new Set<number>();
-    pointerCaptures.set(element, captures);
-  }
-
-  return captures;
-}
 
 const track: TrackDefinition = { id: 'V1', kind: 'visual', label: 'V1' };
 const action: TimelineAction = { id: 'clip-1', start: 0, end: 2, effectId: 'effect-clip-1' };
@@ -140,13 +128,12 @@ function renderStatefulPinnedGroupCanvas(params: {
   scale?: number;
   scaleWidth?: number;
 }) {
-  const pendingOpsRef = { current: 0 };
   const dataRef = { current: null };
   const onClipEdgeResizeEndSpy = vi.fn();
   const initialRow = params.initialRow ?? pinnedGroupRow;
   const initialShotGroup = params.initialShotGroup ?? pinnedShotGroup;
 
-  useTimelineEditorDataMock.mockReturnValue({ pendingOpsRef, dataRef });
+  useTimelineEditorDataMock.mockReturnValue({ dataRef });
 
   function Harness() {
     const [rows, setRows] = useState<TimelineRow[]>([cloneRowState(initialRow)]);
@@ -216,13 +203,10 @@ function renderStatefulPinnedGroupCanvas(params: {
 
   return {
     ...renderResult,
-    pendingOpsRef,
     onClipEdgeResizeEndSpy,
     getActionElement,
     getHandle: (actionId: string, side: 'left' | 'right') => {
-      const selector = side === 'left'
-        ? '.cursor-ew-resize.rounded-l-sm'
-        : '.cursor-ew-resize.rounded-r-sm';
+      const selector = `[data-resize-edge="${side}"]`;
       const handle = getActionElement(actionId).querySelector(selector);
       if (!(handle instanceof HTMLElement)) {
         throw new Error(`expected ${side} handle for ${actionId}`);
@@ -233,7 +217,6 @@ function renderStatefulPinnedGroupCanvas(params: {
 }
 
 function renderCanvas(params?: {
-  pendingOpsRef?: React.MutableRefObject<number>;
   interactionStateRef?: React.MutableRefObject<{ drag: boolean; resize: boolean }>;
   dataRef?: { current: any };
   onActionResizeStart?: ReturnType<typeof vi.fn>;
@@ -261,11 +244,10 @@ function renderCanvas(params?: {
   tracks?: TrackDefinition[];
   rows?: TimelineRow[];
 }) {
-  const pendingOpsRef = params?.pendingOpsRef ?? { current: 0 };
   const dataRef = params?.dataRef ?? { current: null };
   const trackDefinitions = params?.tracks ?? [params?.track ?? track];
   const timelineRows = params?.rows ?? [params?.row ?? row];
-  useTimelineEditorDataMock.mockReturnValue({ pendingOpsRef, dataRef });
+  useTimelineEditorDataMock.mockReturnValue({ dataRef });
 
   const onActionResizeStart = params?.onActionResizeStart ?? vi.fn();
   const onClipEdgeResizeEnd = params?.onClipEdgeResizeEnd ?? vi.fn();
@@ -322,8 +304,8 @@ function renderCanvas(params?: {
   // Identify handles by their rounding class so we don't mis-label when
   // only one of the two is rendered (e.g. for first/last children of a
   // pinned shot group, where only one interior boundary exists).
-  const leftHandle = actionElement.querySelector('.cursor-ew-resize.rounded-l-sm');
-  const rightHandle = actionElement.querySelector('.cursor-ew-resize.rounded-r-sm');
+  const leftHandle = actionElement.querySelector('[data-resize-edge="left"]');
+  const rightHandle = actionElement.querySelector('[data-resize-edge="right"]');
   if (!params?.allowMissingHandles && (!(leftHandle instanceof HTMLElement) || !(rightHandle instanceof HTMLElement))) {
     throw new Error('expected resize handles');
   }
@@ -340,48 +322,17 @@ function renderCanvas(params?: {
       }
       return handle;
     },
-    pendingOpsRef,
     onActionResizeStart,
     onClipEdgeResizeEnd,
     getActionRender,
   };
 }
 
-beforeEach(() => {
-  Object.defineProperties(HTMLElement.prototype, {
-    setPointerCapture: {
-      configurable: true,
-      value(pointerId: number) {
-        getPointerCaptures(this).add(pointerId);
-      },
-    },
-    releasePointerCapture: {
-      configurable: true,
-      value(pointerId: number) {
-        getPointerCaptures(this).delete(pointerId);
-      },
-    },
-    hasPointerCapture: {
-      configurable: true,
-      value(pointerId: number) {
-        return getPointerCaptures(this).has(pointerId);
-      },
-    },
-  });
-});
-
 afterEach(() => {
   useTimelineEditorDataMock.mockReset();
   setGestureOwner.mockReset();
   setInputModalityFromPointerType.mockClear();
-  pointerCaptures = new WeakMap<HTMLElement, Set<number>>();
 });
-
-function fireLostPointerCapture(target: HTMLElement, pointerId: number) {
-  const event = new Event('lostpointercapture', { bubbles: true });
-  Object.defineProperty(event, 'pointerId', { configurable: true, value: pointerId });
-  fireEvent(target, event);
-}
 
 describe('TimelineCanvas resize pending ops', () => {
   it('sizes the playhead to the full scrollable timeline content height', () => {
@@ -399,8 +350,9 @@ describe('TimelineCanvas resize pending ops', () => {
     expect(getByTestId('timeline-playhead')).toHaveStyle({ height: '144px' });
   });
 
-  it('increments on resize start and decrements on resize end', () => {
-    const { leftHandle, pendingOpsRef, onActionResizeStart, onClipEdgeResizeEnd } = renderCanvas();
+  it('sets interactionStateRef.resize on resize start and clears on resize end', () => {
+    const interactionStateRef = { current: createInteractionState() };
+    const { leftHandle, onActionResizeStart, onClipEdgeResizeEnd } = renderCanvas({ interactionStateRef });
     if (!leftHandle) throw new Error('expected left handle');
 
     fireEvent.pointerDown(leftHandle, {
@@ -409,7 +361,7 @@ describe('TimelineCanvas resize pending ops', () => {
       clientX: 120,
     });
 
-    expect(pendingOpsRef.current).toBe(0);
+    expect(interactionStateRef.current.resize).toBe(false);
     expect(onActionResizeStart).toHaveBeenCalledTimes(0);
 
     fireEvent.pointerMove(leftHandle, {
@@ -417,7 +369,7 @@ describe('TimelineCanvas resize pending ops', () => {
       clientX: 112,
     });
 
-    expect(pendingOpsRef.current).toBe(1);
+    expect(interactionStateRef.current.resize).toBe(true);
     expect(onActionResizeStart).toHaveBeenCalledTimes(1);
 
     fireEvent.pointerUp(leftHandle, {
@@ -425,12 +377,13 @@ describe('TimelineCanvas resize pending ops', () => {
       clientX: 112,
     });
 
-    expect(pendingOpsRef.current).toBe(0);
+    expect(interactionStateRef.current.resize).toBe(false);
     expect(onClipEdgeResizeEnd).toHaveBeenCalledTimes(1);
   });
 
-  it('decrements on pointercancel and reports a cancelled resize end', () => {
-    const { leftHandle, pendingOpsRef, onClipEdgeResizeEnd } = renderCanvas();
+  it('clears interactionStateRef.resize on pointercancel and reports a cancelled resize end', () => {
+    const interactionStateRef = { current: createInteractionState() };
+    const { leftHandle, onClipEdgeResizeEnd } = renderCanvas({ interactionStateRef });
     if (!leftHandle) throw new Error('expected left handle');
 
     fireEvent.pointerDown(leftHandle, {
@@ -439,21 +392,21 @@ describe('TimelineCanvas resize pending ops', () => {
       clientX: 120,
     });
 
-    expect(pendingOpsRef.current).toBe(0);
+    expect(interactionStateRef.current.resize).toBe(false);
 
     fireEvent.pointerMove(leftHandle, {
       pointerId: 8,
       clientX: 112,
     });
 
-    expect(pendingOpsRef.current).toBe(1);
+    expect(interactionStateRef.current.resize).toBe(true);
 
     fireEvent.pointerCancel(leftHandle, {
       pointerId: 8,
       clientX: 112,
     });
 
-    expect(pendingOpsRef.current).toBe(0);
+    expect(interactionStateRef.current.resize).toBe(false);
     expect(onClipEdgeResizeEnd).toHaveBeenCalledWith(expect.objectContaining({
       cancelled: true,
       session: expect.objectContaining({ clipId: 'clip-1', edge: 'left', rowId: 'V1' }),
@@ -494,7 +447,7 @@ describe('TimelineCanvas resize pending ops', () => {
   it('gates touch trim ownership and resize state until the trim threshold is crossed', () => {
     setInputModalityFromPointerType.mockReturnValue('touch');
     const interactionStateRef = { current: createInteractionState() };
-    const { leftHandle, pendingOpsRef, onActionResizeStart, onClipEdgeResizeEnd } = renderCanvas({
+    const { leftHandle, onActionResizeStart, onClipEdgeResizeEnd } = renderCanvas({
       deviceClass: 'tablet',
       inputModality: 'touch',
       interactionMode: 'trim',
@@ -511,7 +464,6 @@ describe('TimelineCanvas resize pending ops', () => {
 
     expect(setGestureOwner).not.toHaveBeenCalled();
     expect(onActionResizeStart).not.toHaveBeenCalled();
-    expect(pendingOpsRef.current).toBe(0);
     expect(interactionStateRef.current.resize).toBe(false);
 
     fireEvent.pointerMove(leftHandle, {
@@ -522,7 +474,6 @@ describe('TimelineCanvas resize pending ops', () => {
 
     expect(setGestureOwner).not.toHaveBeenCalled();
     expect(onActionResizeStart).not.toHaveBeenCalled();
-    expect(pendingOpsRef.current).toBe(0);
     expect(interactionStateRef.current.resize).toBe(false);
 
     fireEvent.pointerMove(leftHandle, {
@@ -533,7 +484,6 @@ describe('TimelineCanvas resize pending ops', () => {
 
     expect(setGestureOwner).toHaveBeenNthCalledWith(1, 'trim');
     expect(onActionResizeStart).toHaveBeenCalledTimes(1);
-    expect(pendingOpsRef.current).toBe(1);
     expect(interactionStateRef.current.resize).toBe(true);
 
     fireEvent.pointerUp(leftHandle, {
@@ -544,15 +494,14 @@ describe('TimelineCanvas resize pending ops', () => {
 
     expect(setGestureOwner).toHaveBeenLastCalledWith('none');
     expect(onClipEdgeResizeEnd).toHaveBeenCalledTimes(1);
-    expect(pendingOpsRef.current).toBe(0);
     expect(interactionStateRef.current.resize).toBe(false);
   });
 
-  it('clears resize preview and completes release when pointer capture is lost', () => {
+  it('clears resize preview and completes release on pointerup without pointer capture', () => {
     const interactionStateRef = { current: createInteractionState() };
     const onInteractionEndSpy = vi.fn();
     onInteractionEnd(interactionStateRef, onInteractionEndSpy);
-    const { actionElement, rightHandle, pendingOpsRef, onClipEdgeResizeEnd } = renderCanvas({ interactionStateRef });
+    const { actionElement, rightHandle, onClipEdgeResizeEnd } = renderCanvas({ interactionStateRef });
     if (!rightHandle) throw new Error('expected right handle');
 
     fireEvent.pointerDown(rightHandle, {
@@ -568,10 +517,11 @@ describe('TimelineCanvas resize pending ops', () => {
 
     expect(actionElement.style.width).toBe('300px');
     expect(interactionStateRef.current.resize).toBe(true);
-    expect(pendingOpsRef.current).toBe(1);
-    expect(rightHandle.hasPointerCapture(19)).toBe(true);
 
-    fireLostPointerCapture(rightHandle, 19);
+    fireEvent.pointerUp(rightHandle, {
+      pointerId: 19,
+      clientX: 300,
+    });
 
     expect(onClipEdgeResizeEnd).toHaveBeenCalledWith(expect.objectContaining({
       cancelled: false,
@@ -582,8 +532,6 @@ describe('TimelineCanvas resize pending ops', () => {
     }));
     expect(actionElement.style.width).toBe('200px');
     expect(interactionStateRef.current.resize).toBe(false);
-    expect(pendingOpsRef.current).toBe(0);
-    expect(rightHandle.hasPointerCapture(19)).toBe(false);
     expect(onInteractionEndSpy).toHaveBeenCalledTimes(1);
   });
 
@@ -820,11 +768,11 @@ describe('TimelineCanvas resize pending ops', () => {
         clipId: 'clip-2',
         edge: 'right',
         rowId: 'V1',
-        context: expect.objectContaining({ kind: 'interior' }),
+        context: expect.objectContaining({ kind: 'group' }),
       }),
       updates: expect.arrayContaining([
         expect.objectContaining({ clipId: 'clip-2', start: 1, end: 2.3 }),
-        expect.objectContaining({ clipId: 'clip-3', start: 2.3, end: 3 }),
+        expect.objectContaining({ clipId: 'clip-3', start: 2.3, end: 3.3 }),
       ]),
     }));
   });
@@ -864,11 +812,11 @@ describe('TimelineCanvas resize pending ops', () => {
       session: expect.objectContaining({
         clipId: 'clip-2',
         edge: 'right',
-        context: expect.objectContaining({ kind: 'interior' }),
+        context: expect.objectContaining({ kind: 'group' }),
       }),
       updates: expect.arrayContaining([
         expect.objectContaining({ clipId: 'clip-2', start: 1, end: 2.3 }),
-        expect.objectContaining({ clipId: 'clip-3', start: 2.3, end: 3 }),
+        expect.objectContaining({ clipId: 'clip-3', start: 2.3, end: 3.3 }),
       ]),
     }));
   });
@@ -1010,11 +958,13 @@ describe('TimelineCanvas resize pending ops', () => {
         clipId: 'clip-1',
         edge: 'left',
         rowId: 'V1',
-        context: expect.objectContaining({ kind: 'outer', shotId: 'shot-1', trackId: 'V1' }),
+        context: expect.objectContaining({ kind: 'group', shotId: 'shot-1', trackId: 'V1' }),
       }),
-      updates: [
+      updates: expect.arrayContaining([
         expect.objectContaining({ clipId: 'clip-1', start: 0.5, end: 2 }),
-      ],
+        expect.objectContaining({ clipId: 'clip-2', start: 2, end: 3 }),
+        expect.objectContaining({ clipId: 'clip-3', start: 3, end: 4 }),
+      ]),
     }));
   });
 
@@ -1055,11 +1005,13 @@ describe('TimelineCanvas resize pending ops', () => {
       session: expect.objectContaining({
         clipId: 'clip-1',
         edge: 'left',
-        context: expect.objectContaining({ kind: 'outer', shotId: 'shot-1', trackId: 'V1' }),
+        context: expect.objectContaining({ kind: 'group', shotId: 'shot-1', trackId: 'V1' }),
       }),
-      updates: [
+      updates: expect.arrayContaining([
         expect.objectContaining({ clipId: 'clip-1', start: 0.5, end: 2 }),
-      ],
+        expect.objectContaining({ clipId: 'clip-2', start: 2, end: 3 }),
+        expect.objectContaining({ clipId: 'clip-3', start: 3, end: 4 }),
+      ]),
     }));
   });
 

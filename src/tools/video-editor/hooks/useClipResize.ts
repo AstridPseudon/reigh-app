@@ -257,55 +257,7 @@ export function useClipResize({
       return;
     }
 
-    if (session.context.kind === 'interior') {
-      const adjacentClipId = session.context.adjacentClipId;
-      const adjacentUpdate = getUpdateByClipId(updates, adjacentClipId);
-      const adjacent = getResizeOrigin(current, resizeStartRef.current, session.rowId, adjacentClipId);
-      if (!adjacentUpdate || !adjacent) {
-        clearResizeTracking(session.clipId);
-        return;
-      }
-
-      const nextRows = applyActionUpdates(current.rows, session.rowId, [
-        primaryUpdate,
-        adjacentUpdate,
-      ]);
-      const adjacentEdge: ResizeDir = session.edge === 'right' ? 'left' : 'right';
-      const metaUpdates: Record<string, Partial<ClipMeta>> = {
-        ...buildRowTrackPatches(nextRows),
-        [session.clipId]: {
-          track: session.rowId,
-          ...computeClipResizeMetaPatch(
-            primary.clipMeta,
-            primary.origin,
-            primaryUpdate.start,
-            primaryUpdate.end,
-            session.edge,
-          ),
-        },
-        [adjacentClipId]: {
-          track: session.rowId,
-          ...computeClipResizeMetaPatch(
-            adjacent.clipMeta,
-            adjacent.origin,
-            adjacentUpdate.start,
-            adjacentUpdate.end,
-            adjacentEdge,
-          ),
-        },
-      };
-
-      applyEdit({
-        type: 'rows',
-        rows: nextRows,
-        metaUpdates,
-      }, { transactionId });
-
-      clearResizeTracking(session.clipId);
-      return;
-    }
-
-    if (session.context.kind === 'outer') {
+    if (session.context.kind === 'group') {
       const nextRows = applyActionUpdates(current.rows, session.rowId, updates);
       const perClipMetaUpdates: Record<string, Partial<ClipMeta>> = {};
       for (const update of updates) {
@@ -313,6 +265,8 @@ export function useClipResize({
         if (!clip) {
           continue;
         }
+        // The dragged clip is actually resized; other clips are just shifted
+        const clipEdge = update.clipId === session.clipId ? session.edge : session.edge;
         perClipMetaUpdates[update.clipId] = {
           track: session.rowId,
           ...computeClipResizeMetaPatch(
@@ -320,7 +274,7 @@ export function useClipResize({
             clip.origin,
             update.start,
             update.end,
-            session.edge,
+            clipEdge,
           ),
         };
       }

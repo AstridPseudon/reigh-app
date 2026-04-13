@@ -7,6 +7,7 @@ import { useCurrentShot } from '@/shared/contexts/CurrentShotContext';
 import { useShotGenerationMetadata } from '@/shared/hooks/shots/useShotGenerationMetadata';
 import type { EditAdvancedSettings, QwenEditModel } from './useGenerationEditSettings';
 import type { LoraMode } from '../model/editSettingsTypes';
+import { isKleinModel } from '../model/editSettingsTypes';
 import { convertToHiresFixApiParams } from './useGenerationEditSettings';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 import type { BrushStroke } from './inpainting/types';
@@ -180,8 +181,10 @@ export const useMagicEditMode = ({
     }
     
     // Route based on whether there are brush strokes
-    if (brushStrokes.length > 0) {
-      // Has brush strokes -> inpaint
+    // Klein models don't support masks/inpainting — always use prompt-based edit
+    const useKleinPath = qwenEditModel && isKleinModel(qwenEditModel);
+    if (brushStrokes.length > 0 && !useKleinPath) {
+      // Has brush strokes -> inpaint (Qwen models only)
       await handleGenerateInpaint();
     } else {
       // No brush strokes -> magic edit
@@ -189,8 +192,9 @@ export const useMagicEditMode = ({
       setMagicEditTasksCreated(false);
 
       try {
+        const useKlein = qwenEditModel && isKleinModel(qwenEditModel);
         await run({
-          taskType: 'qwen_image_edit',
+          taskType: useKlein ? 'flux_klein_edit' : 'qwen_image_edit',
           label: prompt || 'Magic edit...',
           context: 'useMagicEditMode',
           toastTitle: 'Failed to create magic edit tasks',
@@ -201,6 +205,25 @@ export const useMagicEditMode = ({
             // IMPORTANT: Use generation_id (actual generations.id) when available, falling back to id
             // For ShotImageManager/Timeline images, id is shot_generations.id but generation_id is the actual generation ID
             const actualGenerationId = getGenerationId(media);
+
+            if (useKlein) {
+              return createTask({
+                project_id: selectedProjectId,
+                family: 'klein_edit',
+                input: {
+                  prompt,
+                  image_url: effectiveImageUrl,
+                  klein_model: qwenEditModel,
+                  numImages: inpaintNumGenerations,
+                  seed: 11111,
+                  shot_id: currentShotId || undefined,
+                  tool_type: toolTypeOverride,
+                  based_on: actualGenerationId ?? undefined,
+                  source_variant_id: activeVariantId || undefined,
+                  create_as_generation: createAsGeneration,
+                },
+              });
+            }
 
             return createTask({
               project_id: selectedProjectId,

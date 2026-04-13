@@ -152,6 +152,22 @@ describe('ClipAction', () => {
     window.requestAnimationFrame = originalRequestAnimationFrame;
   });
 
+  it('selects the clip when the outer button receives Enter or Space', () => {
+    mockUseWaveformData();
+    const props = buildProps({
+      isSelected: false,
+      selectedClipIds: [],
+    });
+    const { container } = render(<ClipAction {...props} />);
+    const clipButton = container.querySelector('[data-clip-id="clip-1"]') as HTMLElement;
+
+    fireEvent.keyDown(clipButton, { key: 'Enter' });
+    fireEvent.keyDown(clipButton, { key: ' ' });
+
+    expect(props.onSelect).toHaveBeenNthCalledWith(1, 'clip-1', 'V1');
+    expect(props.onSelect).toHaveBeenNthCalledWith(2, 'clip-1', 'V1');
+  });
+
   it('labels the visible overflow trigger for multi-clip touch selections', () => {
     mockUseWaveformData();
     const props = buildProps({

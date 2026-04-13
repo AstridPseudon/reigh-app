@@ -22,7 +22,6 @@ import { DropIndicator } from '@/tools/video-editor/components/TimelineEditor/Dr
 import { TimelineCanvas } from '@/tools/video-editor/components/TimelineEditor/TimelineCanvas';
 import { ROW_HEIGHT, TIMELINE_START_LEFT } from '@/tools/video-editor/lib/coordinate-utils';
 import type { ClipMeta } from '@/tools/video-editor/lib/timeline-data';
-import { buildDeleteShotGroupMutation } from '@/tools/video-editor/lib/shot-group-commands';
 import { useTimelineChromeContext } from '@/tools/video-editor/contexts/TimelineChromeContext';
 import {
   useTimelineEditorData,
@@ -35,6 +34,7 @@ import { useMarqueeSelect } from '@/tools/video-editor/hooks/useMarqueeSelect';
 import { usePinnedGroupSync, usePinnedShotGroups } from '@/tools/video-editor/hooks/usePinnedShotGroups';
 import { useShotGroups } from '@/tools/video-editor/hooks/useShotGroups';
 import { useStaleVariants } from '@/tools/video-editor/hooks/useStaleVariants';
+import { useShotGroupHandlers } from '@/tools/video-editor/hooks/useShotGroupHandlers';
 import { useSwitchToFinalVideo } from '@/tools/video-editor/hooks/useSwitchToFinalVideo';
 import { useTimelineScale } from '@/tools/video-editor/hooks/useTimelineScale';
 import { buildDuplicateClipEdit } from '@/tools/video-editor/lib/duplicate-clip';
@@ -206,7 +206,6 @@ function TimelineEditorComponent() {
     additiveSelectionRef,
     scale,
     scaleWidth,
-    pendingOpsRef,
     coordinator,
     indicatorRef,
     editAreaRef,
@@ -242,6 +241,7 @@ function TimelineEditorComponent() {
     onTimelineDrop,
     onDoubleClickAsset,
     patchRegistry,
+    unpatchRegistry,
     registerAsset,
     registerGenerationAsset,
   } = useTimelineEditorOps();
@@ -265,7 +265,6 @@ function TimelineEditorComponent() {
   const { dragSessionRef } = useClipDrag({
     timelineWrapperRef,
     dataRef,
-    pendingOpsRef,
     interactionStateRef,
     deviceClass,
     interactionMode,
@@ -288,7 +287,6 @@ function TimelineEditorComponent() {
 
   const { marqueeRect, onPointerDown: onMarqueePointerDown } = useMarqueeSelect({
     editAreaRef,
-    dragSessionRef,
     deviceClass,
     interactionMode,
     gestureOwner,
@@ -305,46 +303,7 @@ function TimelineEditorComponent() {
     registerAsset,
   });
   const { activeTaskAssetKeys } = useActiveTaskClips({ registry: resolvedConfig?.registry });
-  const activeTaskClipIds = useMemo(() => {
-    if (activeTaskAssetKeys.size === 0 || !data?.rows || !data?.meta) return new Set<string>();
-    const clipIds = new Set<string>();
-    for (const row of data.rows) {
-      for (const action of row.actions) {
-        const assetKey = data.meta[action.id]?.asset;
-        if (assetKey && activeTaskAssetKeys.has(assetKey)) {
-          clipIds.add(action.id);
-        }
-      }
-    }
-    return clipIds;
-  }, [activeTaskAssetKeys, data?.rows, data?.meta]);
   const { finalVideoMap, dismissFinalVideo } = useFinalVideoAvailable();
-  const staleShotGroupIds = useMemo(() => {
-    const pinnedShotGroups = data?.config.pinnedShotGroups ?? [];
-    const registry = resolvedConfig?.registry;
-    if (pinnedShotGroups.length === 0 || !registry) {
-      return new Set<string>();
-    }
-
-    const staleIds = new Set<string>();
-    for (const group of pinnedShotGroups) {
-      if (group.mode !== 'video' || !group.videoAssetKey) {
-        continue;
-      }
-
-      const currentGenerationId = registry[group.videoAssetKey]?.generationId;
-      const latestFinalVideoId = finalVideoMap.get(group.shotId)?.id;
-      if (!currentGenerationId || !latestFinalVideoId) {
-        continue;
-      }
-
-      if (currentGenerationId !== latestFinalVideoId) {
-        staleIds.add(`${group.shotId}:${group.trackId}`);
-      }
-    }
-
-    return staleIds;
-  }, [data?.config.pinnedShotGroups, finalVideoMap, resolvedConfig?.registry]);
 
   useLayoutEffect(() => {
     const wrapper = timelineWrapperRef.current;
@@ -408,15 +367,6 @@ function TimelineEditorComponent() {
     shots,
     data?.config.pinnedShotGroups,
   );
-  const shotGroupClipIds = useMemo(() => {
-    const ids = new Set<string>();
-    for (const group of shotGroups) {
-      for (const clipId of group.clipIds) {
-        ids.add(clipId);
-      }
-    }
-    return ids;
-  }, [shotGroups]);
   const assetGenerationMap = useMemo<Record<string, string>>(() => {
     const assets = data?.registry?.assets;
     if (!assets) {
@@ -540,28 +490,45 @@ function TimelineEditorComponent() {
     setVideoModalShot(shot);
   }, []);
 
-  const handleShotGroupNavigate = useCallback((shotId: string) => {
-    const shot = shots?.find((s) => s.id === shotId);
-    if (shot) {
-      setVideoModalShowImages(true);
-      setVideoModalShot(shot);
-    }
-  }, [shots]);
-
-  const handleShotGroupGenerateVideo = useCallback((shotId: string) => {
-    const shot = shots?.find((s) => s.id === shotId);
-    if (shot) setVideoModalShot(shot);
-  }, [shots]);
   const {
-    switchToFinalVideo: handleSwitchToFinalVideo,
+    switchToFinalVideo,
     updateToLatestVideo,
-    switchToImages: handleSwitchToImages,
+    switchToImages,
   } = useSwitchToFinalVideo({
     applyEdit,
     dataRef,
     finalVideoMap,
     patchRegistry,
+    unpatchRegistry,
     registerAsset,
+  });
+  const {
+    shotGroupClipIds,
+    activeTaskClipIds,
+    staleShotGroupIds,
+    handleShotGroupNavigate,
+    handleShotGroupGenerateVideo,
+    handleDeleteShotGroup,
+    handleUpdateToLatestVideo,
+    handleShotGroupUnpin,
+    handleShotGroupSwitchToFinalVideo,
+    handleShotGroupSwitchToImages,
+  } = useShotGroupHandlers({
+    shots,
+    shotGroups,
+    data,
+    resolvedRegistry: resolvedConfig?.registry,
+    activeTaskAssetKeys,
+    finalVideoMap,
+    applyEdit,
+    dataRef,
+    dismissFinalVideo,
+    switchToFinalVideo,
+    switchToImages,
+    updateToLatestVideo,
+    unpinGroup,
+    setVideoModalShot,
+    setVideoModalShowImages,
   });
   usePinnedGroupSync({
     data,
@@ -608,7 +575,7 @@ function TimelineEditorComponent() {
         assetKey: resolution.assetKey,
         generationId: resolution.generationId ?? null,
       });
-      onDoubleClickAsset?.(resolution.assetKey);
+      onDoubleClickAsset?.(resolution.assetKey, clipId);
       return;
     }
 
@@ -638,24 +605,6 @@ function TimelineEditorComponent() {
     const time = clientXToTime(clientX);
     handleSplitClipAtTime(clipId, time);
   }, [clientXToTime, handleSplitClipAtTime]);
-  const handleUpdateToLatestVideo = useCallback((group: { shotId: string; rowId: string }) => {
-    const finalVideo = finalVideoMap.get(group.shotId);
-    if (finalVideo) {
-      dismissFinalVideo(finalVideo.id);
-    }
-    updateToLatestVideo(group);
-  }, [dismissFinalVideo, finalVideoMap, updateToLatestVideo]);
-  const handleDeleteShotGroup = useCallback((group: { shotId: string; trackId: string; clipIds: string[] }) => {
-    const mutation = buildDeleteShotGroupMutation({
-      currentData: dataRef.current,
-      group,
-    });
-    if (!mutation) {
-      return;
-    }
-
-    applyEdit(mutation, { semantic: true });
-  }, [applyEdit, dataRef]);
 
   const handleDuplicateGenerationClip = useCallback(async (clipId: string) => {
     if (!selectedProjectId) {
@@ -889,20 +838,10 @@ function TimelineEditorComponent() {
           activeTaskClipIds={activeTaskClipIds}
           onShotGroupNavigate={handleShotGroupNavigate}
           onShotGroupGenerateVideo={handleShotGroupGenerateVideo}
-          onShotGroupUnpin={(group) => {
-            unpinGroup(group.shotId, group.trackId);
-          }}
+          onShotGroupUnpin={handleShotGroupUnpin}
           onShotGroupDelete={handleDeleteShotGroup}
-          onShotGroupSwitchToFinalVideo={(group) => {
-            const finalVideo = finalVideoMap.get(group.shotId);
-            if (finalVideo) {
-              dismissFinalVideo(finalVideo.id);
-            }
-            handleSwitchToFinalVideo(group);
-          }}
-          onShotGroupSwitchToImages={(group) => {
-            handleSwitchToImages(group);
-          }}
+          onShotGroupSwitchToFinalVideo={handleShotGroupSwitchToFinalVideo}
+          onShotGroupSwitchToImages={handleShotGroupSwitchToImages}
           onShotGroupUpdateToLatestVideo={handleUpdateToLatestVideo}
           onSelectClips={selectClips}
           dragSessionRef={dragSessionRef}

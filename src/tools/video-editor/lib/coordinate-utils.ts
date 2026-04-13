@@ -113,6 +113,60 @@ export const rawRowIndexFromY = (
   return Math.floor(relativeY / rowHeight);
 };
 
+/**
+ * Find the nearest compatible track (above or below `startTrackId`) where the
+ * time range [time, time+duration) doesn't overlap any existing clip.
+ * Returns `startTrackId` itself if it's free, otherwise alternates below/above.
+ * Pass `excludeClipId` to ignore a clip being moved (so it doesn't block itself).
+ */
+export const findNearestFreeTrack = (
+  tracks: TrackDefinition[],
+  rows: { id: string; actions: { start: number; end: number; id: string }[] }[],
+  startTrackId: string,
+  kind: TrackKind,
+  time: number,
+  duration: number,
+  excludeClipIds?: string | Set<string>,
+): string | null => {
+  const startIndex = tracks.findIndex((t) => t.id === startTrackId);
+  if (startIndex === -1) return null;
+
+  const excludeSet = excludeClipIds instanceof Set
+    ? excludeClipIds
+    : excludeClipIds
+      ? new Set([excludeClipIds])
+      : null;
+
+  const isFree = (trackId: string) => {
+    const row = rows.find((r) => r.id === trackId);
+    if (!row) return true;
+    const actions = excludeSet
+      ? row.actions.filter((a) => !excludeSet.has(a.id))
+      : row.actions;
+    return !actions.some((a) => time < a.end && (time + duration) > a.start);
+  };
+
+  if (isFree(startTrackId)) return startTrackId;
+
+  let below = startIndex + 1;
+  let above = startIndex - 1;
+
+  while (below < tracks.length || above >= 0) {
+    if (below < tracks.length) {
+      const track = tracks[below];
+      if (track.kind === kind && isFree(track.id)) return track.id;
+      below++;
+    }
+    if (above >= 0) {
+      const track = tracks[above];
+      if (track.kind === kind && isFree(track.id)) return track.id;
+      above--;
+    }
+  }
+
+  return null;
+};
+
 export interface DropTargetResult {
   kind: 'track' | 'create' | 'reject';
   trackId?: string;
