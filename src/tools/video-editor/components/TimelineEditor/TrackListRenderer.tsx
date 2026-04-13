@@ -110,7 +110,7 @@ const SortableRow = React.memo(function SortableRow({
       {row.actions.map((action) => {
         // Render both handles on every clip — including grouped children.
         // The document-level resize gesture hook resolves whether a handle
-        // starts a free, interior, or outer-group resize session.
+        // starts a free or group resize session.
         const override = resizePreviewSnapshot[action.id];
         const renderedAction = override ? { ...action, ...override } : action;
         const left = startLeft + renderedAction.start * pixelsPerSecond;

@@ -256,14 +256,6 @@ export const getPreviewUpdatesFromSnapshot = (
   }
 };
 
-export const getGroupReleaseUpdates = (
-  session: ClipEdgeResizeSession,
-  updates: ClipEdgeResizeUpdate[],
-): ClipEdgeResizeUpdate[] => {
-  // For group contexts the unified apply already returns correct updates
-  // for all clips, so just pass through.
-  return updates;
-};
 
 export const resolveClipEdgeResizeContext = (
   rows: TimelineRow[],

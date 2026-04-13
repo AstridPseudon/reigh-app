@@ -15,7 +15,6 @@ import {
   clearResizePreview,
   computeResizePreview,
   createResizePreviewStore,
-  getGroupReleaseUpdates,
   getPreviewUpdatesFromSnapshot,
   getResizePreviewIds,
   resolveClipEdgeResizeContext,
@@ -184,7 +183,7 @@ export const useClipResizeGesture = ({
             );
         latestRef.current.onClipEdgeResizeEnd?.({
           session: currentState.session,
-          updates: getGroupReleaseUpdates(currentState.session, preview),
+          updates: preview,
           cancelled,
         });
         clearResizePreview(resizePreviewStore, previewIds);
