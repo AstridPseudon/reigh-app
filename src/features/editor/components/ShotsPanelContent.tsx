@@ -14,7 +14,7 @@ import {
 } from '@/shared/lib/dnd/dragDrop';
 import { VideoGenerationModal } from '@/tools/travel-between-images/components/VideoGenerationModal';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
-import { isVideoGeneration } from '@/shared/lib/typeGuards';
+import { isVideoGeneration, isPositioned } from '@/shared/lib/typeGuards';
 import { getDisplayUrl } from '@/shared/lib/media/mediaUrl';
 import { useAddImageToShot } from '@/shared/hooks/shots/useShotGenerationMutations';
 import { useDuplicateShot, useDeleteShot } from '@/shared/hooks/shots/useShotsCrud';
@@ -54,7 +54,7 @@ function ShotCard({
 
   const thumbnailUrl = finalVideo?.thumbnailUrl
     ?? getDisplayUrl(shot.images?.[0]?.thumbUrl ?? shot.images?.[0]?.imageUrl ?? shot.images?.[0]?.location);
-  const imageCount = shot.images?.filter((img) => !isVideoGeneration(img)).length ?? 0;
+  const imageCount = shot.images?.filter((img) => !isVideoGeneration(img) && isPositioned(img)).length ?? 0;
 
   const handleDragStart = (event: React.DragEvent<HTMLDivElement>) => {
     const imageGenerationIds = (shot.images ?? [])
@@ -400,6 +400,7 @@ export function ShotsPanelContent({ projectId }: ShotsPanelContentProps) {
           isOpen={true}
           onClose={() => setModalShot(null)}
           shot={modalShot}
+          defaultFinalVideoOpen={finalVideoMap.has(modalShot.id)}
         />
       )}
     </div>

@@ -12,6 +12,7 @@ import {
 } from './VideoGenerationModalSections';
 import { useVideoGenerationModalController } from './hooks/useVideoGenerationModalController';
 import { getModelSpec } from '../settings';
+import { VideoTravelSettingsProvider } from '../providers';
 
 export interface VideoGenerationModalProps {
   isOpen: boolean;
@@ -73,6 +74,7 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({
     handleGenerate,
     handleNavigateToShot,
     handleDialogOpenChange,
+    updateShotMode,
   } = useVideoGenerationModalController({
     isOpen,
     onClose,
@@ -81,72 +83,80 @@ export const VideoGenerationModal: React.FC<VideoGenerationModalProps> = ({
 
   return (
     <>
-      <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
-        <DialogContent className={modal.className} style={{ ...modal.style, maxWidth: '1000px' }}>
-          <DialogHeader className={modal.headerClass}>
-            <VideoGenerationModalHeader
-              shotName={shot.name}
-              onNavigateToShot={handleNavigateToShot}
-            />
-          </DialogHeader>
-
-          <div className={`${modal.scrollClass} -mx-6 px-6 flex-1 min-h-0`}>
-            {isLoading ? (
-              <VideoGenerationModalLoadingContent />
-            ) : (
-              <VideoGenerationModalAccordionContent
-                defaultTopOpen={defaultTopOpen}
-                defaultFinalVideoOpen={defaultFinalVideoOpen}
-                defaultBottomOpen={defaultBottomOpen}
-                shotId={shot.id}
-                projectId={selectedProjectId || ''}
-                positionedImages={positionedImages}
-                shotGenerations={shotGenerations}
-                effectiveAspectRatio={effectiveAspectRatio}
-                settings={settings}
-                updateField={updateField}
-                projects={projects}
-                selectedProjectId={selectedProjectId}
-                selectedLoras={selectedLoras}
-                availableLoras={availableLoras}
-                accelerated={accelerated}
-                onAcceleratedChange={setAccelerated}
-                randomSeed={randomSeed}
-                onRandomSeedChange={setRandomSeed}
-                imageCount={positionedImages.length}
-                hasStructureVideo={hasStructureVideo}
-                guidanceKind={guidanceKind}
-                validPresetId={validPresetId}
-                status={status}
-                onOpenLoraModal={openLoraModal}
-                onRemoveLora={handleRemoveLora}
-                onLoraStrengthChange={handleLoraStrengthChange}
-                onAddTriggerWord={handleAddTriggerWord}
+      <VideoTravelSettingsProvider
+        projectId={selectedProjectId}
+        shotId={shot.id}
+        selectedShot={shot}
+        availableLoras={availableLoras ?? []}
+        updateShotMode={updateShotMode}
+      >
+        <Dialog open={isOpen} onOpenChange={handleDialogOpenChange}>
+          <DialogContent className={modal.className} style={{ ...modal.style, maxWidth: '1000px' }}>
+            <DialogHeader className={modal.headerClass}>
+              <VideoGenerationModalHeader
+                shotName={shot.name}
+                onNavigateToShot={handleNavigateToShot}
               />
-            )}
-          </div>
+            </DialogHeader>
 
-          <div className="flex-shrink-0 border-t border-zinc-700 bg-background px-6 py-4 -mx-6 -mb-6 flex justify-center">
-            {isLoading ? (
-              <Skeleton className="h-11 w-full max-w-md rounded-md" />
-            ) : (
-              <Button
-                size="retro-default"
-                className="w-full max-w-md"
-                variant={justQueued ? 'success' : 'retro'}
-                onClick={handleGenerate}
-                disabled={isDisabled}
-              >
-                {justQueued
-                  ? 'Submitted, closing modal...'
-                  : isGenerating
-                    ? 'Creating Tasks...'
-                    : 'Generate Video'}
-              </Button>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
+            <div className={`${modal.scrollClass} -mx-6 px-6 flex-1 min-h-0`}>
+              {isLoading ? (
+                <VideoGenerationModalLoadingContent />
+              ) : (
+                <VideoGenerationModalAccordionContent
+                  defaultTopOpen={defaultTopOpen}
+                  defaultFinalVideoOpen={defaultFinalVideoOpen}
+                  defaultBottomOpen={defaultBottomOpen}
+                  shotId={shot.id}
+                  projectId={selectedProjectId || ''}
+                  positionedImages={positionedImages}
+                  shotGenerations={shotGenerations}
+                  effectiveAspectRatio={effectiveAspectRatio}
+                  settings={settings}
+                  updateField={updateField}
+                  projects={projects}
+                  selectedProjectId={selectedProjectId}
+                  selectedLoras={selectedLoras}
+                  availableLoras={availableLoras}
+                  accelerated={accelerated}
+                  onAcceleratedChange={setAccelerated}
+                  randomSeed={randomSeed}
+                  onRandomSeedChange={setRandomSeed}
+                  imageCount={positionedImages.length}
+                  hasStructureVideo={hasStructureVideo}
+                  guidanceKind={guidanceKind}
+                  validPresetId={validPresetId}
+                  status={status}
+                  onOpenLoraModal={openLoraModal}
+                  onRemoveLora={handleRemoveLora}
+                  onLoraStrengthChange={handleLoraStrengthChange}
+                  onAddTriggerWord={handleAddTriggerWord}
+                />
+              )}
+            </div>
+
+            <div className="flex-shrink-0 border-t border-zinc-700 bg-background px-6 py-4 -mx-6 -mb-6 flex justify-center">
+              {isLoading ? (
+                <Skeleton className="h-11 w-full max-w-md rounded-md" />
+              ) : (
+                <Button
+                  size="retro-default"
+                  className="w-full max-w-md"
+                  variant={justQueued ? 'success' : 'retro'}
+                  onClick={handleGenerate}
+                  disabled={isDisabled}
+                >
+                  {justQueued
+                    ? 'Submitted, closing modal...'
+                    : isGenerating
+                      ? 'Creating Tasks...'
+                      : 'Generate Video'}
+                </Button>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </VideoTravelSettingsProvider>
 
       <LoraSelectorModal
         isOpen={isLoraModalOpen}

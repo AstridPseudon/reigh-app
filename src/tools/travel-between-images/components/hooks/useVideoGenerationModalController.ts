@@ -16,6 +16,7 @@ import { useShotImages } from '@/shared/hooks/shots/useShotImages';
 import { isPositioned, isVideoGeneration } from '@/shared/lib/typeGuards';
 import { findClosestAspectRatio } from '@/shared/lib/media/aspectRatios';
 import { useEnqueueGenerationsInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
+import { useProjectGenerationModesCache } from '@/shared/hooks/projects/useProjectGenerationModesCache';
 import {
   DEFAULT_STRUCTURE_GUIDANCE_CONTROLS,
   DEFAULT_STRUCTURE_VIDEO,
@@ -219,6 +220,7 @@ export function useVideoGenerationModalController({ isOpen, onClose, shot }: {
   const queryClient = useQueryClient();
   const invalidateGenerations = useEnqueueGenerationsInvalidation();
   const { navigateToShot } = useShotNavigation();
+  const { updateShotMode } = useProjectGenerationModesCache(selectedProjectId ?? '');
 
   // UI state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -457,5 +459,6 @@ export function useVideoGenerationModalController({ isOpen, onClose, shot }: {
     handleGenerate,
     handleNavigateToShot,
     handleDialogOpenChange,
+    updateShotMode,
   };
 }
