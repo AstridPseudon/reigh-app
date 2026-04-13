@@ -142,6 +142,8 @@ Keep it factual and compact. Use bullet points. Include specific URLs and prompt
   return existingSummary;
 }
 
+const MAX_TURNS_TO_SUMMARIZE = 30; // Cap per summarization call to avoid token limits
+
 async function maybeCompressSession(
   turns: AgentTurn[],
   existingSummary: string | null,
@@ -151,10 +153,17 @@ async function maybeCompressSession(
     return { turns, summary: existingSummary };
   }
 
-  // Keep the most recent turns, summarize the rest
+  // Keep the most recent turns, summarize a bounded chunk of older ones
   const keepCount = Math.floor(SUMMARIZE_THRESHOLD / 2);
-  const turnsToSummarize = turns.slice(0, turns.length - keepCount);
+  const olderTurns = turns.slice(0, turns.length - keepCount);
   const recentTurns = turns.slice(turns.length - keepCount);
+
+  // Only summarize the most recent chunk of older turns (closest to current context)
+  // If there's a huge backlog, we drop the oldest turns — the existing summary
+  // (if any) already covers earlier history
+  const turnsToSummarize = olderTurns.length > MAX_TURNS_TO_SUMMARIZE
+    ? olderTurns.slice(-MAX_TURNS_TO_SUMMARIZE)
+    : olderTurns;
 
   const summary = await summarizeTurns(turnsToSummarize, existingSummary, logger);
   return { turns: recentTurns, summary };
