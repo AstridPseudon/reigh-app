@@ -197,6 +197,8 @@ function validateInput(input: IndividualTravelSegmentInput): void {
 interface SegmentLayout {
   segmentFramesExpanded: number[];
   frameOverlapExpanded: number[];
+  stitchedStartFrame: number;
+  guidanceStartFrame: number;
 }
 
 function buildIndividualTravelSegmentParams(
@@ -328,6 +330,19 @@ function buildIndividualTravelSegmentParams(
     ...(input.frame_overlap_from_previous !== undefined
       ? { frame_overlap_from_previous: input.frame_overlap_from_previous }
       : {}),
+    ...(segmentLayout
+      ? {
+        stitched_start_frame: segmentLayout.stitchedStartFrame,
+        guidance_start_frame: segmentLayout.guidanceStartFrame,
+      }
+      : {
+        ...(origParams?.stitched_start_frame !== undefined
+          ? { stitched_start_frame: origParams.stitched_start_frame }
+          : {}),
+        ...(origParams?.guidance_start_frame !== undefined
+          ? { guidance_start_frame: origParams.guidance_start_frame }
+          : {}),
+      }),
     amount_of_motion: input.amount_of_motion ?? 0.5,
     orchestrator_details: orchestratorDetails,
     parent_generation_id: parentGenerationId,
@@ -374,6 +389,31 @@ function buildIndividualTravelSegmentParams(
       ...(input.selected_phase_preset_id ? { selected_phase_preset_id: input.selected_phase_preset_id } : {}),
     },
   };
+}
+
+function calculateStitchedStart(
+  segmentFramesExpanded: number[],
+  frameOverlapExpanded: number[],
+  segmentIndex: number,
+): number {
+  let totalStitchedFrames = 0;
+  const segmentStitchedOffsets: number[] = [];
+
+  for (let idx = 0; idx < segmentFramesExpanded.length; idx += 1) {
+    const segmentTotalFrames = segmentFramesExpanded[idx];
+    if (idx === 0) {
+      segmentStitchedOffsets.push(0);
+      totalStitchedFrames = segmentTotalFrames;
+      continue;
+    }
+
+    const overlap = idx - 1 < frameOverlapExpanded.length ? frameOverlapExpanded[idx - 1] : 0;
+    const segmentStart = totalStitchedFrames - overlap;
+    segmentStitchedOffsets.push(segmentStart);
+    totalStitchedFrames = segmentStart + segmentTotalFrames;
+  }
+
+  return segmentStitchedOffsets[segmentIndex] ?? 0;
 }
 
 /**
@@ -428,7 +468,21 @@ async function resolveSegmentLayout(
     }
   }
 
-  return { segmentFramesExpanded, frameOverlapExpanded };
+  const guidanceStartFrame = segmentFramesExpanded
+    .slice(0, segmentIndex)
+    .reduce((sum, frames) => sum + frames, 0);
+  const stitchedStartFrame = calculateStitchedStart(
+    segmentFramesExpanded,
+    frameOverlapExpanded,
+    segmentIndex,
+  );
+
+  return {
+    segmentFramesExpanded,
+    frameOverlapExpanded,
+    stitchedStartFrame,
+    guidanceStartFrame,
+  };
 }
 
 /**
