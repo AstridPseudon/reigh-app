@@ -15,16 +15,10 @@ import {
 } from "./templates.ts";
 
 // ── Models ───────────────────────────────────────────────────────────
-// All generation (create + edit + retry) uses Kimi K2.5 via Fireworks
-const FIREWORKS_MODEL = "accounts/fireworks/models/kimi-k2p5";
-const FIREWORKS_URL = "https://api.fireworks.ai/inference/v1/chat/completions";
-const FIREWORKS_TIMEOUT_MS = 150_000; // max out to edge function wall-clock limit
-
-// Legacy edit model kept for reference but no longer used
-const EDIT_MODEL = "qwen/qwen3.5-27b";
-
-const OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions";
-const OPENROUTER_TIMEOUT_MS = 100_000;
+// All generation (create + edit + retry) uses Claude Opus 4.6 via Anthropic
+const ANTHROPIC_MODEL = "claude-opus-4-6-20260205";
+const ANTHROPIC_URL = "https://api.anthropic.com/v1/messages";
+const ANTHROPIC_TIMEOUT_MS = 150_000; // max out to edge function wall-clock limit
 
 const MAX_RETRY_DEPTH = 1; // max number of self-invocation retries
 
@@ -41,34 +35,38 @@ interface LLMResponse {
   model: string;
 }
 
-// ── Fireworks generation (create — Kimi K2.5) ───────────────────────
+// ── Anthropic generation (Claude Opus 4.6) ──────────────────────────
 
-async function callFireworks(
+async function callAnthropic(
   messages: Array<{ role: string; content: string }>,
   logger: { info: (msg: string) => void },
 ): Promise<LLMResponse> {
-  const apiKey = Deno.env.get("FIREWORKS_API_KEY");
-  if (!apiKey) throw new Error("[ai-generate-effect] Missing FIREWORKS_API_KEY");
+  const apiKey = Deno.env.get("ANTHROPIC_API_KEY");
+  if (!apiKey) throw new Error("[ai-generate-effect] Missing ANTHROPIC_API_KEY");
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), FIREWORKS_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), ANTHROPIC_TIMEOUT_MS);
+
+  // Separate system message from user/assistant messages (Anthropic API uses top-level system param)
+  const systemContent = messages.find(m => m.role === "system")?.content;
+  const chatMessages = messages.filter(m => m.role !== "system");
 
   try {
     const startedAt = Date.now();
-    logger.info(`[AI-GENERATE-EFFECT] Fireworks streaming request: model=${FIREWORKS_MODEL}`);
-    const response = await fetch(FIREWORKS_URL, {
+    logger.info(`[AI-GENERATE-EFFECT] Anthropic streaming request: model=${ANTHROPIC_MODEL}`);
+    const response = await fetch(ANTHROPIC_URL, {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${apiKey}`,
+        "x-api-key": apiKey,
+        "anthropic-version": "2023-06-01",
         "Content-Type": "application/json",
-        "Accept": "text/event-stream",
       },
       body: JSON.stringify({
-        model: FIREWORKS_MODEL,
-        messages,
-        temperature: 0.4,
+        model: ANTHROPIC_MODEL,
         max_tokens: 16384,
-        top_p: 1,
+        temperature: 0.4,
+        ...(systemContent ? { system: systemContent } : {}),
+        messages: chatMessages,
         stream: true,
       }),
       signal: controller.signal,
@@ -76,7 +74,7 @@ async function callFireworks(
 
     if (!response.ok) {
       const text = await response.text().catch(() => "");
-      throw new Error(`Fireworks ${response.status}: ${text.slice(0, 500)}`);
+      throw new Error(`Anthropic ${response.status}: ${text.slice(0, 500)}`);
     }
 
     // Collect streamed SSE chunks into full content
@@ -96,13 +94,11 @@ async function callFireworks(
       for (const line of lines) {
         if (!line.startsWith("data: ")) continue;
         const data = line.slice(6).trim();
-        if (data === "[DONE]") continue;
         try {
-          const chunk = JSON.parse(data) as {
-            choices?: Array<{ delta?: { content?: string } }>;
-          };
-          const delta = chunk.choices?.[0]?.delta?.content;
-          if (delta) content += delta;
+          const chunk = JSON.parse(data);
+          if (chunk.type === "content_block_delta" && chunk.delta?.type === "text_delta") {
+            content += chunk.delta.text;
+          }
         } catch {
           // skip malformed chunks
         }
@@ -110,97 +106,8 @@ async function callFireworks(
     }
 
     content = content.trim();
-    logger.info(`[AI-GENERATE-EFFECT] Fireworks response in ${Date.now() - startedAt}ms, model=${FIREWORKS_MODEL}, length=${content.length}`);
-    return { content, model: FIREWORKS_MODEL };
-  } finally {
-    clearTimeout(timeout);
-  }
-}
-
-// ── OpenRouter generation (edits) ───────────────────────────────────
-
-interface OpenRouterMessage {
-  content?: string;
-  reasoning_content?: string;
-  reasoning?: string;
-  role: string;
-}
-
-async function callOpenRouter(
-  model: string,
-  messages: Array<{ role: string; content: string }>,
-  logger: { info: (msg: string) => void },
-): Promise<LLMResponse> {
-  const apiKey = Deno.env.get("OPENROUTER_API_KEY");
-  if (!apiKey) throw new Error("[ai-generate-effect] Missing OPENROUTER_API_KEY");
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), OPENROUTER_TIMEOUT_MS);
-
-  try {
-    logger.info(`[AI-GENERATE-EFFECT] OpenRouter request: model=${model}`);
-    const startedAt = Date.now();
-    const response = await fetch(OPENROUTER_URL, {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://reigh.app",
-        "X-Title": "Reigh Effect Generator",
-      },
-      body: JSON.stringify({
-        model,
-        messages,
-        temperature: 0.4,
-        max_tokens: 65536,
-        top_p: 1,
-        provider: {
-          order: ["atlas-cloud/fp8"],
-          allow_fallbacks: true,
-        },
-      }),
-      signal: controller.signal,
-    });
-
-    if (!response.ok) {
-      const text = await response.text().catch(() => "");
-      throw new Error(`OpenRouter ${response.status}: ${text.slice(0, 500)}`);
-    }
-
-    const data = await response.json() as {
-      choices: Array<{
-        message: OpenRouterMessage;
-        finish_reason?: string;
-        error?: { message?: string; code?: string };
-      }>;
-      model?: string;
-      usage?: Record<string, unknown>;
-      error?: { message?: string; code?: string };
-    };
-
-    // Log full response structure for debugging
-    const choice = data.choices?.[0];
-    const msg = choice?.message;
-    const finishReason = choice?.finish_reason ?? 'unknown';
-    const content = (msg?.content || msg?.reasoning_content || msg?.reasoning || "").trim();
-    const responseError = data.error?.message || choice?.error?.message || null;
-
-    logger.info(`[AI-GENERATE-EFFECT] OpenRouter response in ${Date.now() - startedAt}ms, model=${data.model ?? model}, finish_reason=${finishReason}, content=${Boolean(msg?.content)}, reasoning_content=${Boolean(msg?.reasoning_content)}, content_length=${content.length}, usage=${JSON.stringify(data.usage ?? {})}`);
-
-    if (responseError) {
-      logger.info(`[AI-GENERATE-EFFECT] OpenRouter error in response: ${responseError}`);
-    }
-
-    if (!content && msg) {
-      // Log the full message object to understand why content is empty
-      logger.info(`[AI-GENERATE-EFFECT] empty content — full message keys: ${Object.keys(msg).join(', ')}, full message: ${JSON.stringify(msg).slice(0, 500)}`);
-    }
-
-    if (finishReason === 'length') {
-      logger.info(`[AI-GENERATE-EFFECT] WARNING: output truncated (finish_reason=length) — max_tokens may need increase`);
-    }
-
-    return { content, model: data.model || model };
+    logger.info(`[AI-GENERATE-EFFECT] Anthropic response in ${Date.now() - startedAt}ms, model=${ANTHROPIC_MODEL}, length=${content.length}`);
+    return { content, model: ANTHROPIC_MODEL };
   } finally {
     clearTimeout(timeout);
   }
@@ -293,10 +200,10 @@ serve(async (req) => {
       ];
     }
 
-    // All generation uses Kimi K2.5 via Fireworks
-    logger.info(`[AI-GENERATE-EFFECT] ${retryDepth > 0 ? `retry(${retryDepth})` : isEditMode ? "edit" : "create"} → ${FIREWORKS_MODEL} (Fireworks)`);
+    // All generation uses Claude Opus 4.6 via Anthropic
+    logger.info(`[AI-GENERATE-EFFECT] ${retryDepth > 0 ? `retry(${retryDepth})` : isEditMode ? "edit" : "create"} → ${ANTHROPIC_MODEL} (Anthropic)`);
     await logger.flush();
-    const llmResponse = await callFireworks(messages, logger);
+    const llmResponse = await callAnthropic(messages, logger);
 
     logger.info(`[AI-GENERATE-EFFECT] raw output length=${llmResponse.content.length}, first 200 chars: ${llmResponse.content.slice(0, 200)}`);
 
