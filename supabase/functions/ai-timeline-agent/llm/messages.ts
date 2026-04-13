@@ -149,11 +149,11 @@ export function buildInitialMessages(
   if (sessionSummary) {
     messages.push({
       role: "user",
-      content: `[Session history summary — do not respond to this, it's context from earlier in the conversation]\n${sessionSummary}`,
+      content: `[System — session context] This is an ongoing session. Here is what happened earlier:\n\n${sessionSummary}\n\nThe user's next message is a continuation of this session. You MUST use tools (create_task, etc.) to execute their request — do not just describe what you would do. If they ask for images, call create_task. If they say "more", call create_task again with the same reference images and adjusted prompts.`,
     });
     messages.push({
       role: "assistant",
-      content: "Understood, I have the context from our earlier conversation.",
+      content: "Got it — I have the session context and will use tools to execute the next request.",
     });
   }
 
