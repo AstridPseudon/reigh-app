@@ -395,8 +395,8 @@ async function resolveSegmentLayout(
   // Find the most recent completed task for each sibling segment
   const { data: siblingTasks } = await context.supabaseAdmin
     .from("tasks")
-    .select("parameters")
-    .eq("parameters->>parent_generation_id", parentGenerationId)
+    .select("params")
+    .eq("params->>parent_generation_id", parentGenerationId)
     .eq("task_type", "individual_travel_segment")
     .in("status", ["Complete", "In Progress"])
     .order("created_at", { ascending: false });
@@ -407,7 +407,7 @@ async function resolveSegmentLayout(
   const framesBySegment = new Map<number, number>();
   const overlapBySegment = new Map<number, number>();
   for (const task of siblingTasks) {
-    const params = task.parameters as Record<string, unknown>;
+    const params = task.params as Record<string, unknown>;
     const idx = typeof params.segment_index === "number" ? params.segment_index : -1;
     if (idx < 0 || framesBySegment.has(idx)) continue; // keep most recent (first in desc order)
     framesBySegment.set(idx, typeof params.num_frames === "number" ? params.num_frames : 49);
