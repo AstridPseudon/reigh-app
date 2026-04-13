@@ -410,5 +410,57 @@ describe('applyMultiDragMoves', () => {
   });
 });
 
+describe('planMultiDragMoves with stale group trackId', () => {
+  it('uses actual clip row when group trackId is stale', () => {
+    // Reproduces a bug where pinnedShotGroup.trackId says V1 but the clip
+    // was moved to V2. The group drag would use the stale V1 as sourceRowId,
+    // causing applyMultiDragMoves to fail to find the clip and silently drop it.
+    const tracks = [makeTrack('V1'), makeTrack('V2')];
+    const rows: TimelineRow[] = [
+      { id: 'V1', actions: [makeAction('clip-a', 0, 5)] },
+      { id: 'V2', actions: [makeAction('clip-video', 8, 13)] },
+    ];
+    const meta: Record<string, ClipMeta> = {
+      'clip-a': { track: 'V1', clipType: 'hold', hold: 5 },
+      'clip-video': { track: 'V2', clipType: 'media', from: 0, to: 10, speed: 2 },
+    };
+    const data = makeTimelineData(tracks, rows, meta);
+    const pinnedGroup: PinnedShotGroup = {
+      shotId: 'shot-1',
+      trackId: 'V1', // STALE — clip is actually on V2
+      clipIds: ['clip-video'],
+      mode: 'video',
+    };
+    data.config = { ...data.config, pinnedShotGroups: [pinnedGroup] };
+
+    const result = planMultiDragMoves(
+      data,
+      [{ clipId: 'clip-video', rowId: 'V2', deltaTime: 0, initialStart: 8, initialEnd: 13 }],
+      'clip-video',
+      'V2',
+      'V2',
+      2, // shift right by 2s
+      {
+        groupKey: { shotId: 'shot-1', trackId: 'V1' },
+        originStart: 8,
+        originTrackId: 'V1', // stale
+      },
+    );
+
+    expect(result.canMove).toBe(true);
+    expect(result.moves).toEqual([
+      // sourceRowId must be V2 (actual), not V1 (stale group trackId)
+      { kind: 'clip', clipId: 'clip-video', sourceRowId: 'V2', targetRowId: 'V2', newStart: 10 },
+    ]);
+
+    // Verify applyMultiDragMoves doesn't lose the clip
+    const applied = applyMultiDragMoves(data, result.moves);
+    const v2 = applied.nextRows.find((r) => r.id === 'V2');
+    expect(v2?.actions).toHaveLength(1);
+    expect(v2?.actions[0]?.id).toBe('clip-video');
+    expect(v2?.actions[0]?.start).toBe(10);
+  });
+});
+
 // Suppress unused-import warning for vi in the top-level helpers.
 void vi;

@@ -221,26 +221,29 @@ export function planMultiDragMoves(
     ));
 
     // Collect member positions so we can compute the bounding box
-    const memberPositions: Array<{ clipId: string; start: number; end: number }> = [];
+    const memberPositions: Array<{ clipId: string; start: number; end: number; actualRowId: string }> = [];
     for (const memberClipId of group?.clipIds ?? []) {
       const memberOffset = clipOffsets.find((o) => o.clipId === memberClipId);
       let memberStart: number | null = null;
       let memberEnd: number | null = null;
+      let actualRowId: string | null = null;
       if (memberOffset) {
         memberStart = memberOffset.initialStart;
         memberEnd = memberOffset.initialEnd;
+        actualRowId = memberOffset.rowId;
       } else {
         for (const row of data.rows) {
           const action = row.actions.find((a) => a.id === memberClipId);
           if (action) {
             memberStart = action.start;
             memberEnd = action.end;
+            actualRowId = row.id;
             break;
           }
         }
       }
-      if (memberStart === null || memberEnd === null) continue;
-      memberPositions.push({ clipId: memberClipId, start: memberStart, end: memberEnd });
+      if (memberStart === null || memberEnd === null || actualRowId === null) continue;
+      memberPositions.push({ clipId: memberClipId, start: memberStart, end: memberEnd, actualRowId });
     }
 
     // Compute the group's bounding box after the time delta
@@ -269,7 +272,7 @@ export function planMultiDragMoves(
       moves.push({
         kind: 'clip',
         clipId: member.clipId,
-        sourceRowId: groupDragEntry.originTrackId,
+        sourceRowId: member.actualRowId,
         targetRowId: resolvedTargetRowId,
         newStart: member.start + timeDelta,
       });
