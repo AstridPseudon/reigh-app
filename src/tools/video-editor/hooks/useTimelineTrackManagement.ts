@@ -105,6 +105,13 @@ function translateGroupMembers({
 } {
   const memberSet = new Set(group.clipIds);
   const sourceTrackId = group.trackId;
+  const storedGroup = findGroupForTrack(
+    current.config.pinnedShotGroups ?? [],
+    group.shotId,
+    sourceTrackId,
+    current.rows,
+  );
+  const storedTrackId = storedGroup?.trackId ?? sourceTrackId;
 
   // Capture each member's current action so we can translate it.
   const memberActions = new Map<string, { start: number; end: number; effectId: string }>();
@@ -155,7 +162,7 @@ function translateGroupMembers({
   // nextRows so any future resolveOverlaps shuffles are honored).
   const orderedClipIds = orderClipIdsByAt(group.clipIds, { rows: nextRows });
   const pinnedShotGroupsOverride = (current.config.pinnedShotGroups ?? []).map((g) => (
-    g.shotId === group.shotId && g.trackId === group.trackId
+    g.shotId === group.shotId && g.trackId === storedTrackId
       ? { ...g, trackId: targetRowId, clipIds: orderedClipIds }
       : g
   ));
@@ -209,14 +216,18 @@ export function useTimelineTrackManagement({
 
     const enclosingGroup = findEnclosingPinnedGroup(current.config, clipId);
     if (enclosingGroup) {
-      const sourceTrack = current.tracks.find((track) => track.id === enclosingGroup.group.trackId);
+      const resolvedTrackId = resolveGroupTrackId(enclosingGroup.group, current.rows);
+      const resolvedGroup = resolvedTrackId === enclosingGroup.group.trackId
+        ? enclosingGroup.group
+        : { ...enclosingGroup.group, trackId: resolvedTrackId };
+      const sourceTrack = current.tracks.find((track) => track.id === resolvedTrackId);
       const targetTrack = current.tracks.find((track) => track.id === targetRowId);
       if (!sourceTrack || !targetTrack || sourceTrack.kind !== targetTrack.kind) {
         return;
       }
 
-      const groupStart = getLiveGroupStart(current, enclosingGroup.group);
-      const groupEnd = getLiveGroupEnd(current, enclosingGroup.group);
+      const groupStart = getLiveGroupStart(current, resolvedGroup);
+      const groupEnd = getLiveGroupEnd(current, resolvedGroup);
       if (groupStart == null || groupEnd == null) {
         return;
       }
@@ -224,7 +235,7 @@ export function useTimelineTrackManagement({
       const groupDuration = groupEnd - groupStart;
 
       // Find a free track for the group's bounding box, excluding the group's own clips
-      const memberSet = new Set(enclosingGroup.group.clipIds);
+      const memberSet = new Set(resolvedGroup.clipIds);
       const rowsWithoutGroup = current.rows.map((row) => ({
         ...row,
         actions: row.actions.filter((a) => !memberSet.has(a.id)),
@@ -261,7 +272,7 @@ export function useTimelineTrackManagement({
 
       const translatedGroup = translateGroupMembers({
         current,
-        group: enclosingGroup.group,
+        group: resolvedGroup,
         targetRowId: finalTargetId,
         deltaTime: effectiveGroupStart - groupStart,
       });
@@ -363,7 +374,9 @@ export function useTimelineTrackManagement({
 
     const enclosingGroup = findEnclosingPinnedGroup(current.config, clipId);
     const sourceClip = current.resolvedConfig.clips.find((clip) => clip.id === clipId);
-    const sourceTrackId = enclosingGroup?.group.trackId ?? sourceClip?.track;
+    const sourceTrackId = enclosingGroup
+      ? resolveGroupTrackId(enclosingGroup.group, current.rows)
+      : sourceClip?.track;
     const sourceTrack = sourceTrackId
       ? current.resolvedConfig.tracks.find((track) => track.id === sourceTrackId)
       : null;
@@ -391,7 +404,10 @@ export function useTimelineTrackManagement({
           tracks: nextResolvedConfigBase.tracks.map((track) => ({ ...track })),
         },
       };
-      const groupStart = getLiveGroupStart(current, enclosingGroup.group);
+      const resolvedGroup = sourceTrackId === enclosingGroup.group.trackId
+        ? enclosingGroup.group
+        : { ...enclosingGroup.group, trackId: sourceTrackId };
+      const groupStart = getLiveGroupStart(current, resolvedGroup);
       if (groupStart == null) {
         return;
       }
@@ -399,7 +415,7 @@ export function useTimelineTrackManagement({
       const deltaTime = nextStart - groupStart;
       const translatedGroup = translateGroupMembers({
         current: previewCurrent,
-        group: enclosingGroup.group,
+        group: resolvedGroup,
         targetRowId: newTrack.id,
         deltaTime,
       });
@@ -497,16 +513,19 @@ export function useTimelineTrackManagement({
     const freeClipIdSet = new Set(selection.freeClipIds);
     const groupsByRow = new Map<string, { clipIds: string[]; rowIndex: number; kind: TrackKind }>();
     const groupedUnits = selection.groups.flatMap((groupEntry) => {
-      const group = current.config.pinnedShotGroups?.find((candidate) => (
-        candidate.shotId === groupEntry.groupKey.shotId
-        && candidate.trackId === groupEntry.groupKey.trackId
-      ));
+      const group = findGroupForTrack(
+        current.config.pinnedShotGroups ?? [],
+        groupEntry.groupKey.shotId,
+        groupEntry.groupKey.trackId,
+        current.rows,
+      );
       if (!group) {
         return [];
       }
 
-      const rowIndex = current.rows.findIndex((row) => row.id === group.trackId);
-      const track = trackById.get(group.trackId);
+      const resolvedTrackId = resolveGroupTrackId(group, current.rows);
+      const rowIndex = current.rows.findIndex((row) => row.id === resolvedTrackId);
+      const track = trackById.get(resolvedTrackId);
       if (rowIndex < 0 || !track) {
         return [];
       }
@@ -515,7 +534,7 @@ export function useTimelineTrackManagement({
         kind: 'group' as const,
         groupKey: groupEntry.groupKey,
         rowIndex,
-        rowId: group.trackId,
+        rowId: resolvedTrackId,
         trackKind: track.kind,
       }];
     });
@@ -617,17 +636,24 @@ export function useTimelineTrackManagement({
       let appliedGroupMove = false;
 
       for (const move of plannedGroupMoves) {
-        const existingGroup = workingState.config.pinnedShotGroups?.find((group) => (
-          group.shotId === move.groupKey.shotId
-          && group.trackId === move.groupKey.trackId
-        ));
+        const existingGroup = findGroupForTrack(
+          workingState.config.pinnedShotGroups ?? [],
+          move.groupKey.shotId,
+          move.groupKey.trackId,
+          workingState.rows,
+        );
         if (!existingGroup) {
           continue;
         }
 
+        const resolvedTrackId = resolveGroupTrackId(existingGroup, workingState.rows);
+        const resolvedGroup = resolvedTrackId === existingGroup.trackId
+          ? existingGroup
+          : { ...existingGroup, trackId: resolvedTrackId };
+
         const translatedGroup = translateGroupMembers({
           current: workingState,
-          group: existingGroup,
+          group: resolvedGroup,
           targetRowId: move.targetRowId,
           deltaTime: 0,
         });

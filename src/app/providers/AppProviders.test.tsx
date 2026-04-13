@@ -2,6 +2,7 @@
 import type { ReactNode } from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { useAgentChatBridge } from '@/shared/contexts/AgentChatContext';
 import { useGallerySelectionOptional } from '@/shared/contexts/GallerySelectionContext';
 import { AppProviders } from './AppProviders';
 
@@ -21,6 +22,12 @@ vi.mock('@/shared/auth/components/AuthGate', () => ({
 
 vi.mock('@/shared/contexts/UserSettingsContext', () => ({
   UserSettingsProvider: passthroughProvider('UserSettingsProvider'),
+  useUserSettings: () => ({
+    userSettings: { lastTimelineId: 'timeline-from-settings' },
+    isLoadingSettings: false,
+    fetchUserSettings: vi.fn(),
+    updateUserSettings: vi.fn(),
+  }),
 }));
 
 vi.mock('@/shared/contexts/ProjectContext', () => ({
@@ -72,15 +79,28 @@ function GallerySelectionConsumer() {
   return <span data-testid="gallery-selection-context">{context ? 'available' : 'missing'}</span>;
 }
 
+function AgentChatBridgeConsumer() {
+  const bridge = useAgentChatBridge();
+  return (
+    <>
+      <span data-testid="agent-chat-timeline-id">{bridge.timelineId ?? 'none'}</span>
+      <span data-testid="agent-chat-timeline-clips">{String(bridge.timelineClips.length)}</span>
+    </>
+  );
+}
+
 describe('AppProviders', () => {
-  it('mounts GallerySelectionProvider inside the provider tree so descendants can consume it', () => {
+  it('mounts GallerySelectionProvider and the default AgentChat bridge inside the provider tree', () => {
     render(
       <AppProviders>
         <GallerySelectionConsumer />
+        <AgentChatBridgeConsumer />
       </AppProviders>,
     );
 
     expect(screen.getByTestId('gallery-selection-context')).toHaveTextContent('available');
+    expect(screen.getByTestId('agent-chat-timeline-id')).toHaveTextContent('timeline-from-settings');
+    expect(screen.getByTestId('agent-chat-timeline-clips')).toHaveTextContent('0');
     expect(screen.getByTestId('PanesProvider')).toContainElement(
       screen.getByTestId('ShotAdditionSelectionProvider'),
     );

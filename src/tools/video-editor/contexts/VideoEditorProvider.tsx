@@ -5,16 +5,25 @@ import { useShots } from '@/shared/contexts/ShotsContext';
 import type { GenerationRow } from '@/domains/generation/types';
 import { VideoEditorLightboxOverlay } from '@/tools/video-editor/components/VideoEditorLightboxOverlay';
 import type { DataProvider } from '@/tools/video-editor/data/DataProvider';
-import { DataProviderWrapper } from '@/tools/video-editor/contexts/DataProviderContext';
+import {
+  DataProviderWrapper,
+  useVideoEditorRuntime,
+} from '@/tools/video-editor/contexts/DataProviderContext';
 import { TimelineChromeContextProvider } from '@/tools/video-editor/contexts/TimelineChromeContext';
 import {
   TimelineEditorDataContextProvider,
   TimelineEditorOpsContextProvider,
+  useTimelineEditorOps,
 } from '@/tools/video-editor/contexts/TimelineEditorContext';
 import { TimelinePlaybackContextProvider } from '@/tools/video-editor/contexts/TimelinePlaybackContext';
+import {
+  AgentChatProvider,
+  type AgentChatContextValue,
+} from '@/shared/contexts/AgentChatContext';
 import { useEffects } from '@/tools/video-editor/hooks/useEffects';
 import { useEffectRegistry } from '@/tools/video-editor/hooks/useEffectRegistry';
 import { useEffectResources } from '@/tools/video-editor/hooks/useEffectResources';
+import { useSelectedMediaClips } from '@/tools/video-editor/hooks/useSelectedMediaClips';
 import { useTimelineState } from '@/tools/video-editor/hooks/useTimelineState';
 import type {
   TimelineActionResizeStart,
@@ -56,6 +65,34 @@ export function buildVideoEditorLightboxMedia(
     primary_variant_id: asset.variantId || null,
     name: asset.file,
   };
+}
+
+function VideoEditorAgentChatBridge({ children }: { children: React.ReactNode }) {
+  const { timelineId } = useVideoEditorRuntime();
+  const timelineEditorOps = useTimelineEditorOps();
+  const { clips: timelineClips } = useSelectedMediaClips();
+
+  const replaceSelectedTimelineClips = useCallback((nextClips: AgentChatContextValue['timelineClips']) => {
+    const nextClipIds = nextClips.map((clip) => clip.clipId);
+    if (typeof timelineEditorOps.replaceTimelineSelection === 'function') {
+      timelineEditorOps.replaceTimelineSelection(nextClipIds);
+      return;
+    }
+
+    timelineEditorOps.selectClips(nextClipIds);
+  }, [timelineEditorOps]);
+
+  const value = useMemo<AgentChatContextValue>(() => ({
+    timelineId,
+    timelineClips,
+    replaceSelectedTimelineClips,
+  }), [replaceSelectedTimelineClips, timelineClips, timelineId]);
+
+  return (
+    <AgentChatProvider value={value}>
+      {children}
+    </AgentChatProvider>
+  );
 }
 
 function InnerProvider({
@@ -258,26 +295,28 @@ function InnerProvider({
   return (
     <TimelineEditorDataContextProvider value={editorData}>
       <TimelineEditorOpsContextProvider value={editorOps}>
-        <TimelineChromeContextProvider value={chrome}>
-          <TimelinePlaybackContextProvider value={playback}>
-            {children}
-            {lightboxAssetKey && resolvedLightboxMedia && (
-              <>
-                <MediaLightbox
-                  media={resolvedLightboxMedia}
-                  navigation={navResult.navigation}
-                  initialVariantId={lightboxAsset?.variantId ?? resolvedLightboxMedia.primary_variant_id ?? undefined}
-                  onClose={() => {
-                    setLightboxAssetKey(null);
-                    setLightboxClipId(null);
-                  }}
-                  features={{ showDownload: true, showTaskDetails: true }}
-                />
-                {navResult.indicator ? <VideoEditorLightboxOverlay indicator={navResult.indicator} /> : null}
-              </>
-            )}
-          </TimelinePlaybackContextProvider>
-        </TimelineChromeContextProvider>
+        <VideoEditorAgentChatBridge>
+          <TimelineChromeContextProvider value={chrome}>
+            <TimelinePlaybackContextProvider value={playback}>
+              {children}
+              {lightboxAssetKey && resolvedLightboxMedia && (
+                <>
+                  <MediaLightbox
+                    media={resolvedLightboxMedia}
+                    navigation={navResult.navigation}
+                    initialVariantId={lightboxAsset?.variantId ?? resolvedLightboxMedia.primary_variant_id ?? undefined}
+                    onClose={() => {
+                      setLightboxAssetKey(null);
+                      setLightboxClipId(null);
+                    }}
+                    features={{ showDownload: true, showTaskDetails: true }}
+                  />
+                  {navResult.indicator ? <VideoEditorLightboxOverlay indicator={navResult.indicator} /> : null}
+                </>
+              )}
+            </TimelinePlaybackContextProvider>
+          </TimelineChromeContextProvider>
+        </VideoEditorAgentChatBridge>
       </TimelineEditorOpsContextProvider>
     </TimelineEditorDataContextProvider>
   );

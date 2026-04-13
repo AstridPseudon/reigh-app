@@ -8,7 +8,11 @@ import {
   buildConfigFromDragResult,
   planMultiDragMoves,
 } from '@/tools/video-editor/lib/multi-drag-utils';
-import { findEnclosingPinnedGroup, orderClipIdsByAt } from '@/tools/video-editor/lib/pinned-group-projection';
+import {
+  findEnclosingPinnedGroup,
+  orderClipIdsByAt,
+  resolveGroupTrackId,
+} from '@/tools/video-editor/lib/pinned-group-projection';
 import type { TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { PinnedShotGroup, TrackKind } from '@/tools/video-editor/types';
 import type { TimelineAction, TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
@@ -282,7 +286,7 @@ export function buildPendingDragSession({
     ? {
         groupKey: enclosingGroup.groupKey,
         originStart: groupLiveStart,
-        originTrackId: enclosingGroup.group.trackId,
+        originTrackId: resolveGroupTrackId(enclosingGroup.group, current.rows),
       }
     : null;
   const transactionId = crypto.randomUUID();

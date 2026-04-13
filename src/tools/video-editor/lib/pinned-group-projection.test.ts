@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   categorizeSelection,
   findEnclosingPinnedGroup,
+  findGroupForTrack,
   orderClipIdsByAt,
+  resolveGroupTrackId,
 } from '@/tools/video-editor/lib/pinned-group-projection';
-import type { TimelineConfig } from '@/tools/video-editor/types';
+import type { PinnedShotGroup, TimelineConfig } from '@/tools/video-editor/types';
 import type { TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 
 const buildConfig = (): TimelineConfig => ({
@@ -27,6 +29,26 @@ const buildConfig = (): TimelineConfig => ({
       mode: 'images',
     },
   ],
+});
+
+const buildRows = (rows: Array<{ id: string; clipIds: string[] }>): TimelineRow[] => (
+  rows.map((row) => ({
+    id: row.id,
+    actions: row.clipIds.map((clipId, index) => ({
+      id: clipId,
+      start: index,
+      end: index + 1,
+      effectId: `effect-${clipId}`,
+    })),
+  }))
+);
+
+const buildPinnedGroup = (overrides: Partial<PinnedShotGroup> = {}): PinnedShotGroup => ({
+  shotId: 'shot-1',
+  trackId: 'V1',
+  clipIds: ['clip-a', 'clip-b', 'clip-c'],
+  mode: 'images',
+  ...overrides,
 });
 
 describe('findEnclosingPinnedGroup', () => {
@@ -111,5 +133,102 @@ describe('orderClipIdsByAt', () => {
     ];
     expect(orderClipIdsByAt(['x', 'y'], { clips })).toEqual(['x', 'y']);
     expect(orderClipIdsByAt(['y', 'x'], { clips })).toEqual(['y', 'x']);
+  });
+});
+
+describe('resolveGroupTrackId', () => {
+  it('returns the stored track when all group clips still live there', () => {
+    const group = buildPinnedGroup();
+    const rows = buildRows([
+      { id: 'V1', clipIds: ['clip-a', 'clip-b', 'clip-c'] },
+      { id: 'V2', clipIds: ['free-1'] },
+    ]);
+
+    expect(resolveGroupTrackId(group, rows)).toBe('V1');
+  });
+
+  it('returns the row where the group clips moved when the stored track is stale', () => {
+    const group = buildPinnedGroup();
+    const rows = buildRows([
+      { id: 'V1', clipIds: ['free-1'] },
+      { id: 'V2', clipIds: ['clip-a', 'clip-b', 'clip-c'] },
+    ]);
+
+    expect(resolveGroupTrackId(group, rows)).toBe('V2');
+  });
+
+  it('falls back to the stored track for orphaned groups with no live clips', () => {
+    const group = buildPinnedGroup();
+    const rows = buildRows([
+      { id: 'V1', clipIds: ['free-1'] },
+      { id: 'V2', clipIds: ['free-2'] },
+    ]);
+
+    expect(resolveGroupTrackId(group, rows)).toBe('V1');
+  });
+
+  it('returns the row with the most matching clips when a group is split across tracks', () => {
+    const group = buildPinnedGroup({
+      clipIds: ['clip-a', 'clip-b', 'clip-c', 'clip-d', 'clip-e'],
+    });
+    const rows = buildRows([
+      { id: 'V1', clipIds: ['clip-a', 'clip-b'] },
+      { id: 'V2', clipIds: ['clip-c', 'clip-d', 'clip-e'] },
+    ]);
+
+    expect(resolveGroupTrackId(group, rows)).toBe('V2');
+  });
+});
+
+describe('findGroupForTrack', () => {
+  it('returns an exact stored-key match when one exists', () => {
+    const groups = [
+      buildPinnedGroup(),
+      buildPinnedGroup({ shotId: 'shot-2', trackId: 'V2', clipIds: ['clip-z'] }),
+    ];
+    const rows = buildRows([
+      { id: 'V1', clipIds: ['clip-a', 'clip-b', 'clip-c'] },
+      { id: 'V2', clipIds: ['clip-z'] },
+    ]);
+
+    expect(findGroupForTrack(groups, 'shot-1', 'V1', rows)).toBe(groups[0]);
+  });
+
+  it('finds a stale group via resolved track lookup', () => {
+    const groups = [
+      buildPinnedGroup(),
+    ];
+    const rows = buildRows([
+      { id: 'V1', clipIds: ['free-1'] },
+      { id: 'V2', clipIds: ['clip-a', 'clip-b', 'clip-c'] },
+    ]);
+
+    expect(findGroupForTrack(groups, 'shot-1', 'V2', rows)).toBe(groups[0]);
+  });
+
+  it('returns undefined when no group matches the requested shot and track', () => {
+    const groups = [
+      buildPinnedGroup(),
+    ];
+    const rows = buildRows([
+      { id: 'V1', clipIds: ['clip-a', 'clip-b', 'clip-c'] },
+      { id: 'V2', clipIds: [] },
+    ]);
+
+    expect(findGroupForTrack(groups, 'shot-2', 'V2', rows)).toBeUndefined();
+  });
+
+  it('keeps same-shot groups separate across tracks even when one track id is stale', () => {
+    const v1Group = buildPinnedGroup({ trackId: 'stale-v1', clipIds: ['clip-a', 'clip-b'] });
+    const v2Group = buildPinnedGroup({ trackId: 'V2', clipIds: ['clip-c', 'clip-d'] });
+    const groups = [v1Group, v2Group];
+    const rows = buildRows([
+      { id: 'V1', clipIds: ['clip-a', 'clip-b'] },
+      { id: 'V2', clipIds: ['clip-c', 'clip-d'] },
+    ]);
+
+    expect(findGroupForTrack(groups, 'shot-1', 'V1', rows)).toBe(v1Group);
+    expect(findGroupForTrack(groups, 'shot-1', 'V2', rows)).toBe(v2Group);
+    expect(findGroupForTrack(groups, 'shot-1', 'stale-v1', rows)).toBe(v1Group);
   });
 });

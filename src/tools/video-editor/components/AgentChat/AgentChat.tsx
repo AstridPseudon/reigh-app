@@ -5,13 +5,12 @@ import type { GenerationRow } from '@/domains/generation/types';
 import { MediaLightbox } from '@/domains/media-lightbox/MediaLightbox';
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/components/ui/contracts/cn';
+import { useAgentChatBridge } from '@/shared/contexts/AgentChatContext';
 import { useGallerySelection } from '@/shared/contexts/GallerySelectionContext';
 import { usePanes } from '@/shared/contexts/PanesContext';
-import { useTimelineEditorOps } from '@/tools/video-editor/contexts/TimelineEditorContext';
 import { useAgentSession, useAgentSessions, useCancelSession, useCreateSession, useSendMessage } from '@/tools/video-editor/hooks/useAgentSession';
 import {
   buildSummary,
-  useSelectedMediaClips,
   type SelectedMediaClip,
 } from '@/tools/video-editor/hooks/useSelectedMediaClips';
 import { useAgentVoice } from '@/tools/video-editor/hooks/useAgentVoice';
@@ -19,10 +18,6 @@ import { useRenderDiagnostic } from '@/tools/video-editor/hooks/usePerfDiagnosti
 import { loadGenerationForLightbox } from '@/tools/video-editor/lib/generation-utils';
 import type { AgentTurn } from '@/tools/video-editor/types/agent-session';
 import { AgentChatAttachmentStrip, AgentChatMessage, AgentChatToolGroup, type AgentChatAttachmentPreviewItem } from './AgentChatMessage';
-
-type AgentChatProps = {
-  timelineId: string;
-};
 
 export type ToolCallPair = {
   call: AgentTurn;
@@ -125,8 +120,13 @@ function buildRenderedTurns(turns: AgentTurn[]): RenderedTurn[] {
   return items;
 }
 
-export function AgentChat({ timelineId }: AgentChatProps) {
+export function AgentChat() {
   useRenderDiagnostic('AgentChat');
+  const {
+    timelineId,
+    timelineClips,
+    replaceSelectedTimelineClips,
+  } = useAgentChatBridge();
   const sessions = useAgentSessions(timelineId);
   const createSession = useCreateSession(timelineId);
   const { isTasksPaneLocked, tasksPaneWidth, isGenerationsPaneLocked, isGenerationsPaneOpen, effectiveGenerationsPaneHeight } = usePanes();
@@ -140,6 +140,7 @@ export function AgentChat({ timelineId }: AgentChatProps) {
   const bottomAnchorRef = useRef<HTMLDivElement | null>(null);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const hasTimeline = timelineId !== null;
   const positionStyle = useMemo<CSSProperties>(() => ({
     right: isTasksPaneLocked ? tasksPaneWidth + 20 : 20,
     bottom: (isGenerationsPaneLocked || isGenerationsPaneOpen) ? effectiveGenerationsPaneHeight + 20 : 20,
@@ -149,9 +150,7 @@ export function AgentChat({ timelineId }: AgentChatProps) {
   const activeSession = useAgentSession(activeSessionId);
   const sendMessage = useSendMessage(activeSessionId, timelineId);
   const cancelSession = useCancelSession(activeSessionId);
-  const timelineEditorOps = useTimelineEditorOps();
   const sessionOptions = useMemo(() => sessions.data ?? [], [sessions.data]);
-  const { clips: timelineClips } = useSelectedMediaClips();
   const {
     gallerySelectionMap,
     selectedGalleryClips,
@@ -180,6 +179,7 @@ export function AgentChat({ timelineId }: AgentChatProps) {
   const isCancelled = activeStatus === 'cancelled';
   const isProcessing = activeStatus === 'processing' || activeStatus === 'continue';
   const showKillSwitch = activeStatus === 'processing' || activeStatus === 'continue';
+  const showNoTimelineState = !hasTimeline && sessionOptions.length === 0;
 
   const handleAttachmentPreviewClick = useCallback(async (attachment: AgentChatAttachmentPreviewItem) => {
     if (!attachment.generationId) {
@@ -209,16 +209,6 @@ export function AgentChat({ timelineId }: AgentChatProps) {
     lightboxRequestIdRef.current += 1;
     setAttachmentLightboxMedia(null);
   }, []);
-
-  const replaceSelectedTimelineClips = useCallback((nextClips: SelectedMediaClip[]) => {
-    const nextClipIds = nextClips.map((clip) => clip.clipId);
-    if (typeof timelineEditorOps.replaceTimelineSelection === 'function') {
-      timelineEditorOps.replaceTimelineSelection(nextClipIds);
-      return;
-    }
-
-    timelineEditorOps.selectClips(nextClipIds);
-  }, [timelineEditorOps]);
 
   const deselectGalleryMatches = useCallback((matcher: (clip: SelectedMediaClip) => boolean) => {
     const idsToRemove = Array.from(gallerySelectionMap.entries())
@@ -312,6 +302,7 @@ export function AgentChat({ timelineId }: AgentChatProps) {
       || sessions.isLoading
       || createSession.isPending
       || sessionOptions.length > 0
+      || !hasTimeline
       || (!isOpen && !voice.isRecording && !voice.isProcessing)
     ) {
       return;
@@ -322,7 +313,7 @@ export function AgentChat({ timelineId }: AgentChatProps) {
       onError: () => { hasAutoCreatedSessionRef.current = false; },
       onSuccess: (session) => { setActiveSessionId(session.id); },
     });
-  }, [createSession, sessionOptions.length, sessions.isLoading, isOpen, voice.isRecording, voice.isProcessing]);
+  }, [createSession, hasTimeline, sessionOptions.length, sessions.isLoading, isOpen, voice.isRecording, voice.isProcessing]);
 
   // Scroll to bottom helper
   const scrollToBottom = useCallback((smooth = true) => {
@@ -354,6 +345,10 @@ export function AgentChat({ timelineId }: AgentChatProps) {
     const handleKeyDown = (event: KeyboardEvent) => {
       if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 'r') {
         event.preventDefault();
+        if (!hasTimeline) {
+          setIsOpen(true);
+          return;
+        }
         if (voice.isRecording) {
           voice.stopRecording();
         } else if (!voice.isProcessing) {
@@ -364,7 +359,7 @@ export function AgentChat({ timelineId }: AgentChatProps) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [voice]);
+  }, [hasTimeline, voice]);
 
   // Focus input when opened
   useEffect(() => {
@@ -387,7 +382,7 @@ export function AgentChat({ timelineId }: AgentChatProps) {
   const sendingRef = useRef(false);
   const handleSend = useCallback(async (rawText?: string) => {
     const text = (rawText ?? draft).trim();
-    if (!text || !activeSessionId || sendingRef.current) return;
+    if (!text || !activeSessionId || !timelineId || sendingRef.current) return;
 
     const attachments = clips.map((clip) => ({
       clipId: clip.clipId,
@@ -415,13 +410,16 @@ export function AgentChat({ timelineId }: AgentChatProps) {
       // Don't clear optimisticMessage here — let the effect clear it
       // when the real turn arrives, avoiding a flash.
     }
-  }, [activeSessionId, clearGallerySelection, clips, draft, sendMessage]);
+  }, [activeSessionId, clearGallerySelection, clips, draft, sendMessage, timelineId]);
 
   const handleNewSession = useCallback(async () => {
+    if (!hasTimeline) {
+      return;
+    }
     const session = await createSession.mutateAsync();
     setActiveSessionId(session.id);
     setDraft('');
-  }, [createSession]);
+  }, [createSession, hasTimeline]);
 
   const hasMessages = renderedTurns.length > 0;
   let content: JSX.Element;
@@ -509,7 +507,7 @@ export function AgentChat({ timelineId }: AgentChatProps) {
               variant="ghost"
               className="h-7 px-2 text-xs text-muted-foreground"
               onClick={() => void handleNewSession()}
-              disabled={createSession.isPending}
+              disabled={createSession.isPending || !hasTimeline}
             >
               New
             </Button>
@@ -535,8 +533,17 @@ export function AgentChat({ timelineId }: AgentChatProps) {
 
           {!activeSession.isLoading && renderedTurns.length === 0 && (
             <div className="py-8 text-center text-sm text-muted-foreground">
-              <p>Ask me to edit your timeline.</p>
-              <p className="mt-1 text-xs">Press <kbd className="rounded border border-border px-1 py-0.5 text-[10px]">Cmd+Shift+R</kbd> to talk</p>
+              {showNoTimelineState ? (
+                <>
+                  <p>Create a timeline to start chatting.</p>
+                  <p className="mt-1 text-xs">Open the video editor to create one.</p>
+                </>
+              ) : (
+                <>
+                  <p>Ask me to edit your timeline.</p>
+                  <p className="mt-1 text-xs">Press <kbd className="rounded border border-border px-1 py-0.5 text-[10px]">Cmd+Shift+R</kbd> to talk</p>
+                </>
+              )}
             </div>
           )}
 
@@ -632,9 +639,9 @@ export function AgentChat({ timelineId }: AgentChatProps) {
               type="text"
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
-              placeholder={voice.isRecording ? 'Recording...' : 'Type or press Cmd+Shift+R to talk...'}
+              placeholder={showNoTimelineState ? 'Create a timeline to start chatting...' : (voice.isRecording ? 'Recording...' : 'Type or press Cmd+Shift+R to talk...')}
               className="h-10 flex-1 rounded-xl border border-border/70 bg-card px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary/50"
-              disabled={!activeSessionId || isCancelled || isProcessing || voice.isRecording || voice.isProcessing}
+              disabled={!hasTimeline || !activeSessionId || isCancelled || isProcessing || voice.isRecording || voice.isProcessing}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && !event.shiftKey) {
                   event.preventDefault();
@@ -650,7 +657,7 @@ export function AgentChat({ timelineId }: AgentChatProps) {
                 variant={voice.isRecording ? 'destructive' : 'outline'}
                 className="h-10 w-10 rounded-xl"
                 onClick={() => voice.isRecording ? voice.stopRecording() : voice.startRecording()}
-                disabled={!activeSessionId || isCancelled || voice.isProcessing || sendMessage.isPending}
+                disabled={!hasTimeline || !activeSessionId || isCancelled || voice.isProcessing || sendMessage.isPending}
                 title={voice.isRecording ? 'Stop recording' : 'Voice input (Cmd+Shift+R)'}
               >
                 {voice.isRecording ? <Square className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
@@ -674,7 +681,7 @@ export function AgentChat({ timelineId }: AgentChatProps) {
               size="icon"
               className="h-10 w-10 shrink-0 rounded-xl"
               onClick={() => void handleSend()}
-              disabled={!draft.trim() || !activeSessionId || isCancelled || isProcessing || sendMessage.isPending}
+              disabled={!hasTimeline || !draft.trim() || !activeSessionId || isCancelled || isProcessing || sendMessage.isPending}
               title="Send"
             >
               <Send className="h-4 w-4" />

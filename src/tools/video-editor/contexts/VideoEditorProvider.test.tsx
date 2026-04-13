@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { useAgentChatBridge } from '@/shared/contexts/AgentChatContext';
 import { buildVideoEditorLightboxMedia, VideoEditorProvider } from '@/tools/video-editor/contexts/VideoEditorProvider';
 import { useTimelineChromeContext } from '@/tools/video-editor/contexts/TimelineChromeContext';
 import {
@@ -29,6 +30,7 @@ const mocks = {
   selectClips: vi.fn(),
   replaceTimelineSelection: vi.fn(),
 };
+let hasReplaceTimelineSelection = true;
 
 vi.mock('@/tools/video-editor/hooks/useEffects', () => ({
   useEffects: () => ({ data: [] }),
@@ -40,6 +42,21 @@ vi.mock('@/tools/video-editor/hooks/useEffectRegistry', () => ({
 
 vi.mock('@/tools/video-editor/hooks/useEffectResources', () => ({
   useEffectResources: () => ({ effects: [] }),
+}));
+
+vi.mock('@/tools/video-editor/hooks/useSelectedMediaClips', () => ({
+  useSelectedMediaClips: () => ({
+    clips: [
+      {
+        clipId: 'clip-1',
+        assetKey: 'asset-1',
+        url: 'https://example.com/image.png',
+        mediaType: 'image',
+        isTimelineBacked: true,
+      },
+    ],
+    summary: 'attaching 1 image',
+  }),
 }));
 
 vi.mock('@/shared/contexts/ShotsContext', () => ({
@@ -111,7 +128,7 @@ vi.mock('@/tools/video-editor/hooks/useTimelineState', () => ({
       isClipSelected: vi.fn(() => true),
       selectClip: mocks.selectClip,
       selectClips: mocks.selectClips,
-      replaceTimelineSelection: mocks.replaceTimelineSelection,
+      replaceTimelineSelection: hasReplaceTimelineSelection ? mocks.replaceTimelineSelection : undefined,
       addToSelection: vi.fn(),
       clearSelection: vi.fn(),
       setSelectedTrackId: vi.fn(),
@@ -162,6 +179,7 @@ function Consumer() {
   const editorOps = useTimelineEditorOps();
   const chrome = useTimelineChromeContext();
   const playback = useTimelinePlaybackContext();
+  const agentChatBridge = useAgentChatBridge();
 
   return (
     <div>
@@ -180,6 +198,8 @@ function Consumer() {
       <span>{typeof editorOps.replaceTimelineSelection}</span>
       <span>{chrome.saveStatus}</span>
       <span>{playback.currentTime}</span>
+      <span data-testid="agent-chat-timeline-id">{agentChatBridge.timelineId}</span>
+      <span data-testid="agent-chat-timeline-clip-count">{agentChatBridge.timelineClips.length}</span>
       <button
         type="button"
         onClick={() => {
@@ -194,12 +214,29 @@ function Consumer() {
       >
         update interaction
       </button>
+      <button
+        type="button"
+        onClick={() => {
+          agentChatBridge.replaceSelectedTimelineClips([
+            {
+              clipId: 'clip-2',
+              assetKey: 'asset-2',
+              url: 'https://example.com/video.mp4',
+              mediaType: 'video',
+              isTimelineBacked: true,
+            },
+          ]);
+        }}
+      >
+        replace timeline clips
+      </button>
     </div>
   );
 }
 
 describe('VideoEditorProvider', () => {
   beforeEach(() => {
+    hasReplaceTimelineSelection = true;
     Object.values(mocks).forEach((mock) => mock.mockClear());
   });
 
@@ -260,8 +297,11 @@ describe('VideoEditorProvider', () => {
     expect(screen.getAllByText('function')).toHaveLength(2);
     expect(screen.getByText('saved')).toBeInTheDocument();
     expect(screen.getByText('12.5')).toBeInTheDocument();
+    expect(screen.getByTestId('agent-chat-timeline-id')).toHaveTextContent('timeline-1');
+    expect(screen.getByTestId('agent-chat-timeline-clip-count')).toHaveTextContent('1');
 
     fireEvent.click(screen.getByRole('button', { name: 'update interaction' }));
+    fireEvent.click(screen.getByRole('button', { name: 'replace timeline clips' }));
 
     expect(mocks.setInputModality).toHaveBeenCalledWith('touch');
     expect(mocks.setInputModalityFromPointerType).toHaveBeenCalledWith('touch');
@@ -270,6 +310,39 @@ describe('VideoEditorProvider', () => {
     expect(mocks.setPrecisionEnabled).toHaveBeenCalledWith(true);
     expect(mocks.setContextTarget).toHaveBeenCalledWith({ kind: 'clip', clipId: 'clip-1' });
     expect(mocks.setInspectorTarget).toHaveBeenCalledWith({ kind: 'selection', clipIds: ['clip-1'] });
+    expect(mocks.replaceTimelineSelection).toHaveBeenCalledWith(['clip-2']);
+    expect(mocks.selectClips).not.toHaveBeenCalled();
+  });
+
+  it('falls back to selectClips when replaceTimelineSelection is unavailable', () => {
+    hasReplaceTimelineSelection = false;
+
+    const provider: DataProvider = {
+      loadTimeline: vi.fn(),
+      saveTimeline: vi.fn(),
+      loadAssetRegistry: vi.fn(),
+      resolveAssetUrl: vi.fn(),
+    };
+    const queryClient = new QueryClient({
+      defaultOptions: {
+        queries: {
+          retry: false,
+        },
+      },
+    });
+
+    render(
+      <QueryClientProvider client={queryClient}>
+        <VideoEditorProvider dataProvider={provider} timelineId="timeline-2" userId="user-1">
+          <Consumer />
+        </VideoEditorProvider>
+      </QueryClientProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'replace timeline clips' }));
+
+    expect(mocks.replaceTimelineSelection).not.toHaveBeenCalled();
+    expect(mocks.selectClips).toHaveBeenCalledWith(['clip-2']);
   });
 
   it('matches the touch interaction decision table for drag, marquee, trim, and selection routing', () => {

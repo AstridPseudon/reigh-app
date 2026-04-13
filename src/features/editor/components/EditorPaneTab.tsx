@@ -88,7 +88,7 @@ const EditorPaneComponent: React.FC = () => {
           zIndex: 59,
         }}
         className={cn(
-          'fixed top-0 left-0 right-0 flex flex-col border-b border-border bg-background/95 shadow-xl backdrop-blur-sm transform transition-[margin,padding] duration-300 ease-smooth pointer-events-auto',
+          'fixed top-0 left-0 right-0 flex flex-col border-b border-border bg-background/95 shadow-xl backdrop-blur-sm transform transition-[transform,margin,padding] duration-300 ease-smooth pointer-events-auto',
           pane.transformClass,
         )}
       >

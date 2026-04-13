@@ -6,6 +6,7 @@ import {
   buildSwitchShotGroupToImagesMutation,
   buildUpdateShotGroupToLatestVideoMutation,
 } from '@/tools/video-editor/lib/shot-group-commands';
+import { findGroupForTrack, resolveGroupTrackId } from '@/tools/video-editor/lib/pinned-group-projection';
 import type {
   TimelineApplyEdit,
   TimelineDataRef,
@@ -75,17 +76,15 @@ function buildRestoreShotGroupVideoMutation({
   }
 
   const pinnedShotGroups = currentData.config.pinnedShotGroups ?? [];
-  const pinnedGroup = pinnedShotGroups.find((group) => (
-    group.shotId === shotId
-    && group.trackId === rowId
-    && group.mode === 'video'
-    && typeof group.videoAssetKey === 'string'
-    && group.videoAssetKey.length > 0
-  ));
+  const foundGroup = findGroupForTrack(pinnedShotGroups, shotId, rowId, currentData.rows);
+  const pinnedGroup = foundGroup?.mode === 'video' && typeof foundGroup.videoAssetKey === 'string' && foundGroup.videoAssetKey.length > 0
+    ? foundGroup
+    : undefined;
+  const resolvedTrackId = pinnedGroup ? resolveGroupTrackId(pinnedGroup, currentData.rows) : rowId;
   const videoClipId = pinnedGroup?.clipIds[0];
   const hasVideoClip = Boolean(
     videoClipId
-    && currentData.rows.find((row) => row.id === rowId)?.actions.some((action) => action.id === videoClipId)
+    && currentData.rows.find((row) => row.id === resolvedTrackId)?.actions.some((action) => action.id === videoClipId)
     && currentData.meta[videoClipId],
   );
   if (!pinnedGroup || !videoClipId || !hasVideoClip) {
@@ -101,8 +100,8 @@ function buildRestoreShotGroupVideoMutation({
       },
     },
     pinnedShotGroupsOverride: pinnedShotGroups.map((group) => (
-      group.shotId === shotId && group.trackId === rowId
-        ? { ...group, videoAssetKey: assetKey }
+      group === pinnedGroup
+        ? { ...group, trackId: resolvedTrackId, videoAssetKey: assetKey }
         : group
     )),
   };
@@ -161,11 +160,10 @@ export function useSwitchToFinalVideo({
       return;
     }
 
-    const oldVideoAssetKey = dataRef.current?.config.pinnedShotGroups?.find((group) => (
-      group.shotId === shotId
-      && group.trackId === rowId
-      && group.mode === 'video'
-    ))?.videoAssetKey;
+    const currentGroup = dataRef.current
+      ? findGroupForTrack(dataRef.current.config.pinnedShotGroups ?? [], shotId, rowId, dataRef.current.rows)
+      : undefined;
+    const oldVideoAssetKey = currentGroup?.mode === 'video' ? currentGroup.videoAssetKey : undefined;
     const oldVideoGenerationId = oldVideoAssetKey
       ? dataRef.current?.registry.assets[oldVideoAssetKey]?.generationId
       : undefined;

@@ -139,7 +139,7 @@ export const PanesProvider: React.FC<{ children: ReactNode }> = ({ children }) =
   const viewportHeight = window.innerHeight;
   const editorVisible = locks.editor || isEditorPaneOpenState;
   const generationsVisible = locks.gens || isGenerationsPaneOpenState;
-  const editorFraction = locks.gens ? 0.7 : 0.9;
+  const editorFraction = 0.5;
   const editorPaneHeight = Math.round(viewportHeight * editorFraction);
   const bothVisible = editorVisible && generationsVisible;
 

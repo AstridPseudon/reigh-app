@@ -51,7 +51,7 @@ describe('useShotGroups', () => {
     }]);
   });
 
-  it('filters out pinned groups whose trackId does not match any row', () => {
+  it('resolves stale track ids against the live rows', () => {
     const rows: TimelineRow[] = [{ id: 'V1', actions: [buildAction('clip-1', 0, 2)] }];
     const { result } = renderHook(() => useShotGroups(
       rows,
@@ -63,7 +63,17 @@ describe('useShotGroups', () => {
         mode: 'images',
       }],
     ));
-    expect(result.current).toEqual([]);
+    expect(result.current).toEqual([{
+      shotId: 'shot-1',
+      shotName: 'Shot 1',
+      rowId: 'V1',
+      rowIndex: 0,
+      start: 0,
+      clipIds: ['clip-1'],
+      children: [{ clipId: 'clip-1', offset: 0, duration: 2 }],
+      color: getShotColor('shot-1'),
+      mode: 'images',
+    }]);
   });
 
   it('derives group start and children from the live row actions instead of legacy projection fields', () => {

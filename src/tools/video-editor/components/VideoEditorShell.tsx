@@ -12,7 +12,6 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { Slider } from '@/shared/components/ui/slider';
 import { usePanes } from '@/shared/contexts/PanesContext';
 import { useHomeNavigation } from '@/shared/hooks/useHomeNavigation';
-import { AgentChat } from '@/tools/video-editor/components/AgentChat';
 import { CompactPreview } from '@/tools/video-editor/components/CompactPreview';
 import { PreviewPanel } from '@/tools/video-editor/components/PreviewPanel/PreviewPanel';
 import { RemotionPreview } from '@/tools/video-editor/components/PreviewPanel/RemotionPreview';
@@ -674,7 +673,6 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
               <TimelineEditor />
             </div>
 
-            <AgentChat timelineId={timelineId} />
           </main>
         ) : condensed ? (
           /* ── Condensed layout: timeline left, preview or props right ── */
@@ -734,7 +732,6 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
 
             </div>
 
-            <AgentChat timelineId={timelineId} />
           </main>
         ) : (
           /* ── Standard layout: preview top, timeline bottom ── */
@@ -761,7 +758,6 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
 
             </div>
 
-            <AgentChat timelineId={timelineId} />
           </main>
         )}
       </div>
