@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => ({
   useShotNavigation: vi.fn(),
   useShotSettings: vi.fn(),
   useToolSettings: vi.fn(),
+  useProjectGenerationModesCache: vi.fn(),
   usePublicLoras: vi.fn(),
   useShotImages: vi.fn(),
   isPositioned: vi.fn(),
@@ -54,6 +55,10 @@ vi.mock('../../hooks/settings/useShotSettings', () => ({
 
 vi.mock('@/shared/hooks/settings/useToolSettings', () => ({
   useToolSettings: (...args: unknown[]) => mocks.useToolSettings(...args),
+}));
+
+vi.mock('@/shared/hooks/projects/useProjectGenerationModesCache', () => ({
+  useProjectGenerationModesCache: (...args: unknown[]) => mocks.useProjectGenerationModesCache(...args),
 }));
 
 vi.mock('@/features/resources/hooks/useResources', () => ({
@@ -112,6 +117,9 @@ describe('useVideoGenerationModalController', () => {
     mocks.useToolSettings.mockReturnValue({
       settings: { acceleratedMode: false, randomSeed: true },
       update: vi.fn(),
+    });
+    mocks.useProjectGenerationModesCache.mockReturnValue({
+      updateShotMode: vi.fn(),
     });
     mocks.useShotSettings.mockReturnValue({
       settings: {

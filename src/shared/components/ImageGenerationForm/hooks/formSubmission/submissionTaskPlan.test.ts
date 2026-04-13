@@ -112,4 +112,28 @@ describe('buildSubmissionTaskParams', () => {
     }));
     expect(result).toEqual({ batch: 'task' });
   });
+
+  it('forwards reference params while stripping style boost terms for non-style reference modes', () => {
+    buildReferenceParamsSpy.mockReturnValue({
+      style_reference_image: 'https://cdn.example.com/style.png',
+      reference_mode: 'custom',
+    });
+
+    const ctx = {
+      ...baseContext(),
+      generationSource: 'by-reference' as const,
+      styleReferenceImageGeneration: 'https://cdn.example.com/style.png',
+      referenceMode: 'custom' as const,
+    };
+
+    buildSubmissionTaskParams(ctx, [{ id: 'p1', fullPrompt: 'hello' }]);
+
+    expect(buildBatchTaskParamsSpy).toHaveBeenCalledWith(expect.objectContaining({
+      styleBoostTerms: '',
+      referenceParams: {
+        style_reference_image: 'https://cdn.example.com/style.png',
+        reference_mode: 'custom',
+      },
+    }));
+  });
 });

@@ -7,6 +7,7 @@ import type { ReferenceMode } from '@/shared/types/imageGeneration';
 export interface HydratedReferenceImage {
   id: string;
   resourceId: string;
+  generationId?: string;
   name: string;
   styleReferenceImage: string;
   styleReferenceImageOriginal: string;

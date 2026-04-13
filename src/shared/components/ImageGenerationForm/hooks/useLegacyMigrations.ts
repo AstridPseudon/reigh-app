@@ -3,6 +3,7 @@
  */
 
 import { useBase64Migration } from './legacyMigrations/useBase64Migration';
+import { useGenerationBackfillMigration } from './legacyMigrations/useGenerationBackfillMigration';
 import { useInvalidPointerCleanup } from './legacyMigrations/useInvalidPointerCleanup';
 import { useLoraCategoryMigration } from './legacyMigrations/useLoraCategoryMigration';
 import { useReferenceStructureMigration } from './legacyMigrations/useReferenceStructureMigration';
@@ -62,6 +63,12 @@ export function useLegacyMigrations(input: LegacyMigrationsInput): void {
     referencePointers,
     privacyDefaults,
     updateProjectImageSettings,
+  });
+
+  useGenerationBackfillMigration({
+    selectedProjectId,
+    effectiveShotId,
+    referencePointers,
   });
 
   useInvalidPointerCleanup({

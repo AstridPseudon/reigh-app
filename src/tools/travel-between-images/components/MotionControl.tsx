@@ -69,14 +69,12 @@ export const MotionControl: React.FC<MotionControlProps> = ({
     handlePresetSelect,
   } = useMotionControlPresetState({
     generationTypeMode,
-    hasStructureVideo,
     featuredPresetIds,
     selectedPhasePresetId,
     onPhasePresetSelect,
     onPhasePresetRemove,
     motionMode,
     settingsLoading,
-    phaseConfig,
     onMotionModeChange,
   });
 

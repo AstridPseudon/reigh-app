@@ -47,6 +47,7 @@ export interface StyleReferenceMetadata {
     styleReferenceImage: string;
     styleReferenceImageOriginal: string;
     thumbnailUrl: string | null;
+    generationId?: string;
     styleReferenceStrength: number;
     subjectStrength: number;
     subjectDescription: string;
@@ -92,12 +93,15 @@ export interface EffectMetadata {
 
 export type ResourceType = 'lora' | 'phase-config' | 'style-reference' | 'structure-video' | 'effect';
 export type ResourceMetadata = LoraModel | PhaseConfigMetadata | StyleReferenceMetadata | StructureVideoMetadata | EffectMetadata;
-type ResourceRow = Database['public']['Tables']['resources']['Row'];
+type ResourceRow = Database['public']['Tables']['resources']['Row'] & {
+    generation_id?: string | null;
+};
 
 export interface Resource {
     id: string;
     userId?: string;
     user_id?: string;
+    generation_id?: string | null;
     type: ResourceType;
     metadata: ResourceMetadata | Json;
     isPublic?: boolean;
@@ -221,25 +225,29 @@ export const useListResources = (type: ResourceType) => {
 export interface CreateResourceArgs {
     type: ResourceType;
     metadata: ResourceMetadata;
+    generation_id?: string | null;
 }
 
 export const useCreateResource = () => {
     const queryClient = useQueryClient();
     return useMutation<Resource, Error, CreateResourceArgs>({
-        mutationFn: async ({ type, metadata }) => {
+        mutationFn: async ({ type, metadata, generation_id }) => {
             const { data: { user } } = await supabase().auth.getUser();
             if (!user) throw new Error('Not authenticated');
             
             // Extract is_public from metadata for the column
             const isPublic = 'is_public' in metadata ? Boolean((metadata as Record<string, unknown>).is_public) : false;
+
+            const insertPayload = {
+                type,
+                metadata: toJson(metadata),
+                user_id: user.id,
+                is_public: isPublic,
+                ...(generation_id !== undefined ? { generation_id } : {}),
+            } as Database['public']['Tables']['resources']['Insert'] & { generation_id?: string | null };
             
             const { data, error } = await supabase().from('resources')
-                    .insert({
-                        type,
-                        metadata: toJson(metadata),
-                        user_id: user.id,
-                        is_public: isPublic
-                    })
+                    .insert(insertPayload)
                 .select()
                 .single();
             

@@ -3,7 +3,7 @@ import { Input } from '@/shared/components/ui/input';
 import { Label } from '@/shared/components/ui/primitives/label';
 import { Checkbox } from '@/shared/components/ui/checkbox';
 import { FileInput } from '@/shared/components/FileInput';
-import { parseRatio } from '@/shared/lib/media/aspectRatios';
+import { parseRatio, findClosestAspectRatio } from '@/shared/lib/media/aspectRatios';
 import { cropImageToProjectAspectRatio } from '@/shared/lib/media/imageCropper';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { AspectRatioSelector } from '@/shared/components/GenerationControls/AspectRatioSelector';
@@ -37,12 +37,14 @@ const CreateShotModal: React.FC<CreateShotModalProps> = ({
   const [aspectRatio, setAspectRatio] = useState<string>('');
   const [updateProjectAspectRatio, setUpdateProjectAspectRatio] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [imageChangedRatio, setImageChangedRatio] = useState(false);
   const { updateProject } = useProject();
 
   useEffect(() => {
     if (isOpen) {
       setAspectRatio(initialAspectRatio || projectAspectRatio || '3:2');
       setUpdateProjectAspectRatio(false);
+      setImageChangedRatio(false);
     }
   }, [isOpen, initialAspectRatio, projectAspectRatio]);
 
@@ -51,6 +53,44 @@ const CreateShotModal: React.FC<CreateShotModalProps> = ({
       setUpdateProjectAspectRatio(false);
     }
   }, [aspectRatio, projectAspectRatio]);
+
+  const effectiveProjectRatio = initialAspectRatio || projectAspectRatio || '3:2';
+
+  const handleFilesChange = (newFiles: File[]) => {
+    setFiles(newFiles);
+
+    if (newFiles.length === 0) {
+      // If all files removed, revert to project ratio
+      if (imageChangedRatio) {
+        setAspectRatio(effectiveProjectRatio);
+        setImageChangedRatio(false);
+      }
+      return;
+    }
+
+    // Read dimensions from the first image
+    const file = newFiles[0];
+    const img = new Image();
+    img.onload = () => {
+      const imageRatio = img.width / img.height;
+      const projectRatioValue = parseRatio(effectiveProjectRatio);
+      const tolerance = 0.05;
+
+      // Only change if the image doesn't match the current project ratio
+      if (!isNaN(projectRatioValue) && Math.abs(imageRatio - projectRatioValue) > tolerance) {
+        const closest = findClosestAspectRatio(imageRatio);
+        setAspectRatio(closest);
+        setImageChangedRatio(true);
+      }
+      URL.revokeObjectURL(img.src);
+    };
+    img.src = URL.createObjectURL(file);
+  };
+
+  const handleRevertToProjectDimensions = () => {
+    setAspectRatio(effectiveProjectRatio);
+    setImageChangedRatio(false);
+  };
 
   const handleSubmit = async () => {
     let finalShotName = shotName.trim();
@@ -93,6 +133,7 @@ const CreateShotModal: React.FC<CreateShotModalProps> = ({
       setFiles([]);
       setAspectRatio(projectAspectRatio || '3:2');
       setUpdateProjectAspectRatio(false);
+      setImageChangedRatio(false);
       setIsProcessing(false);
       onClose();
     } catch (error) {
@@ -106,6 +147,7 @@ const CreateShotModal: React.FC<CreateShotModalProps> = ({
     setFiles([]);
     setAspectRatio(projectAspectRatio || '3:2');
     setUpdateProjectAspectRatio(false);
+    setImageChangedRatio(false);
     onClose();
   };
 
@@ -139,7 +181,7 @@ const CreateShotModal: React.FC<CreateShotModalProps> = ({
           />
         </div>
         <FileInput
-          onFileChange={setFiles}
+          onFileChange={handleFilesChange}
           multiple
           acceptTypes={['image']}
           label="Starting Images: (Optional)"
@@ -154,6 +196,16 @@ const CreateShotModal: React.FC<CreateShotModalProps> = ({
             id="shot-aspect-ratio"
             showVisualizer={true}
           />
+
+          {imageChangedRatio && aspectRatio !== effectiveProjectRatio && (
+            <button
+              type="button"
+              onClick={handleRevertToProjectDimensions}
+              className="text-sm text-muted-foreground hover:text-foreground underline cursor-pointer transition-colors"
+            >
+              Revert to project dimensions ({effectiveProjectRatio})
+            </button>
+          )}
 
           {aspectRatio && projectAspectRatio && aspectRatio !== projectAspectRatio && (
             <div className="flex items-center gap-x-2 pt-2">

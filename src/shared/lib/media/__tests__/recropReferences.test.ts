@@ -1,34 +1,34 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 import { operationSuccess } from '@/shared/lib/operationResult';
+import type { HydratedReferenceImage } from '@/shared/types/referenceHydration';
+
+const mocks = vi.hoisted(() => ({
+  processStyleReferenceForAspectRatioString: vi.fn(),
+  uploadImageToStorage: vi.fn(),
+  dataURLtoFile: vi.fn(),
+  generateClientThumbnail: vi.fn(),
+  uploadImageWithThumbnail: vi.fn(),
+  normalizeAndPresentError: vi.fn(),
+}));
 
 // Mock all external dependencies
 vi.mock('../styleReferenceProcessor', () => ({
-  processStyleReferenceForAspectRatioString: vi.fn().mockResolvedValue('data:image/png;base64,processed'),
+  processStyleReferenceForAspectRatioString: (...args: unknown[]) =>
+    mocks.processStyleReferenceForAspectRatioString(...args),
 }));
 
 vi.mock('../imageUploader', () => ({
-  uploadImageToStorage: vi.fn().mockResolvedValue('https://storage.com/uploaded.jpg'),
+  uploadImageToStorage: (...args: unknown[]) => mocks.uploadImageToStorage(...args),
 }));
 
 vi.mock('../fileConversion', () => ({
-  dataURLtoFile: vi.fn().mockReturnValue(
-    operationSuccess(new File(['test'], 'test.png', { type: 'image/png' }))
-  ),
+  dataURLtoFile: (...args: unknown[]) => mocks.dataURLtoFile(...args),
 }));
 
 vi.mock('@/shared/media/clientThumbnailGenerator', () => ({
-  generateClientThumbnail: vi.fn().mockResolvedValue({
-    thumbnailBlob: new Blob(['thumb'], { type: 'image/jpeg' }),
-    thumbnailWidth: 150,
-    thumbnailHeight: 100,
-    originalWidth: 1920,
-    originalHeight: 1080,
-  }),
-  uploadImageWithThumbnail: vi.fn().mockResolvedValue({
-    imageUrl: 'https://storage.com/processed.jpg',
-    thumbnailUrl: 'https://storage.com/thumb.jpg',
-  }),
+  generateClientThumbnail: (...args: unknown[]) => mocks.generateClientThumbnail(...args),
+  uploadImageWithThumbnail: (...args: unknown[]) => mocks.uploadImageWithThumbnail(...args),
 }));
 
 vi.mock('@/integrations/supabase/client', () => ({
@@ -42,7 +42,7 @@ vi.mock('@/integrations/supabase/client', () => ({
 }));
 
 vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
-  normalizeAndPresentError: vi.fn(),
+  normalizeAndPresentError: (...args: unknown[]) => mocks.normalizeAndPresentError(...args),
 }));
 
 // Mock fetch
@@ -62,25 +62,49 @@ class MockFileReader {
 }
 vi.stubGlobal('FileReader', MockFileReader);
 
-import { recropAllReferences, type RecropReferenceInput } from '../recropReferences';
+import { recropAllReferences } from '../recropReferences';
 
 describe('recropAllReferences', () => {
-  const makeRef = (overrides: Partial<RecropReferenceInput> = {}): RecropReferenceInput => ({
+  const makeRef = (overrides: Partial<HydratedReferenceImage> = {}): HydratedReferenceImage => ({
     id: 'ref-1',
+    resourceId: 'resource-1',
+    generationId: 'generation-1',
     name: 'Test Reference',
     styleReferenceImage: 'https://storage.com/cropped.jpg',
     styleReferenceImageOriginal: 'https://storage.com/original.jpg',
+    thumbnailUrl: 'https://storage.com/thumb.jpg',
     styleReferenceStrength: 0.5,
     subjectStrength: 0.5,
     subjectDescription: '',
     inThisScene: false,
+    inThisSceneStrength: 0.4,
+    referenceMode: 'style',
+    styleBoostTerms: '',
     createdAt: '2025-01-01T00:00:00Z',
     updatedAt: '2025-01-01T00:00:00Z',
+    isPublic: false,
+    isOwner: true,
     ...overrides,
   });
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.processStyleReferenceForAspectRatioString.mockResolvedValue('data:image/png;base64,processed');
+    mocks.uploadImageToStorage.mockResolvedValue('https://storage.com/uploaded.jpg');
+    mocks.dataURLtoFile.mockReturnValue(
+      operationSuccess(new File(['test'], 'test.png', { type: 'image/png' }))
+    );
+    mocks.generateClientThumbnail.mockResolvedValue({
+      thumbnailBlob: new Blob(['thumb'], { type: 'image/jpeg' }),
+      thumbnailWidth: 150,
+      thumbnailHeight: 100,
+      originalWidth: 1920,
+      originalHeight: 1080,
+    });
+    mocks.uploadImageWithThumbnail.mockResolvedValue({
+      imageUrl: 'https://storage.com/processed.jpg',
+      thumbnailUrl: 'https://storage.com/thumb.jpg',
+    });
     mockFetch.mockResolvedValue({
       ok: true,
       blob: () => Promise.resolve(new Blob(['image-data'], { type: 'image/png' })),
@@ -98,19 +122,21 @@ describe('recropAllReferences', () => {
 
     const result = await recropAllReferences([ref], '16:9', onProgress);
 
-    expect(result).toHaveLength(1);
-    expect(result[0]).toBe(ref); // Original reference passed through unchanged
+    expect(result).toEqual([]);
     expect(onProgress).toHaveBeenCalledWith(1, 1);
   });
 
-  it('reprocesses references with original image', async () => {
+  it('reprocesses references and returns resource-keyed recrop results', async () => {
     const ref = makeRef();
     const result = await recropAllReferences([ref], '16:9');
 
     expect(result).toHaveLength(1);
-    expect(result[0].styleReferenceImage).toBe('https://storage.com/processed.jpg');
-    expect(result[0].thumbnailUrl).toBe('https://storage.com/thumb.jpg');
-    expect(result[0].styleReferenceImageOriginal).toBe('https://storage.com/original.jpg'); // Preserved
+    expect(result[0]).toEqual(expect.objectContaining({
+      resourceId: 'resource-1',
+      generationId: 'generation-1',
+      styleReferenceImage: 'https://storage.com/processed.jpg',
+      thumbnailUrl: 'https://storage.com/thumb.jpg',
+    }));
   });
 
   it('calls progress callback correctly', async () => {
@@ -123,23 +149,13 @@ describe('recropAllReferences', () => {
     expect(onProgress).toHaveBeenCalledWith(2, 2);
   });
 
-  it('keeps original reference on fetch error', async () => {
+  it('drops failed references from the result set and reports the error', async () => {
     mockFetch.mockResolvedValue({ ok: false, status: 404, statusText: 'Not Found' });
 
     const ref = makeRef();
     const result = await recropAllReferences([ref], '16:9');
 
-    expect(result).toHaveLength(1);
-    // Should fall back to original reference
-    expect(result[0].id).toBe(ref.id);
-  });
-
-  it('updates the updatedAt timestamp', async () => {
-    const ref = makeRef({ updatedAt: '2024-01-01T00:00:00Z' });
-    const result = await recropAllReferences([ref], '16:9');
-
-    expect(new Date(result[0].updatedAt).getTime()).toBeGreaterThan(
-      new Date('2024-01-01T00:00:00Z').getTime()
-    );
+    expect(result).toEqual([]);
+    expect(mocks.normalizeAndPresentError).toHaveBeenCalled();
   });
 });

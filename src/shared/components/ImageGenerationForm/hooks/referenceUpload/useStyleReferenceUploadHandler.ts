@@ -11,6 +11,7 @@ import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
 import {
   buildStyleReferenceMetadata,
   resolveReferenceThumbnailUrl,
+  tryCreateUploadedReferenceGeneration,
   tryUploadAndProcessReference,
 } from './referenceDomainService';
 import { persistOptimisticReferenceSelection } from './persistOptimisticReferenceSelection';
@@ -19,10 +20,14 @@ import type {
   ProjectImageSettings,
   ReferenceImage,
 } from '../../types';
-import type { Resource } from '@/features/resources/hooks/useResources';
+import type { Resource, StyleReferenceMetadata } from '@/features/resources/hooks/useResources';
 
 interface CreateStyleReferenceMutation {
-  mutateAsync: (input: { type: 'style-reference'; metadata: StyleReferenceMetadata }) => Promise<Resource>;
+  mutateAsync: (input: {
+    type: 'style-reference';
+    metadata: StyleReferenceMetadata;
+    generation_id?: string | null;
+  }) => Promise<Resource>;
 }
 
 interface UseStyleReferenceUploadHandlerInput {
@@ -96,6 +101,11 @@ export function useStyleReferenceUploadHandler(
       return;
     }
 
+    if (!selectedProjectId) {
+      toast.error('Please select a project before uploading a reference');
+      return;
+    }
+
     if (isLoadingProjectSettings) {
       toast.error('Please wait for settings to load');
       return;
@@ -140,19 +150,46 @@ export function useStyleReferenceUploadHandler(
         throw new Error('Not authenticated');
       }
 
+      const generationResult = await tryCreateUploadedReferenceGeneration({
+        currentProjectId: selectedProjectId,
+        shotId: effectiveShotId,
+        originalUploadedUrl,
+        thumbnailUrl,
+      });
+      if (!generationResult.ok) {
+        normalizeAndPresentError(generationResult.error, {
+          context: 'useReferenceUpload.handleStyleReferenceUpload.tryCreateUploadedReferenceGeneration',
+          toastTitle: 'Failed to upload reference image',
+          logData: getOperationFailureLogData(generationResult),
+        });
+        return;
+      }
+
       const metadata = buildStyleReferenceMetadata({
         hydratedReferences,
         processedUploadedUrl,
         originalUploadedUrl,
         thumbnailUrl,
+        generationId: generationResult.value.generationId,
         resourcesPublic: privacyDefaults.resourcesPublic,
         userEmail: user.email ?? null,
       });
 
-      const resource = await createStyleReference.mutateAsync({
-        type: 'style-reference',
-        metadata,
-      });
+      let resource: Resource;
+      try {
+        resource = await createStyleReference.mutateAsync({
+          type: 'style-reference',
+          metadata,
+          generation_id: generationResult.value.generationId,
+        });
+      } catch (error) {
+        await supabase()
+          .from('generations')
+          .delete()
+          .eq('id', generationResult.value.generationId)
+          .eq('project_id', selectedProjectId);
+        throw error;
+      }
 
       const newPointer: ReferenceImage = {
         id: crypto.randomUUID(),

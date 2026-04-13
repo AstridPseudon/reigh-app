@@ -11,8 +11,10 @@ import { CompletionError } from './errors.ts';
 const mocks = vi.hoisted(() => ({
   insertGeneration: vi.fn(),
   createVariant: vi.fn(),
+  derivePredecessorVariantId: vi.fn(),
   getOrCreateParentGeneration: vi.fn(),
   createVariantOnParent: vi.fn(),
+  getChildVariantViewedAt: vi.fn(),
 }));
 
 vi.mock('./params.ts', () => ({
@@ -34,6 +36,7 @@ vi.mock('./generation-core.ts', async () => {
     ...actual,
     insertGeneration: (...args: unknown[]) => mocks.insertGeneration(...args),
     createVariant: (...args: unknown[]) => mocks.createVariant(...args),
+    derivePredecessorVariantId: (...args: unknown[]) => mocks.derivePredecessorVariantId(...args),
     linkGenerationToShot: actual.linkGenerationToShot,
   };
 });
@@ -44,6 +47,7 @@ vi.mock('./generation-parent.ts', async () => {
     ...actual,
     getOrCreateParentGeneration: (...args: unknown[]) => mocks.getOrCreateParentGeneration(...args),
     createVariantOnParent: (...args: unknown[]) => mocks.createVariantOnParent(...args),
+    getChildVariantViewedAt: (...args: unknown[]) => mocks.getChildVariantViewedAt(...args),
   };
 });
 
@@ -52,6 +56,8 @@ describe('complete_task/generation-handlers exports', () => {
     vi.clearAllMocks();
     mocks.insertGeneration.mockResolvedValue({ id: 'gen-standalone' });
     mocks.createVariant.mockResolvedValue({ id: 'variant-1' });
+    mocks.derivePredecessorVariantId.mockResolvedValue(null);
+    mocks.getChildVariantViewedAt.mockResolvedValue(null);
   });
 
   it('exports generation handlers', () => {
@@ -238,5 +244,78 @@ describe('complete_task/generation-handlers exports', () => {
         created_as: 'generation',
       },
     });
+  });
+
+  it('creates the variant on the child generation and auto-marks viewed_at for single-segment cases', async () => {
+    const taskUpdateEq = vi.fn().mockResolvedValue({ error: null });
+    const taskUpdate = vi.fn().mockReturnValue({ eq: taskUpdateEq });
+    const childGeneration = {
+      id: 'child-1',
+      parent_generation_id: 'parent-1',
+      child_order: 0,
+    };
+    const generationSingle = vi.fn().mockResolvedValue({
+      data: childGeneration,
+      error: null,
+    });
+    const generationEq = vi.fn().mockReturnValue({ single: generationSingle });
+    const generationSelect = vi.fn().mockReturnValue({ eq: generationEq });
+    const supabase = {
+      from: vi.fn((table: string) => {
+        if (table === 'generations') {
+          return { select: generationSelect };
+        }
+        if (table === 'tasks') {
+          return { update: taskUpdate };
+        }
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    };
+
+    mocks.getChildVariantViewedAt.mockResolvedValue('2026-04-14T00:00:00.000Z');
+
+    const result = await handleVariantOnChild({
+      supabase: supabase as never,
+      taskId: 'task-child-variant',
+      taskData: {
+        task_type: 'individual_travel_segment',
+        project_id: 'project-1',
+        params: {
+          _isSingleSegmentCase: true,
+        },
+        tool_type: 'wan',
+        variant_type: 'travel_segment',
+      },
+      publicUrl: 'https://example.com/segment.mp4',
+      thumbnailUrl: 'https://example.com/segment.jpg',
+      childGenerationId: 'child-1',
+      logger: { info: vi.fn() },
+    } as never);
+
+    expect(result).toEqual(childGeneration);
+    expect(mocks.getChildVariantViewedAt).toHaveBeenCalledWith(supabase, {
+      taskParams: {
+        _isSingleSegmentCase: true,
+      },
+      childGeneration,
+    });
+    expect(mocks.createVariant).toHaveBeenCalledWith(
+      supabase,
+      'child-1',
+      'https://example.com/segment.mp4',
+      'https://example.com/segment.jpg',
+      expect.objectContaining({
+        source_task_id: 'task-child-variant',
+        created_from: 'individual_segment_regeneration',
+        tool_type: 'wan',
+      }),
+      true,
+      'travel_segment',
+      null,
+      '2026-04-14T00:00:00.000Z',
+    );
+    expect(mocks.createVariantOnParent).not.toHaveBeenCalled();
+    expect(taskUpdate).toHaveBeenCalledWith({ generation_created: true });
+    expect(taskUpdateEq).toHaveBeenCalledWith('id', 'task-child-variant');
   });
 });

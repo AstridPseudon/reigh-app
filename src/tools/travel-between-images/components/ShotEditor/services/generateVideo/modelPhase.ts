@@ -11,9 +11,10 @@ import { MODEL_DEFAULTS, type SelectedModel } from '@/tools/travel-between-image
 export function buildBasicModeGenerationRequest(
   motionPercent: number,
   userLoras: Array<{ path: string; strength: number; lowNoisePath?: string; isMultiStage?: boolean }>,
+  useVaceModel = false,
 ): { model: string; phaseConfig: PhaseConfig } {
   const model = 'wan_2_2_i2v_lightning_baseline_2_2_2';
-  const phaseConfig = buildPhaseConfigCore(false, motionPercent / 100, userLoras);
+  const phaseConfig = buildPhaseConfigCore(useVaceModel, motionPercent / 100, userLoras);
   return { model, phaseConfig };
 }
 

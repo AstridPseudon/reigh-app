@@ -134,58 +134,69 @@ export const TimelineTrackPrelude: React.FC<TimelineTrackPreludeProps> = ({
           && realLastFrame !== undefined
           && activePendingFrame > realLastFrame;
         const effectiveLastFrame = pendingIsLast ? activePendingFrame : realLastFrame;
+        const resolvedSegmentSlots = segmentSlots ?? [];
+        const hasTrailingSegment =
+          Boolean(lastEntry)
+          && (trailingEndFrame !== undefined || hasCallbackTrailingVideo || hasLiveTrailingVideo);
+        // Hide the segment output strip when the shot has ≤2 timeline images.
+        // In that mode, the segment video IS the final video — showing
+        // the strip is redundant. When the user adds a 3rd image, images.length
+        // updates reactively and the strip reappears.
+        const shouldHideSegmentOutputStrip = images.length <= 2;
 
         return (
-          <SegmentOutputStrip
-            shotId={shotId}
-            projectId={projectId}
-            readOnly={readOnly}
-            projectAspectRatio={projectAspectRatio}
-            pairInfo={pairInfoWithPending}
-            fullMin={layout.fullMin}
-            fullMax={layout.fullMax}
-            fullRange={layout.fullRange}
-            containerWidth={layout.containerWidth}
-            zoomLevel={layout.zoomLevel}
-            segmentSlots={segmentSlots ?? []}
-            isLoading={isSegmentsLoading}
-            localShotGenPositions={localShotGenPositions}
-            hasPendingTask={hasPendingTask}
-            pairDataByIndex={pairDataByIndex}
-            onOpenPairSettings={onPairClick ? onOpenPairSettings : undefined}
-            selectedParentId={selectedOutputId}
-            onSegmentFrameCountChange={onSegmentFrameCountChange}
-            trailingSegmentMode={lastEntry && (trailingEndFrame !== undefined || hasCallbackTrailingVideo || hasLiveTrailingVideo)
-              ? (() => {
-                const [imageId, imageFrame] = lastEntry;
-                const resolvedEndFrame = trailingEndFrame ?? (imageFrame + (isMultiImage ? 17 : 49));
-                const trailingDuration = resolvedEndFrame - imageFrame;
-                const effectiveImageId = pendingIsLast ? PENDING_POSITION_KEY : imageId;
-                const effectiveImageFrame = pendingIsLast ? activePendingFrame : imageFrame;
-                const effectiveEndFrame = pendingIsLast
-                  ? (activePendingFrame ?? imageFrame) + trailingDuration
-                  : resolvedEndFrame;
-                return {
-                  imageId: effectiveImageId,
-                  imageFrame: effectiveImageFrame,
-                  endFrame: effectiveEndFrame,
-                };
-              })()
-              : undefined}
-            isMultiImage={isMultiImage}
-            lastImageFrame={effectiveLastFrame}
-            onAddTrailingSegment={realLastFrame !== undefined && lastEntry
-              ? () => {
-                onTrailingEndFrameChange(realLastFrame + 17);
-              }
-              : undefined}
-            onRemoveTrailingSegment={isMultiImage && trailingEndFrame !== undefined
-              ? () => {
-                onTrailingEndFrameChange(undefined);
-              }
-              : undefined}
-            onTrailingVideoInfo={onTrailingVideoInfo}
-          />
+          shouldHideSegmentOutputStrip
+            ? <div className="h-8" />
+            : <SegmentOutputStrip
+              shotId={shotId}
+              projectId={projectId}
+              readOnly={readOnly}
+              projectAspectRatio={projectAspectRatio}
+              pairInfo={pairInfoWithPending}
+              fullMin={layout.fullMin}
+              fullMax={layout.fullMax}
+              fullRange={layout.fullRange}
+              containerWidth={layout.containerWidth}
+              zoomLevel={layout.zoomLevel}
+              segmentSlots={resolvedSegmentSlots}
+              isLoading={isSegmentsLoading}
+              localShotGenPositions={localShotGenPositions}
+              hasPendingTask={hasPendingTask}
+              pairDataByIndex={pairDataByIndex}
+              onOpenPairSettings={onPairClick ? onOpenPairSettings : undefined}
+              selectedParentId={selectedOutputId}
+              onSegmentFrameCountChange={onSegmentFrameCountChange}
+              trailingSegmentMode={hasTrailingSegment && lastEntry
+                ? (() => {
+                  const [imageId, imageFrame] = lastEntry;
+                  const resolvedEndFrame = trailingEndFrame ?? (imageFrame + (isMultiImage ? 17 : 49));
+                  const trailingDuration = resolvedEndFrame - imageFrame;
+                  const effectiveImageId = pendingIsLast ? PENDING_POSITION_KEY : imageId;
+                  const effectiveImageFrame = pendingIsLast ? activePendingFrame : imageFrame;
+                  const effectiveEndFrame = pendingIsLast
+                    ? (activePendingFrame ?? imageFrame) + trailingDuration
+                    : resolvedEndFrame;
+                  return {
+                    imageId: effectiveImageId,
+                    imageFrame: effectiveImageFrame,
+                    endFrame: effectiveEndFrame,
+                  };
+                })()
+                : undefined}
+              isMultiImage={isMultiImage}
+              lastImageFrame={effectiveLastFrame}
+              onAddTrailingSegment={realLastFrame !== undefined && lastEntry
+                ? () => {
+                  onTrailingEndFrameChange(realLastFrame + 17);
+                }
+                : undefined}
+              onRemoveTrailingSegment={isMultiImage && trailingEndFrame !== undefined
+                ? () => {
+                  onTrailingEndFrameChange(undefined);
+                }
+                : undefined}
+              onTrailingVideoInfo={onTrailingVideoInfo}
+            />
         );
       })()}
 

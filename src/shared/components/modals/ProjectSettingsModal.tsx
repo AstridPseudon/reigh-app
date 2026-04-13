@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/primitives/label";
@@ -10,16 +11,20 @@ import { useToolSettings } from '@/shared/hooks/settings/useToolSettings';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/shared/components/ui/collapsible';
 import { ChevronDown, AlertTriangle, RefreshCw } from 'lucide-react';
 import { AspectRatioSelector } from '@/shared/components/GenerationControls/AspectRatioSelector';
-import { recropAllReferences, type RecropReferenceInput } from '@/shared/lib/media/recropReferences';
+import { recropAllReferences } from '@/shared/lib/media/recropReferences';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { ModalContainer } from '@/shared/components/ModalContainer';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
-
-interface ProjectImageSettings {
-  references?: RecropReferenceInput[];
-  selectedReferenceIdByShot?: Record<string, string | null>;
-  [key: string]: unknown;
-}
+import { useHydratedReferences } from '@/shared/components/ImageGenerationForm/hooks/useHydratedReferences';
+import type { ProjectImageSettings } from '@/shared/components/ImageGenerationForm/types';
+import { useSpecificResources } from '@/shared/hooks/useSpecificResources';
+import {
+  useUpdateResource,
+  type StyleReferenceMetadata,
+} from '@/features/resources/hooks/useResources';
+import { useUpdateGenerationLocation } from '@/domains/generation/hooks/useGenerationMutations';
+import { resourceQueryKeys } from '@/shared/lib/queryKeys/resources';
+import { generationQueryKeys } from '@/shared/lib/queryKeys/generations';
 
 interface ProjectSettingsModalProps {
   isOpen: boolean;
@@ -28,6 +33,7 @@ interface ProjectSettingsModalProps {
 }
 
 export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOpen, onOpenChange, project }) => {
+  const queryClient = useQueryClient();
   const [projectName, setProjectName] = useState('');
   const [aspectRatio, setAspectRatio] = useState<string>('');
   // Persistent project-level upload settings
@@ -35,6 +41,19 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOp
   
   // Project image settings for reference recropping
   const { settings: imageSettings, update: updateImageSettings } = useToolSettings<ProjectImageSettings>(SETTINGS_IDS.PROJECT_IMAGE_SETTINGS, { projectId: project?.id });
+  const referencePointers = imageSettings?.references ?? [];
+  const { hydratedReferences, isLoading: isLoadingHydratedReferences } = useHydratedReferences(referencePointers);
+  const resourceIds = useMemo(
+    () => [...new Set(referencePointers.map(reference => reference.resourceId).filter(Boolean))],
+    [referencePointers],
+  );
+  const specificResources = useSpecificResources(resourceIds);
+  const updateStyleReference = useUpdateResource();
+  const updateGenerationLocation = useUpdateGenerationLocation();
+  const resourceById = useMemo(
+    () => new Map((specificResources.data ?? []).map(resource => [resource.id, resource])),
+    [specificResources.data],
+  );
 
   const [cropToProjectSize, setCropToProjectSize] = useState<boolean>(true);
   const { updateProject, isUpdatingProject, deleteProject, isDeletingProject } = useProject();
@@ -96,8 +115,13 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOp
     
     // Check if aspect ratio changed and we have references to recrop
     const aspectRatioChanged = updates.aspectRatio && updates.aspectRatio !== project.aspectRatio;
-    const references = imageSettings?.references || [];
-    const hasReferencesToRecrop = references.some(ref => ref.styleReferenceImageOriginal);
+    const hasReferencePointers = referencePointers.length > 0;
+    const hasReferencesToRecrop = hydratedReferences.some(ref => ref.styleReferenceImageOriginal);
+
+    if (aspectRatioChanged && hasReferencePointers && (isLoadingHydratedReferences || specificResources.isLoading)) {
+      toast.error('Reference data is still loading. Please try again in a moment.');
+      return;
+    }
     
     // If aspect ratio changed and we have references, show processing state
     if (aspectRatioChanged && hasReferencesToRecrop) {
@@ -121,8 +145,11 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOp
   const performRecrop = async (newAspectRatio: string) => {
     if (!project?.id) return;
     
-    const references = imageSettings?.references || [];
-    const referencesWithOriginals = references.filter(ref => ref.styleReferenceImageOriginal);
+    if (isLoadingHydratedReferences || specificResources.isLoading) {
+      throw new Error('Reference data is still loading');
+    }
+
+    const referencesWithOriginals = hydratedReferences.filter(ref => ref.styleReferenceImageOriginal);
     
     if (referencesWithOriginals.length === 0) {
       return;
@@ -131,15 +158,45 @@ export const ProjectSettingsModal: React.FC<ProjectSettingsModalProps> = ({ isOp
     try {
       
       // Reprocess all references (no toast, button shows wait state)
-      const updatedReferences = await recropAllReferences(
-        references,
+      const recroppedReferences = await recropAllReferences(
+        referencesWithOriginals,
         newAspectRatio
       );
       
-      // Save updated references
-      await updateImageSettings('project', {
-        references: updatedReferences
-      });
+      for (const recroppedReference of recroppedReferences) {
+        const resource = resourceById.get(recroppedReference.resourceId);
+        if (!resource) {
+          continue;
+        }
+
+        const metadata = resource.metadata as StyleReferenceMetadata;
+        const updatedMetadata: StyleReferenceMetadata = {
+          ...metadata,
+          generationId: resource.generation_id ?? metadata.generationId,
+          styleReferenceImage: recroppedReference.styleReferenceImage,
+          thumbnailUrl: recroppedReference.thumbnailUrl,
+          updatedAt: recroppedReference.updatedAt,
+        };
+
+        await updateStyleReference.mutateAsync({
+          id: resource.id,
+          type: 'style-reference',
+          metadata: updatedMetadata,
+        });
+        await queryClient.invalidateQueries({ queryKey: resourceQueryKeys.detail(resource.id) });
+
+        if (resource.generation_id && resource.generation?.type === 'uploaded-reference') {
+          await updateGenerationLocation.mutateAsync({
+            id: resource.generation_id,
+            projectId: project.id,
+            location: recroppedReference.styleReferenceImage,
+            thumbnailUrl: recroppedReference.thumbnailUrl,
+          });
+          await queryClient.invalidateQueries({ queryKey: generationQueryKeys.detail(resource.generation_id) });
+        }
+      }
+
+      await queryClient.invalidateQueries({ queryKey: generationQueryKeys.byShotAll });
       
     } catch (error) {
       normalizeAndPresentError(error, { context: 'ProjectSettingsModal', toastTitle: 'Failed to update some reference images. You may need to re-upload them.' });

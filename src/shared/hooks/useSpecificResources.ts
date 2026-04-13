@@ -1,17 +1,38 @@
 import { useQueries } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
-import { Resource } from './useResources';
+import type { Resource } from '@/features/resources/hooks/useResources';
 import { isNotFoundError } from '@/shared/constants/supabaseErrors';
 import { resourceQueryKeys } from '@/shared/lib/queryKeys/resources';
+
+export interface ResourceGenerationRecord {
+  id: string;
+  location: string | null;
+  thumbnail_url: string | null;
+  type: string | null;
+}
+
+export type SpecificResource = Resource & {
+  generation?: ResourceGenerationRecord | null;
+};
+
+const RESOURCE_WITH_GENERATION_SELECT = `
+  *,
+  generation:generations!resources_generation_id_fkey (
+    id,
+    location,
+    thumbnail_url,
+    type
+  )
+`;
 
 /**
  * Fetch a single resource by ID
  * Used internally by useSpecificResources for individual caching
  */
-const fetchResourceById = async (id: string): Promise<Resource | null> => {
+const fetchResourceById = async (id: string): Promise<SpecificResource | null> => {
   const { data, error } = await supabase().from('resources')
-    .select('*')
+    .select(RESOURCE_WITH_GENERATION_SELECT)
     .eq('id', id)
     .single();
   
@@ -24,7 +45,7 @@ const fetchResourceById = async (id: string): Promise<Resource | null> => {
     throw error;
   }
   
-  return data as Resource;
+  return data as SpecificResource;
 };
 
 /**
@@ -56,7 +77,7 @@ export const useSpecificResources = (resourceIds: string[]) => {
     // Once we have some data, new fetches happen in the background without blocking UI
     const data = queries
       .map(q => q.data)
-      .filter((r): r is Resource => r !== null && r !== undefined);
+      .filter((r): r is SpecificResource => r !== null && r !== undefined);
     const isLoading = data.length === 0 && queries.some(q => q.isLoading);
 
     return { data, isLoading };

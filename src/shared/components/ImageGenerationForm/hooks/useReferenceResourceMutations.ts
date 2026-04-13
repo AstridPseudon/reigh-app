@@ -13,10 +13,13 @@
 import { useCallback } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUpdateResource, useDeleteResource, StyleReferenceMetadata } from '@/features/resources/hooks/useResources';
+import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
+import { useDeleteGeneration } from '@/domains/generation/hooks/useGenerationMutations';
 import { updateSettingsCache } from '@/shared/hooks/settings/useToolSettings';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { settingsQueryKeys } from '@/shared/lib/queryKeys/settings';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
+import { invalidateShotsQueries } from '@/shared/hooks/shots/cacheUtils';
 import type { ReferenceImage, HydratedReferenceImage, ProjectImageSettings } from '../types';
 
 // ============================================================================
@@ -36,6 +39,7 @@ function buildResourceMetadata(
     styleReferenceImage: ref.styleReferenceImage,
     styleReferenceImageOriginal: ref.styleReferenceImageOriginal,
     thumbnailUrl: ref.thumbnailUrl,
+    generationId: ref.generationId,
     styleReferenceStrength: ref.styleReferenceStrength,
     subjectStrength: ref.subjectStrength,
     subjectDescription: ref.subjectDescription,
@@ -89,6 +93,7 @@ export function useReferenceResourceMutations(
   const queryClient = useQueryClient();
   const updateStyleReference = useUpdateResource();
   const deleteStyleReference = useDeleteResource();
+  const deleteGeneration = useDeleteGeneration();
 
   // ============================================================================
   // Delete Reference
@@ -111,6 +116,38 @@ export function useReferenceResourceMutations(
     } catch (error) {
       normalizeAndPresentError(error, { context: 'useReferenceResourceMutations.handleDeleteReference', toastTitle: 'Failed to delete reference' });
       return;
+    }
+
+    const generationId = hydratedRef.generationId;
+    if (generationId) {
+      try {
+        const { data: generation, error } = await supabase()
+          .from('generations')
+          .select('type')
+          .eq('id', generationId)
+          .maybeSingle();
+
+        if (error) {
+          throw error;
+        }
+
+        if (generation?.type === 'uploaded-reference') {
+          if (!selectedProjectId) {
+            throw new Error('Cannot delete uploaded-reference generation without a project scope');
+          }
+
+          await deleteGeneration.mutateAsync({
+            id: generationId,
+            projectId: selectedProjectId,
+          });
+          invalidateShotsQueries(queryClient, selectedProjectId);
+        }
+      } catch (error) {
+        normalizeAndPresentError(error, {
+          context: 'useReferenceResourceMutations.handleDeleteReference.cleanupGeneration',
+          showToast: false,
+        });
+      }
     }
 
     // Remove pointer from settings
@@ -140,7 +177,17 @@ export function useReferenceResourceMutations(
     });
 
     markAsInteracted();
-  }, [hydratedReferences, referencePointers, selectedReferenceIdByShot, deleteStyleReference, updateProjectImageSettings, markAsInteracted, queryClient, selectedProjectId]);
+  }, [
+    hydratedReferences,
+    referencePointers,
+    selectedReferenceIdByShot,
+    deleteStyleReference,
+    deleteGeneration,
+    updateProjectImageSettings,
+    markAsInteracted,
+    queryClient,
+    selectedProjectId,
+  ]);
 
   // ============================================================================
   // Update Reference Name

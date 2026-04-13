@@ -30,6 +30,7 @@ import React, {
   useMemo,
   useRef
 } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { Shot } from '@/domains/generation/types';
 import { useShotSettings, UseShotSettingsReturn } from '../hooks/settings/useShotSettings';
 import { useVideoTravelSettingsHandlers, VideoTravelSettingsHandlers } from '../hooks/settings/useVideoTravelSettingsHandlers';
@@ -40,10 +41,13 @@ import {
   clampFrameCountToPolicy,
   coerceSelectedModel,
   getModelSpec,
+  normalizeVideoTravelSettings,
   resolveGenerationPolicy,
   type SelectedModel,
 } from '../settings';
 import type { LoraModel } from '@/domains/lora/types/lora';
+import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
+import { queryKeys } from '@/shared/lib/queryKeys';
 
 // =============================================================================
 // CONTEXT TYPES
@@ -82,6 +86,35 @@ export const VideoTravelSettingsContext = createContext<VideoTravelSettingsConte
 // PROVIDER COMPONENT
 // =============================================================================
 
+/**
+ * Seed the useToolSettings cache from shot data already in memory (from useListShots).
+ * Must be called before useShotSettings so the cache is populated when useQuery runs.
+ */
+function useSeedSettingsCache(
+  shotId: string | null | undefined,
+  projectId: string | null | undefined,
+  selectedShot: Shot | null,
+) {
+  const queryClient = useQueryClient();
+  const seededRef = useRef<string | null>(null);
+
+  if (shotId && shotId !== seededRef.current && selectedShot?.settings) {
+    const raw = (selectedShot.settings as Record<string, unknown>)?.[TOOL_IDS.TRAVEL_BETWEEN_IMAGES];
+    if (raw && typeof raw === 'object') {
+      const cacheKey = queryKeys.settings.tool(TOOL_IDS.TRAVEL_BETWEEN_IMAGES, projectId ?? undefined, shotId);
+      // Only seed if the cache is empty — don't overwrite a more complete cascade result
+      if (!queryClient.getQueryData(cacheKey)) {
+        queryClient.setQueryData(cacheKey, {
+          settings: normalizeVideoTravelSettings(raw as Record<string, unknown>),
+          hasShotSettings: true,
+        });
+        console.log('[ModeDebug][CacheSeed] seeded settings cache for shot %s', shotId);
+      }
+    }
+    seededRef.current = shotId;
+  }
+}
+
 interface VideoTravelSettingsProviderProps {
   projectId: string | null | undefined;
   shotId: string | null | undefined;
@@ -100,8 +133,15 @@ export const VideoTravelSettingsProvider: React.FC<VideoTravelSettingsProviderPr
   updateShotMode,
   children,
 }) => {
+  // Seed the useToolSettings React Query cache from the shot object that's already
+  // in memory (from useListShots). This eliminates the loading flash — the settings
+  // fetch resolves instantly from cache instead of re-fetching the same DB row.
+  useSeedSettingsCache(shotId, projectId, selectedShot);
+
   // Core settings hook - manages state + persistence
   const shotSettings = useShotSettings(shotId, projectId);
+
+  console.log('[ModeDebug][SettingsProvider] shotId=%s status=%s generationMode=%s', shotId, shotSettings.status, shotSettings.settings?.generationMode ?? 'NOT SET');
 
   // Create ref for handlers (they need ref to avoid recreation)
   const shotSettingsRef = useRef(shotSettings);
@@ -407,7 +447,8 @@ export function useLoraSettings() {
  * Generation mode (batch vs timeline)
  */
 export function useGenerationModeSettings() {
-  const { settings, handlers } = useVideoTravelSettings();
+  const { settings, handlers, shotId } = useVideoTravelSettings();
+  console.log('[ModeDebug][GenModeSettings] shotId=%s raw generationMode=%s resolved=%s', shotId, settings.generationMode, settings.generationMode || 'timeline');
   return useMemo(() => ({
     generationMode: settings.generationMode || 'timeline',
     videoControlMode: settings.videoControlMode || 'batch',

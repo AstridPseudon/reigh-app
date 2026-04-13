@@ -222,6 +222,11 @@ export function ShotListView({
 
   // Shot selection handler
   const handleShotSelect = useCallback((shot: Shot) => {
+    const shotSettings = (shot.settings as Record<string, unknown>) ?? {};
+    console.log('[ModeDebug][ShotSelect] clicking into shot', shot.id, shot.name, {
+      rawSettings: shot.settings,
+      generationMode: (shotSettings?.['travel-between-images'] as Record<string, unknown>)?.generationMode ?? shotSettings?.generationMode ?? 'NOT SET',
+    });
     setShowVideosViewRaw(false);
     navigateToShot(shot, { scrollToTop: false });
   }, [setShowVideosViewRaw, navigateToShot]);

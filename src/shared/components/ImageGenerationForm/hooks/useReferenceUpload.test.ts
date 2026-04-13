@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useReferenceUpload } from './useReferenceUpload';
+import { operationSuccess } from '@/shared/lib/operationResult';
 
 const mocks = vi.hoisted(() => ({
   createResourceMutateAsync: vi.fn(),
@@ -13,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   getUser: vi.fn(),
   tryUploadAndProcessReference: vi.fn(),
   resolveReferenceThumbnailUrl: vi.fn(),
+  tryCreateUploadedReferenceGeneration: vi.fn(),
   persistOptimisticReferenceSelection: vi.fn(),
 }));
 
@@ -48,6 +50,8 @@ vi.mock('./referenceUpload/referenceDomainService', async () => {
     ...actual,
     tryUploadAndProcessReference: (...args: unknown[]) => mocks.tryUploadAndProcessReference(...args),
     resolveReferenceThumbnailUrl: (...args: unknown[]) => mocks.resolveReferenceThumbnailUrl(...args),
+    tryCreateUploadedReferenceGeneration: (...args: unknown[]) =>
+      mocks.tryCreateUploadedReferenceGeneration(...args),
   };
 });
 
@@ -134,6 +138,10 @@ describe('useReferenceUpload', () => {
       ok: true,
       value: 'https://cdn.example.com/thumb-upload.jpg',
     });
+    mocks.tryCreateUploadedReferenceGeneration.mockResolvedValue(operationSuccess({
+      generationId: 'generation-1',
+      shotGenerationId: 'shot-generation-1',
+    }));
     mocks.persistOptimisticReferenceSelection.mockImplementation(async ({ applyOptimisticUpdate }) => {
       applyOptimisticUpdate();
       return { ok: true, value: undefined };
@@ -196,10 +204,18 @@ describe('useReferenceUpload', () => {
       }),
     );
     expect(mocks.getUser).toHaveBeenCalled();
+    expect(mocks.tryCreateUploadedReferenceGeneration).toHaveBeenCalledWith({
+      currentProjectId: 'project-1',
+      shotId: 'shot-1',
+      originalUploadedUrl: 'https://cdn.example.com/original-upload.jpg',
+      thumbnailUrl: 'https://cdn.example.com/thumb-upload.jpg',
+    });
     expect(mocks.createResourceMutateAsync).toHaveBeenCalledWith(
       expect.objectContaining({
         type: 'style-reference',
+        generation_id: 'generation-1',
         metadata: expect.objectContaining({
+          generationId: 'generation-1',
           styleReferenceImage: 'https://cdn.example.com/processed-upload.jpg',
           styleReferenceImageOriginal: 'https://cdn.example.com/original-upload.jpg',
           thumbnailUrl: 'https://cdn.example.com/thumb-upload.jpg',

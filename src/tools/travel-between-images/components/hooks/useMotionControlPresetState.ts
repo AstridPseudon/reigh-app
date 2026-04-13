@@ -20,14 +20,12 @@ import type {
 
 interface UseMotionControlPresetStateParams {
   generationTypeMode: GenerationTypeMode;
-  hasStructureVideo: boolean;
   featuredPresetIds: string[];
   selectedPhasePresetId?: string | null;
   onPhasePresetSelect: (presetId: string, config: PhaseConfig, presetMetadata?: PresetMetadata) => void;
   onPhasePresetRemove: () => void;
   motionMode: 'basic' | 'advanced';
   settingsLoading?: boolean;
-  phaseConfig?: PhaseConfig;
   onMotionModeChange: (mode: 'basic' | 'advanced') => void;
 }
 
@@ -75,14 +73,12 @@ function resolvePresetConfig(preset: PhasePresetSelection): PhaseConfig | null {
 
 export function useMotionControlPresetState({
   generationTypeMode,
-  hasStructureVideo,
   featuredPresetIds,
   selectedPhasePresetId,
   onPhasePresetSelect,
   onPhasePresetRemove,
   motionMode,
   settingsLoading,
-  phaseConfig,
   onMotionModeChange,
 }: UseMotionControlPresetStateParams) {
   const [isPresetModalOpen, setIsPresetModalOpen] = useState(false);
@@ -162,14 +158,11 @@ export function useMotionControlPresetState({
   }, [allKnownPresetIds, selectedPhasePresetId]);
 
   usePresetAutoSelect({
-    generationTypeMode,
-    hasStructureVideo,
     builtinDefaultPreset,
     selectedPhasePresetId,
     onPhasePresetSelect,
     settingsLoading,
     motionMode,
-    phaseConfig,
   });
 
   const openPresetModal = useCallback(() => {

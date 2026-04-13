@@ -370,7 +370,7 @@ describe('BatchModeContent', () => {
     expect(screen.getByRole('button', { name: 'Pose' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Depth' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Canny' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Uni3C' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Camera' })).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Pose' }));
     expect(handleStructureTypeChangeFromMotionControlMock).toHaveBeenCalledWith('pose');

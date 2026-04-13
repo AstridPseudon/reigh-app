@@ -4,25 +4,13 @@ import { dataURLtoFile } from './fileConversion';
 import { generateClientThumbnail, uploadImageWithThumbnail } from '@/shared/media/clientThumbnailGenerator';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { getOperationFailureLogData } from '@/shared/lib/operationResult';
+import type { HydratedReferenceImage } from '@/shared/types/referenceHydration';
 
-/**
- * Legacy reference image shape used by the recrop pipeline.
- * Different from the modern ReferenceImage in @/shared/types/referenceImage
- * which uses resourceId and optional fields.
- */
-export interface RecropReferenceInput {
-  id: string;
-  name: string;
-  styleReferenceImage: string | null;
-  styleReferenceImageOriginal: string | null;
-  thumbnailUrl?: string | null;
-  styleReferenceStrength: number;
-  subjectStrength: number;
-  subjectDescription: string;
-  inThisScene: boolean;
-  referenceMode?: 'style' | 'subject' | 'style-character' | 'scene-imprecise' | 'custom';
-  styleBoostTerms?: string;
-  createdAt: string;
+export interface RecroppedReferenceResult {
+  resourceId: string;
+  generationId?: string;
+  styleReferenceImage: string;
+  thumbnailUrl: string;
   updatedAt: string;
 }
 
@@ -30,25 +18,23 @@ export interface RecropReferenceInput {
  * Reprocesses all reference images for a project when dimensions change.
  * Uses the original images as source and regenerates cropped versions.
  * 
- * @param references - Array of reference images to reprocess
- * @param newAspectRatio - New aspect ratio string (e.g., "16:9", "1:1")
- * @param onProgress - Optional callback for progress updates (current, total)
- * @returns Promise with array of updated references
+  * @param references - Array of reference images to reprocess
+  * @param newAspectRatio - New aspect ratio string (e.g., "16:9", "1:1")
+  * @param onProgress - Optional callback for progress updates (current, total)
+ * @returns Promise with successful recrop results keyed by resourceId
  */
 export async function recropAllReferences(
-  references: RecropReferenceInput[],
+  references: HydratedReferenceImage[],
   newAspectRatio: string,
   onProgress?: (current: number, total: number) => void
-): Promise<RecropReferenceInput[]> {
-  
-  const reprocessed: RecropReferenceInput[] = [];
+): Promise<RecroppedReferenceResult[]> {
+  const reprocessed: RecroppedReferenceResult[] = [];
   
   for (let i = 0; i < references.length; i++) {
     const ref = references[i];
     
     // Skip if no original image
     if (!ref.styleReferenceImageOriginal) {
-      reprocessed.push(ref);
       onProgress?.(i + 1, references.length);
       continue;
     }
@@ -115,8 +101,9 @@ export async function recropAllReferences(
       }
       
       // Update reference with new processed URL and thumbnail (keep original)
-      const updatedRef = {
-        ...ref,
+      const updatedRef: RecroppedReferenceResult = {
+        resourceId: ref.resourceId,
+        generationId: ref.generationId,
         styleReferenceImage: newProcessedUrl,
         thumbnailUrl: newThumbnailUrl,
         updatedAt: new Date().toISOString()
@@ -128,8 +115,6 @@ export async function recropAllReferences(
       
     } catch (error) {
       normalizeAndPresentError(error, { context: 'RecropReferences', showToast: false });
-      // Keep the old reference unchanged on error
-      reprocessed.push(ref);
       // Still report progress
       onProgress?.(i + 1, references.length);
     }

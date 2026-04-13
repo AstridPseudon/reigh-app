@@ -71,18 +71,13 @@ const HeaderComponent: React.FC<HeaderProps> = ({
   };
 
   const autoAdjustNotice = autoAdjustedInfo ? (
-    <div className="absolute bottom-[calc(100%+4px)] left-0 right-0 rounded-md bg-muted px-2 py-1 text-xs text-muted-foreground">
-      <span className="leading-tight">Adjusted to match dropped image</span>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        onClick={onRevertAspectRatio}
-        className="mt-1 h-auto px-1.5 py-0 text-xs text-muted-foreground"
-      >
-        Revert
-      </Button>
-    </div>
+    <button
+      type="button"
+      onClick={onRevertAspectRatio}
+      className="text-xs text-muted-foreground hover:text-foreground underline cursor-pointer transition-colors whitespace-nowrap"
+    >
+      Revert to project dimensions
+    </button>
   ) : null;
 
   return (
@@ -172,9 +167,13 @@ const HeaderComponent: React.FC<HeaderProps> = ({
           )}
         </div>
         
-        {/* Aspect Ratio Selector on the right - fixed width container, no visualizer */}
+        {/* Aspect Ratio Selector on the right - fixed width container */}
         <div className="relative w-[100px]">
-          {autoAdjustNotice}
+          {autoAdjustNotice && (
+            <div className="absolute right-full mr-2 top-1/2 -translate-y-1/2">
+              {autoAdjustNotice}
+            </div>
+          )}
           <AspectRatioSelector
             value={selectedShot?.aspect_ratio || projectAspectRatio || '16:9'}
             onValueChange={handleAspectRatioChange}

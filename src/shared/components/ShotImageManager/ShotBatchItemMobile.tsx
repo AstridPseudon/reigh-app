@@ -30,6 +30,7 @@ export const ShotBatchItemMobile: React.FC<ShotBatchItemMobileProps> = ({
   readOnly = false,
   onMarkAllViewed,
 }) => {
+  const isUploadedReference = image.type === 'uploaded-reference';
   const fullImageUrl = image.imageUrl ?? image.location ?? image.thumbUrl ?? '';
 
   // Progressive loading setup
@@ -89,6 +90,12 @@ export const ShotBatchItemMobile: React.FC<ShotBatchItemMobileProps> = ({
         onTouchEnd={handleContainerTouchEnd}
         style={aspectRatioStyle}
       >
+        {isUploadedReference && (
+          <div className="absolute left-1/2 top-1 z-10 -translate-x-1/2 rounded-full bg-emerald-500/90 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-white pointer-events-none">
+            Reference
+          </div>
+        )}
+
         {/* Image */}
         <img
           ref={progressiveRef}

@@ -1,4 +1,6 @@
 import type { QueryClient } from '@tanstack/react-query';
+import type { GenerationRow } from '@/domains/generation/types';
+import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { fileToDataURL, dataURLtoFile } from '@/shared/lib/media/fileConversion';
 import { uploadImageToStorage } from '@/shared/lib/media/imageUploader';
 import {
@@ -8,6 +10,7 @@ import {
 import { resolveProjectResolution } from '@/shared/lib/taskCreation';
 import { processStyleReferenceForAspectRatioString } from '@/shared/lib/media/styleReferenceProcessor';
 import { extractSettingsFromCache } from '@/shared/hooks/settings/useToolSettings';
+import { insertAutoPositionedShotGeneration } from '@/shared/hooks/shots/addImageToShotHelpers';
 import { settingsQueryKeys } from '@/shared/lib/queryKeys/settings';
 import {
   getOperationFailureLogData,
@@ -15,7 +18,9 @@ import {
   operationSuccess,
   type OperationResult,
 } from '@/shared/lib/operationResult';
+import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
+import { toJson } from '@/shared/lib/supabaseTypeHelpers';
 import type {
   HydratedReferenceImage,
   ProjectImageSettings,
@@ -45,8 +50,21 @@ interface BuildStyleReferenceMetadataInput {
   processedUploadedUrl: string;
   originalUploadedUrl: string;
   thumbnailUrl: string;
+  generationId?: string;
   resourcesPublic: boolean;
   userEmail: string | null;
+}
+
+interface CreateUploadedReferenceGenerationInput {
+  currentProjectId: string | undefined;
+  shotId: string;
+  originalUploadedUrl: string;
+  thumbnailUrl: string;
+}
+
+interface CreateUploadedReferenceGenerationResult {
+  generationId: string;
+  shotGenerationId?: string;
 }
 
 interface CreateReferencePointerInput {
@@ -175,6 +193,7 @@ export function buildStyleReferenceMetadata(
     styleReferenceImage: input.processedUploadedUrl,
     styleReferenceImageOriginal: input.originalUploadedUrl,
     thumbnailUrl: input.thumbnailUrl,
+    generationId: input.generationId,
     styleReferenceStrength: 1.1,
     subjectStrength: 0.0,
     subjectDescription: '',
@@ -187,6 +206,106 @@ export function buildStyleReferenceMetadata(
       is_you: true,
       username: input.userEmail || 'user',
     },
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+export async function tryCreateUploadedReferenceGeneration(
+  input: CreateUploadedReferenceGenerationInput,
+): Promise<OperationResult<CreateUploadedReferenceGenerationResult>> {
+  if (!input.currentProjectId) {
+    return operationFailure(new Error('Project scope is required to create uploaded references'), {
+      policy: 'fail_closed',
+      errorCode: 'reference_generation_project_required',
+      message: 'Project scope is required to create uploaded references',
+      recoverable: false,
+      cause: { shotId: input.shotId },
+    });
+  }
+
+  const generationId = crypto.randomUUID();
+
+  try {
+    const { error: generationError } = await supabase()
+      .from('generations')
+      .insert({
+        id: generationId,
+        location: input.originalUploadedUrl,
+        thumbnail_url: input.thumbnailUrl,
+        type: 'uploaded-reference',
+        project_id: input.currentProjectId,
+        params: toJson({ source: 'reference-upload' }),
+      });
+
+    if (generationError) {
+      throw generationError;
+    }
+
+    // Skip shot_generations link when there's no real shot (effectiveShotId defaults to 'none')
+    const isRealShotId = input.shotId && input.shotId !== 'none';
+    if (!isRealShotId) {
+      return operationSuccess({ generationId }, { policy: 'best_effort' });
+    }
+
+    try {
+      const shotGeneration = await insertAutoPositionedShotGeneration(input.shotId, generationId);
+      const shotGenerationId = typeof shotGeneration.id === 'string' ? shotGeneration.id : undefined;
+      return operationSuccess({ generationId, shotGenerationId }, { policy: 'best_effort' });
+    } catch (error) {
+      await supabase()
+        .from('generations')
+        .delete()
+        .eq('id', generationId)
+        .eq('project_id', input.currentProjectId);
+      throw error;
+    }
+  } catch (error) {
+    return operationFailure(error, {
+      policy: 'fail_closed',
+      errorCode: 'reference_generation_create_failed',
+      message: 'Failed to create uploaded reference generation',
+      recoverable: false,
+      cause: {
+        currentProjectId: input.currentProjectId,
+        shotId: input.shotId,
+      },
+    });
+  }
+}
+
+export function buildStyleReferenceMetadataFromGeneration(
+  generation: GenerationRow,
+  referenceCount: number,
+): StyleReferenceMetadata {
+  const generationId = getGenerationId(generation) ?? undefined;
+  const location = generation.location?.trim();
+  const thumbnailUrl = generation.thumbUrl
+    || (generation as GenerationRow & { thumbnail_url?: string | null }).thumbnail_url
+    || location
+    || null;
+
+  if (!location) {
+    throw new Error('Generation is missing a source image location');
+  }
+
+  const now = new Date().toISOString();
+
+  return {
+    name: `Reference ${referenceCount + 1}`,
+    styleReferenceImage: location,
+    styleReferenceImageOriginal: location,
+    thumbnailUrl,
+    generationId,
+    styleReferenceStrength: 1.1,
+    subjectStrength: 0.0,
+    subjectDescription: '',
+    inThisScene: false,
+    inThisSceneStrength: 0,
+    referenceMode: 'style',
+    styleBoostTerms: '',
+    created_by: { is_you: true },
+    is_public: false,
     createdAt: now,
     updatedAt: now,
   };

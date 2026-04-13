@@ -60,6 +60,7 @@ interface CreateStyleReferenceMutation {
   mutateAsync: (input: {
     type: 'style-reference';
     metadata: StyleReferenceMetadata;
+    generation_id?: string | null;
   }) => Promise<Resource>;
 }
 

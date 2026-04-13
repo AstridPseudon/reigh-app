@@ -414,7 +414,11 @@ export function useShotEditorController({
     isShotLoraSettingsLoading,
     isPhone,
     isMobile,
-    generationMode: generationModeSettings.generationMode || 'batch',
+    generationMode: (() => {
+      const mode = generationModeSettings.generationMode || 'batch';
+      console.log('[ModeDebug][EditorController] final generationMode=%s (from settings: %s, fallback: batch)', mode, generationModeSettings.generationMode);
+      return mode;
+    })(),
     state,
     actions,
     onGenerationModeChange: generationModeSettings.setGenerationMode,

@@ -100,8 +100,7 @@ describe('Header', () => {
       },
     });
 
-    expect(screen.getByText('Adjusted to match dropped image')).toBeInTheDocument();
-    const revertButton = screen.getByRole('button', { name: 'Revert' });
+    const revertButton = screen.getByRole('button', { name: 'Revert to project dimensions' });
     expect(revertButton).toBeInTheDocument();
     expect(revertButton.parentElement?.className).toContain('absolute');
     expect(screen.getAllByTestId('aspect-ratio-selector')).toHaveLength(2);
@@ -118,7 +117,7 @@ describe('Header', () => {
       onRevertAspectRatio,
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Revert' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Revert to project dimensions' }));
 
     expect(onRevertAspectRatio).toHaveBeenCalledTimes(1);
   });

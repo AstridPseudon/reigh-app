@@ -54,7 +54,7 @@ export interface UseShotSettingsReturn {
  */
 export const useShotSettings = (
   shotId: string | null | undefined,
-  projectId: string | null | undefined
+  projectId: string | null | undefined,
 ): UseShotSettingsReturn => {
   const inheritedSettings = useSessionInheritedDefaults<VideoTravelSettings>({
     shotId,
@@ -97,7 +97,9 @@ export const useShotSettings = (
     saveImmediate,
     revert,
   } = autoSave;
-  
+
+  console.log('[ModeDebug][ShotSettings] shotId=%s status=%s hasShotSettings=%s generationMode=%s hasInherited=%s', shotId, status, hasShotSettings, settings?.generationMode ?? 'NOT SET', !!inheritedSettings);
+
   // Save inherited settings to DB immediately if we have them
   // CRITICAL: Only save if the shot doesn't already have settings in DB
   // to prevent overwriting existing settings with inherited defaults

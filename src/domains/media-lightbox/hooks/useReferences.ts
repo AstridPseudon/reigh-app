@@ -2,16 +2,12 @@ import { useState } from 'react';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { GenerationRow } from '@/domains/generation/types';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
-import { getOperationFailureLogData } from '@/shared/lib/operationResult';
-import { dataURLtoFile } from '@/shared/lib/media/fileConversion';
-import { uploadImageToStorage } from '@/shared/lib/media/imageUploader';
-import { uploadReferenceThumbnail } from '@/shared/lib/media/uploadReferenceThumbnail';
-import { processStyleReferenceForAspectRatioString } from '@/shared/lib/media/styleReferenceProcessor';
-import { resolveProjectResolution } from '@/shared/lib/taskCreation';
 import { useCreateResource, type StyleReferenceMetadata } from '@/features/resources/hooks/useResources';
 import { useToolSettings } from '@/shared/hooks/settings/useToolSettings';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
 import type { ReferenceImage } from '@/shared/types/referenceImage';
+import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
+import { buildStyleReferenceMetadataFromGeneration } from '@/shared/components/ImageGenerationForm/hooks/referenceUpload/referenceDomainService';
 
 /** Settings shape for project-image-settings tool */
 interface ProjectImageSettingsForReferences {
@@ -33,90 +29,11 @@ interface UseReferencesReturn {
   handleAddToReferences: () => Promise<void>;
 }
 
-function getMediaImageUrl(media: GenerationRow): string {
-  const mediaWithUrl = media as unknown as { url?: string | null };
-  const imageUrl = media.location || media.imageUrl || mediaWithUrl.url;
-  if (!imageUrl) {
-    throw new Error('No image URL available');
-  }
-  return imageUrl;
-}
-
-async function fetchImageBlob(imageUrl: string): Promise<Blob> {
-  const response = await fetch(imageUrl);
-  if (!response.ok) {
-    throw new Error(`Failed to fetch image: ${response.statusText}`);
-  }
-  return response.blob();
-}
-
-function blobToDataUrl(blob: Blob): Promise<string> {
-  const reader = new FileReader();
-  return new Promise<string>((resolve, reject) => {
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
-}
-
-async function uploadThumbnail(originalFile: File, originalUploadedUrl: string): Promise<string> {
-  try {
-    return await uploadReferenceThumbnail({ file: originalFile });
-  } catch (thumbnailError) {
-    normalizeAndPresentError(thumbnailError, { context: 'useReferences.thumbnailGeneration', showToast: false });
-    return originalUploadedUrl;
-  }
-}
-
-async function uploadProcessedReferenceImage(
-  dataURL: string,
-  selectedProjectId: string
-): Promise<string> {
-  let processedDataURL = dataURL;
-  const { aspectRatio } = await resolveProjectResolution(selectedProjectId);
-  const processed = await processStyleReferenceForAspectRatioString(dataURL, aspectRatio);
-  if (processed) {
-    processedDataURL = processed;
-  }
-
-  const processedFileResult = dataURLtoFile(processedDataURL, `reference-processed-${Date.now()}.png`);
-  if (!processedFileResult.ok) {
-    normalizeAndPresentError(processedFileResult.error, {
-      context: 'useReferences.uploadProcessedReferenceImage.dataURLtoFile',
-      showToast: false,
-      logData: getOperationFailureLogData(processedFileResult),
-    });
-    throw processedFileResult.error;
-  }
-
-  return uploadImageToStorage(processedFileResult.value);
-}
-
-function buildReferenceMetadata(input: {
-  referenceCount: number;
-  processedUploadedUrl: string;
-  originalUploadedUrl: string;
-  thumbnailUrl: string;
-}): StyleReferenceMetadata {
-  const now = new Date().toISOString();
-
-  return {
-    name: `Reference ${input.referenceCount + 1}`,
-    styleReferenceImage: input.processedUploadedUrl,
-    styleReferenceImageOriginal: input.originalUploadedUrl,
-    thumbnailUrl: input.thumbnailUrl,
-    styleReferenceStrength: 1.1,
-    subjectStrength: 0.0,
-    subjectDescription: '',
-    inThisScene: false,
-    inThisSceneStrength: 0,
-    referenceMode: 'style',
-    styleBoostTerms: '',
-    created_by: { is_you: true },
-    is_public: false,
-    createdAt: now,
-    updatedAt: now,
-  };
+function buildReferenceMetadata(
+  generation: GenerationRow,
+  referenceCount: number,
+): StyleReferenceMetadata {
+  return buildStyleReferenceMetadataFromGeneration(generation, referenceCount);
 }
 
 function resolveEffectiveShotId(
@@ -181,26 +98,20 @@ export const useReferences = ({
 
     setIsAddingToReferences(true);
     try {
-      const imageUrl = getMediaImageUrl(media);
-      const blob = await fetchImageBlob(imageUrl);
-      const originalFile = new File([blob], `reference-${Date.now()}.png`, { type: 'image/png' });
-      const originalUploadedUrl = await uploadImageToStorage(originalFile);
-      const thumbnailUrl = await uploadThumbnail(originalFile, originalUploadedUrl);
-      const dataURL = await blobToDataUrl(blob);
-      const processedUploadedUrl = await uploadProcessedReferenceImage(dataURL, selectedProjectId);
-
       const references = projectImageSettings?.references || [];
       const selectedReferenceIdByShot = projectImageSettings?.selectedReferenceIdByShot || {};
-      const metadata = buildReferenceMetadata({
-        referenceCount: references.length,
-        processedUploadedUrl,
-        originalUploadedUrl,
-        thumbnailUrl,
-      });
+      const generationId = getGenerationId(media);
+
+      if (!generationId) {
+        throw new Error('Could not resolve a generation ID for this media item');
+      }
+
+      const metadata = buildReferenceMetadata(media, references.length);
 
       const resource = await createResource.mutateAsync({
         type: 'style-reference',
         metadata,
+        generation_id: generationId,
       });
 
       const newPointer: ReferenceImage = {

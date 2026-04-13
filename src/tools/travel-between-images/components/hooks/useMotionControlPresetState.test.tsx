@@ -2,7 +2,6 @@
 
 import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { PhaseConfig } from '../../settings';
 import {
   BUILTIN_DEFAULT_I2V_ID,
   BUILTIN_DEFAULT_VACE_ID,
@@ -52,14 +51,12 @@ describe('useMotionControlPresetState', () => {
 
     const { result } = renderHook(() => useMotionControlPresetState({
       generationTypeMode: 'i2v',
-      hasStructureVideo: false,
       featuredPresetIds: ['preset-1', 'preset-invalid'],
       selectedPhasePresetId: 'preset-1',
       onPhasePresetSelect,
       onPhasePresetRemove,
       motionMode: 'basic',
       settingsLoading: false,
-      phaseConfig: { cadence: 2 } as PhaseConfig,
       onMotionModeChange,
     }));
 
@@ -96,14 +93,12 @@ describe('useMotionControlPresetState', () => {
   it('uses the VACE builtin preset id and flags unknown selections', () => {
     const { result } = renderHook(() => useMotionControlPresetState({
       generationTypeMode: 'vace',
-      hasStructureVideo: true,
       featuredPresetIds: [],
       selectedPhasePresetId: 'unknown-preset',
       onPhasePresetSelect: vi.fn(),
       onPhasePresetRemove: vi.fn(),
       motionMode: 'advanced',
       settingsLoading: false,
-      phaseConfig: undefined,
       onMotionModeChange: vi.fn(),
     }));
 

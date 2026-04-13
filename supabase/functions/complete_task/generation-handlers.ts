@@ -350,43 +350,6 @@ export async function handleVariantOnChild(ctx: HandlerContext): Promise<unknown
     childViewedAt
   );
 
-  // SINGLE-SEGMENT PROPAGATION: If this child is the only child of its parent,
-  // also create a variant on the parent so the main generation updates automatically
-  if (isSingleSegmentChild && childGen.parent_generation_id) {
-    // Check if parent already has variants - only make primary if it's the first
-    const { count: existingParentVariants } = await supabase
-      .from('generation_variants')
-      .select('id', { count: 'exact', head: true })
-      .eq('generation_id', childGen.parent_generation_id);
-
-    const isFirstParentVariant = (existingParentVariants || 0) === 0;
-    const makeParentPrimary = isFirstParentVariant || makePrimary;
-
-    logger?.info("Single-segment propagation to parent", {
-      task_id: taskId,
-      child_generation_id: childGenId,
-      parent_generation_id: childGen.parent_generation_id,
-      action: "propagate_to_parent",
-      is_first_parent_variant: isFirstParentVariant,
-      make_primary: makeParentPrimary
-    });
-
-    await createVariant(
-      supabase,
-      childGen.parent_generation_id,
-      publicUrl,
-      thumbnailUrl,
-      {
-        ...variantParams,
-        propagated_from_child: childGenId,
-        created_from: 'single_segment_propagation',
-      },
-      makeParentPrimary,
-      variantType, // Use same variant_type as child
-      null
-    );
-  }
-
   await supabase.from('tasks').update({ generation_created: true }).eq('id', taskId);
   return childGen;
 }

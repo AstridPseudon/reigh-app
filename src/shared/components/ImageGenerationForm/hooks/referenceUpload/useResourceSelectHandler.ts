@@ -79,6 +79,34 @@ function applyNewPointerSelection(input: {
   );
 }
 
+function createPointerForSelectedResource(input: {
+  resource: Resource;
+  referenceMode: ReferenceMode;
+  isLocalGenerationEnabled: boolean;
+  styleReferenceStrength: number;
+  subjectStrength: number;
+  inThisScene: boolean;
+  inThisSceneStrength: number;
+}): ReferenceImage {
+  const pointer = createReferencePointer({
+    resourceId: input.resource.id,
+    referenceMode: input.referenceMode,
+    isLocalGenerationEnabled: input.isLocalGenerationEnabled,
+    styleReferenceStrength: input.styleReferenceStrength,
+    subjectStrength: input.subjectStrength,
+    inThisScene: input.inThisScene,
+    inThisSceneStrength: input.inThisSceneStrength,
+  });
+
+  if (input.resource.generation_id) {
+    return pointer;
+  }
+
+  // Legacy/local resources without generation_id and public cross-user resources
+  // continue to hydrate from metadata URLs after selection.
+  return pointer;
+}
+
 export function useResourceSelectHandler(
   input: UseResourceSelectHandlerInput
 ): (resource: Resource) => Promise<void> {
@@ -124,8 +152,8 @@ export function useResourceSelectHandler(
         return;
       }
 
-      const newPointer = createReferencePointer({
-        resourceId: resource.id,
+      const newPointer = createPointerForSelectedResource({
+        resource,
         referenceMode,
         isLocalGenerationEnabled,
         styleReferenceStrength,

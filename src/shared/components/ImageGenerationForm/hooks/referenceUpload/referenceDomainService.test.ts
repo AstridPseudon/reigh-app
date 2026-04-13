@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { operationFailure, operationSuccess } from '@/shared/lib/operationResult';
 import {
+  buildStyleReferenceMetadataFromGeneration,
   tryPersistReferenceSelection,
   resolveReferenceThumbnailUrl,
   tryUploadAndProcessReference,
@@ -72,6 +73,30 @@ describe('referenceDomainService', () => {
     uploadMock.mockReset();
     getPublicUrlMock.mockReset();
     extractSettingsFromCacheMock.mockReset();
+  });
+
+  it('builds style-reference metadata from a generation-backed reference', () => {
+    const generation = {
+      id: 'shot-generation-1',
+      generation_id: 'generation-1',
+      location: 'https://example.com/generated.png',
+      thumbnail_url: 'https://example.com/generated-thumb.png',
+      type: 'uploaded-reference',
+    } as import('@/domains/generation/types').GenerationRow & {
+      thumbnail_url: string;
+    };
+
+    const result = buildStyleReferenceMetadataFromGeneration(generation, 2);
+
+    expect(result).toEqual(expect.objectContaining({
+      name: 'Reference 3',
+      styleReferenceImage: 'https://example.com/generated.png',
+      styleReferenceImageOriginal: 'https://example.com/generated.png',
+      thumbnailUrl: 'https://example.com/generated-thumb.png',
+      generationId: 'generation-1',
+      referenceMode: 'style',
+      styleReferenceStrength: 1.1,
+    }));
   });
 
   it('returns failure when aspect-ratio processing fails', async () => {

@@ -33,6 +33,9 @@ import {
 } from '@/shared/hooks/invalidation/generationStarCacheCoordinator';
 import type { GenerationRow } from '@/domains/generation/types';
 import { coerceGenerationRowDto, mapGenerationRowDtoToRow } from '@/domains/generation/mappers/generationRowMapper';
+import { resourceQueryKeys } from '@/shared/lib/queryKeys/resources';
+import { settingsQueryKeys } from '@/shared/lib/queryKeys/settings';
+import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
 
 // ===== Helper Functions (internal) =====
 
@@ -134,8 +137,20 @@ async function deleteVariantScoped(input: ScopedVariantInput): Promise<void> {
 }
 
 export function useDeleteGeneration() {
+  const queryClient = useQueryClient();
+
   return useMutation({
     mutationFn: deleteGenerationScoped,
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: resourceQueryKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: settingsQueryKeys.tool(
+          SETTINGS_IDS.PROJECT_IMAGE_SETTINGS,
+          variables.projectId,
+          undefined,
+        ),
+      });
+    },
     onError: (error: Error) => {
       normalizeAndPresentError(error, {
         context: 'useDeleteGeneration',

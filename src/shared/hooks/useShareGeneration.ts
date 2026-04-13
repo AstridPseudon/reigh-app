@@ -131,10 +131,16 @@ async function fetchShareCachedData(
   taskId: string | null | undefined,
   shotId?: string | null,
 ): Promise<ShareCachedDataResult> {
-  const generationResult = await supabase().from('generations')
-    .select('id, location, thumbnail_url, type, params, created_at, name')
-    .eq('id', generationId)
-    .single();
+  const generationResult = shotId
+    ? await supabase().from('shot_final_videos')
+      .select('id, location, thumbnail_url, type, params, created_at')
+      .eq('id', generationId)
+      .eq('shot_id', shotId)
+      .single()
+    : await supabase().from('generations')
+      .select('id, location, thumbnail_url, type, params, created_at')
+      .eq('id', generationId)
+      .single();
 
   if (generationResult.error || !generationResult.data) {
     throw generationResult.error ?? new Error('Failed to load generation data');

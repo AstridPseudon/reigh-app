@@ -258,6 +258,7 @@ export const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({
             onEditableNameChange={setEditableName}
             onSaveName={handleSaveName}
             onCancelEdit={() => cancelNameEdit(shot.name)}
+            generationMode={(shot.settings as Record<string, unknown>)?.generationMode as string | undefined}
           />
           <ShotControls
             isTempShot={isTempShot}

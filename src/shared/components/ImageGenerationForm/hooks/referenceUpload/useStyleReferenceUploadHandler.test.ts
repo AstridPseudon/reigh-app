@@ -30,6 +30,7 @@ const mocks = vi.hoisted(() => {
     normalizeAndPresentError: vi.fn(),
     uploadAndProcessReference: vi.fn(),
     resolveReferenceThumbnailUrl: vi.fn(),
+    createUploadedReferenceGeneration: vi.fn(),
     persistOptimisticReferenceSelection: vi.fn(),
     updateSettingsCache: vi.fn(updateSettingsCacheDouble),
   };
@@ -63,6 +64,8 @@ vi.mock('./referenceDomainService', async () => {
     ...actual,
     tryUploadAndProcessReference: (...args: unknown[]) => mocks.uploadAndProcessReference(...args),
     resolveReferenceThumbnailUrl: (...args: unknown[]) => mocks.resolveReferenceThumbnailUrl(...args),
+    tryCreateUploadedReferenceGeneration: (...args: unknown[]) =>
+      mocks.createUploadedReferenceGeneration(...args),
   };
 });
 
@@ -84,8 +87,13 @@ describe('useStyleReferenceUploadHandler', () => {
     mocks.normalizeAndPresentError.mockReset();
     mocks.uploadAndProcessReference.mockReset();
     mocks.resolveReferenceThumbnailUrl.mockReset();
+    mocks.createUploadedReferenceGeneration.mockReset();
     mocks.persistOptimisticReferenceSelection.mockReset();
     mocks.updateSettingsCache.mockClear();
+    mocks.createUploadedReferenceGeneration.mockResolvedValue(operationSuccess({
+      generationId: 'generation-1',
+      shotGenerationId: 'shot-generation-1',
+    }));
   });
 
   it('reports the original upload error with structured failure log data', async () => {
@@ -228,7 +236,22 @@ describe('useStyleReferenceUploadHandler', () => {
     expect(result.current.styleReferenceOverride).toBe(
       'https://cdn.example.com/reference-original.png',
     );
+    expect(mocks.createUploadedReferenceGeneration).toHaveBeenCalledWith({
+      currentProjectId: selectedProjectId,
+      shotId: effectiveShotId,
+      originalUploadedUrl: 'https://cdn.example.com/reference-original.png',
+      thumbnailUrl: 'https://cdn.example.com/reference-thumb.png',
+    });
     expect(createStyleReference.mutateAsync).toHaveBeenCalledTimes(1);
+    expect(createStyleReference.mutateAsync).toHaveBeenCalledWith(expect.objectContaining({
+      generation_id: 'generation-1',
+      metadata: expect.objectContaining({
+        generationId: 'generation-1',
+        styleReferenceImage: 'https://cdn.example.com/reference-processed.png',
+        styleReferenceImageOriginal: 'https://cdn.example.com/reference-original.png',
+        thumbnailUrl: 'https://cdn.example.com/reference-thumb.png',
+      }),
+    }));
     expect(mocks.persistOptimisticReferenceSelection).toHaveBeenCalledTimes(1);
     expect(mocks.normalizeAndPresentError).not.toHaveBeenCalled();
   });

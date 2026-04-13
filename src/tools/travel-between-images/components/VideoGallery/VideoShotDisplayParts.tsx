@@ -398,6 +398,7 @@ interface ShotMetadataProps {
   onEditableNameChange: (value: string) => void;
   onSaveName: () => void;
   onCancelEdit: () => void;
+  generationMode?: string;
 }
 
 export const ShotMetadata: React.FC<ShotMetadataProps> = ({
@@ -407,12 +408,20 @@ export const ShotMetadata: React.FC<ShotMetadataProps> = ({
   onEditableNameChange,
   onSaveName,
   onCancelEdit,
+  generationMode,
 }) => {
   if (!isEditingName) {
     return (
-      <h3 className="text-xl font-light group-hover:text-primary/80 transition-colors duration-300 flex-grow mr-2 truncate preserve-case">
-        {displayName}
-      </h3>
+      <div className="flex items-center gap-2 flex-grow mr-2 min-w-0">
+        <h3 className="text-xl font-light group-hover:text-primary/80 transition-colors duration-300 truncate preserve-case">
+          {displayName}
+        </h3>
+        {generationMode && (
+          <span className="text-[10px] font-medium uppercase tracking-wider text-muted-foreground/70 bg-muted/50 px-1.5 py-0.5 rounded shrink-0">
+            {generationMode === 'by-pair' ? 'pair' : generationMode}
+          </span>
+        )}
+      </div>
     );
   }
 

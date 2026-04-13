@@ -63,6 +63,7 @@ const ShotBatchItemDesktopComponent: React.FC<ShotBatchItemDesktopProps> = ({
   actions,
 }) => {
   const { image, selection, timing, duplication, loading } = item;
+  const isUploadedReference = image.type === 'uploaded-reference';
   const { isSelected, isDragDisabled = false } = selection;
   const { timelineFrame, displayTimeSeconds } = timing;
   const { duplicatingImageId, duplicateSuccessImageId } = duplication;
@@ -177,6 +178,7 @@ const ShotBatchItemDesktopComponent: React.FC<ShotBatchItemDesktopProps> = ({
 
   const finalClassName = cn(
     "group relative border rounded-lg overflow-hidden cursor-pointer bg-card hover:ring-2 hover:ring-primary/50 transition-colors",
+    isUploadedReference && "border-emerald-400/80 shadow-[0_0_0_1px_rgba(16,185,129,0.35)]",
     isSelected && "ring-4 ring-orange-500 ring-offset-2 ring-offset-background bg-orange-500/15 border-orange-500",
     isDragDisabled && "cursor-default"
   );
@@ -216,6 +218,12 @@ const ShotBatchItemDesktopComponent: React.FC<ShotBatchItemDesktopProps> = ({
         isVisible={isVariantDropTarget}
         activeRegion={activeRegion}
       />
+
+      {isUploadedReference && (
+        <div className="absolute left-1 top-1 z-10 rounded-full bg-emerald-500/90 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-[0.08em] text-white pointer-events-none">
+          Reference
+        </div>
+      )}
 
       {/* Progressive image display */}
       <img
@@ -340,6 +348,7 @@ export const ShotBatchItemDesktop = React.memo(
       previousItem.duplication.duplicateSuccessImageId === nextItem.duplication.duplicateSuccessImageId &&
       previousItem.loading.shouldLoad === nextItem.loading.shouldLoad &&
       previousItem.loading.projectAspectRatio === nextItem.loading.projectAspectRatio &&
+      previousItem.image.type === nextItem.image.type &&
       previousItem.image.thumbUrl === nextItem.image.thumbUrl &&
       previousItem.image.imageUrl === nextItem.image.imageUrl
     );

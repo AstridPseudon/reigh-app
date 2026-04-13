@@ -3,6 +3,7 @@ import { renderHook, act } from '@testing-library/react';
 
 const supabaseMocks = vi.hoisted(() => {
   const tableConfigs = new Map<string, {
+    query?: unknown;
     single?: unknown;
     maybeSingle?: unknown;
   }>();
@@ -10,11 +11,15 @@ const supabaseMocks = vi.hoisted(() => {
   return {
     getSession: vi.fn(),
     from: vi.fn((table: string) => {
-      const chain: Record<string, ReturnType<typeof vi.fn>> = {};
+      const chain: Record<string, unknown> = {};
       chain.select = vi.fn().mockReturnValue(chain);
       chain.eq = vi.fn().mockReturnValue(chain);
       chain.insert = vi.fn().mockReturnValue(chain);
       chain.order = vi.fn().mockReturnValue(chain);
+      chain.then = (onFulfilled?: (value: unknown) => unknown, onRejected?: (reason: unknown) => unknown) =>
+        Promise.resolve(
+          tableConfigs.get(table)?.query ?? { data: null, error: null },
+        ).then(onFulfilled, onRejected);
       chain.single = vi.fn().mockImplementation(async () => (
         tableConfigs.get(table)?.single ?? { data: null, error: null }
       ));
@@ -24,7 +29,7 @@ const supabaseMocks = vi.hoisted(() => {
       return chain;
     }),
     normalizeAndPresentError: vi.fn(),
-    setTableConfig: (table: string, config: { single?: unknown; maybeSingle?: unknown }) => {
+    setTableConfig: (table: string, config: { query?: unknown; single?: unknown; maybeSingle?: unknown }) => {
       tableConfigs.set(table, config);
     },
     resetTableConfigs: () => {
@@ -214,5 +219,81 @@ describe('useShareGeneration', () => {
     });
     expect(result.current.isCreatingShare).toBe(false);
     expect(result.current.shareSlug).toBeNull();
+  });
+
+  it('loads shot final video data from shot_final_videos when shotId is provided', async () => {
+    supabaseMocks.setTableConfig('shared_generations', {
+      maybeSingle: { data: null, error: null },
+      single: { data: { share_slug: 'new-slug' }, error: null },
+    });
+    supabaseMocks.setTableConfig('shot_final_videos', {
+      single: {
+        data: {
+          id: 'gen-1',
+          location: 'https://cdn.example.com/final.mp4',
+          thumbnail_url: 'https://cdn.example.com/final.jpg',
+          type: 'video',
+          params: { tool_type: 'travel-between-images' },
+          created_at: '2026-04-14T10:00:00Z',
+        },
+        error: null,
+      },
+    });
+    supabaseMocks.setTableConfig('tasks', {
+      single: {
+        data: {
+          id: 'task-1',
+          task_type: 'travel_between_images',
+          params: { prompt: 'Prompt' },
+          status: 'Completed',
+          created_at: '2026-04-14T10:00:00Z',
+        },
+        error: null,
+      },
+    });
+    supabaseMocks.setTableConfig('shots', {
+      single: {
+        data: {
+          id: 'shot-1',
+          name: 'Shot 1',
+          settings: {
+            travel_between_images: {
+              generationMode: 'batch',
+            },
+          },
+        },
+        error: null,
+      },
+    });
+    supabaseMocks.setTableConfig('shot_generations', {
+      query: { data: [], error: null },
+    });
+    supabaseMocks.setTableConfig('users', {
+      maybeSingle: {
+        data: {
+          username: 'tester',
+          name: 'Test User',
+          avatar_url: null,
+        },
+        error: null,
+      },
+    });
+
+    const { result } = renderHook(() =>
+      useShareGeneration('gen-1', 'task-1', 'shot-1')
+    );
+
+    const mockEvent = {
+      stopPropagation: vi.fn(),
+      preventDefault: vi.fn(),
+    } as unknown as React.MouseEvent;
+
+    await act(async () => {
+      await result.current.handleShare(mockEvent);
+    });
+
+    expect(supabaseMocks.from).toHaveBeenCalledWith('shot_final_videos');
+    expect(supabaseMocks.from).not.toHaveBeenCalledWith('generations');
+    expect(result.current.shareSlug).toBe('new-slug');
   });
 });

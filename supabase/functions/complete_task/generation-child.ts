@@ -61,15 +61,6 @@ export async function handleChildGeneration(ctx: HandlerContext): Promise<unknow
     taskData: normalized.taskData,
   };
 
-  if (isSingleItem) {
-    logger?.info("Single-item detected", {
-      task_id: taskId,
-      parent_generation_id: parentGenerationId,
-    });
-
-    await createSingleItemVariant(normalizedCtx, parentGenerationId);
-  }
-
   const pairShotGenId = normalized.pairShotGenerationId;
 
   if (finalChildOrder !== null && !isNaN(finalChildOrder)) {

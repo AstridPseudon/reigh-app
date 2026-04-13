@@ -10,6 +10,7 @@ import { ShotImagesEditor } from '@/tools/travel-between-images/components/ShotI
 import { FinalVideoSection } from '@/tools/travel-between-images/components/FinalVideoSection';
 import { ImageManagerSkeleton } from '@/tools/travel-between-images/components/ShotEditor/ui/Skeleton';
 import { DEFAULT_PHASE_CONFIG, coerceSelectedModel, type VideoTravelSettings } from '@/tools/travel-between-images/settings';
+import { useVideoTravelSettings } from '@/tools/travel-between-images/providers';
 import { useModalImageHandlers } from './hooks/useModalImageHandlers';
 import { useSegmentOutputsForShot } from '@/shared/hooks/segments/useSegmentOutputsForShot';
 import type { GenerationRow } from '@/domains/generation/types';
@@ -145,6 +146,13 @@ export function VideoGenerationModalFormContent({
   onAddTriggerWord,
 }: VideoGenerationModalFormContentProps): React.ReactElement {
   const selectedModel = coerceSelectedModel(settings.selectedModel);
+  const { handlers } = useVideoTravelSettings();
+  const {
+    handleGenerationTypeModeChange,
+    handlePhaseConfigChange,
+    handlePhasePresetRemove,
+    handlePhasePresetSelect,
+  } = handlers;
 
   return (
     <div className="space-y-6 pb-4">
@@ -187,13 +195,10 @@ export function VideoGenerationModalFormContent({
             advancedMode={(settings.motionMode || 'basic') === 'advanced'}
             generationTypeMode={settings.generationTypeMode || 'i2v'}
             phaseConfig={settings.phaseConfig || DEFAULT_PHASE_CONFIG}
-            onPhaseConfigChange={(v) => updateField('phaseConfig', v)}
+            onPhaseConfigChange={handlePhaseConfigChange}
             selectedPhasePresetId={validPresetId}
-            onPhasePresetSelect={(id, config) => {
-              updateField('selectedPhasePresetId', id);
-              updateField('phaseConfig', config);
-            }}
-            onPhasePresetRemove={() => updateField('selectedPhasePresetId', undefined)}
+            onPhasePresetSelect={handlePhasePresetSelect}
+            onPhasePresetRemove={handlePhasePresetRemove}
             videoControlMode="batch"
             textBeforePrompts={settings.textBeforePrompts || ''}
             onTextBeforePromptsChange={(v) => updateField('textBeforePrompts', v)}
@@ -213,7 +218,7 @@ export function VideoGenerationModalFormContent({
               },
               selectedModel,
               generationTypeMode: settings.generationTypeMode || 'i2v',
-              onGenerationTypeModeChange: (v) => updateField('generationTypeMode', v),
+              onGenerationTypeModeChange: handleGenerationTypeModeChange,
               hasStructureVideo,
               guidanceKind,
             }}
@@ -227,16 +232,13 @@ export function VideoGenerationModalFormContent({
             }}
             presets={{
               selectedPhasePresetId: validPresetId,
-              onPhasePresetSelect: (id, config) => {
-                updateField('selectedPhasePresetId', id);
-                updateField('phaseConfig', config);
-              },
-              onPhasePresetRemove: () => updateField('selectedPhasePresetId', undefined),
+              onPhasePresetSelect: handlePhasePresetSelect,
+              onPhasePresetRemove: handlePhasePresetRemove,
               currentSettings: {},
             }}
             advanced={{
               phaseConfig: settings.phaseConfig || DEFAULT_PHASE_CONFIG,
-              onPhaseConfigChange: (v) => updateField('phaseConfig', v),
+              onPhaseConfigChange: handlePhaseConfigChange,
               randomSeed,
               onRandomSeedChange,
             }}

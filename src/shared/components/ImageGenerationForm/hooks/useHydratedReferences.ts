@@ -58,6 +58,7 @@ export const useHydratedReferences = (
     // ... existing hydration logic ...
 
     let hasLegacyReferences = false;
+    const resourceById = new Map(allResources.map(resource => [resource.id, resource]));
 
     const hydrated: HydratedReferenceImage[] = referencePointers
       .map(pointer => {
@@ -70,7 +71,7 @@ export const useHydratedReferences = (
         }
 
         // Find the resource for this pointer in ALL available resources
-        const resource = allResources.find(r => r.id === pointer.resourceId);
+        const resource = resourceById.get(pointer.resourceId);
 
         if (!resource) {
           // Only warn if we're not loading anymore
@@ -78,6 +79,13 @@ export const useHydratedReferences = (
         }
 
         const metadata = resource.metadata as StyleReferenceMetadata;
+        const generation = resource.generation;
+        const resolvedImageUrl = generation?.location || metadata.styleReferenceImage;
+        const resolvedOriginalImageUrl =
+          generation?.location
+          || metadata.styleReferenceImageOriginal
+          || metadata.styleReferenceImage;
+        const resolvedThumbnailUrl = generation?.thumbnail_url || metadata.thumbnailUrl || null;
 
         // Check ownership - compare resource user_id with current user
         const resourceOwnerId = resource.userId || resource.user_id;
@@ -88,16 +96,17 @@ export const useHydratedReferences = (
         return {
           id: pointer.id,
           resourceId: resource.id,
+          generationId: resource.generation_id ?? metadata.generationId,
           // Immutable data from resource
           name: metadata.name,
-          styleReferenceImage: metadata.styleReferenceImage,
-          styleReferenceImageOriginal: metadata.styleReferenceImageOriginal,
-          thumbnailUrl: metadata.thumbnailUrl || null,
+          styleReferenceImage: resolvedImageUrl,
+          styleReferenceImageOriginal: resolvedOriginalImageUrl,
+          thumbnailUrl: resolvedThumbnailUrl,
           // Use pointer.createdAt (when added to project) for sorting, fall back to resource.createdAt
-          createdAt: pointer.createdAt || resource.createdAt,
+          createdAt: pointer.createdAt || resource.createdAt || resource.created_at || metadata.createdAt,
           updatedAt: metadata.updatedAt,
           // Visibility and ownership settings
-          isPublic: metadata.is_public ?? false,
+          isPublic: metadata.is_public ?? resource.isPublic ?? resource.is_public ?? false,
           isOwner: isOwner,
           // Project-specific usage settings from pointer (with resource defaults as fallback)
           referenceMode: pointer.referenceMode ?? metadata.referenceMode ?? 'style',

@@ -38,4 +38,27 @@ describe('buildReferenceParams', () => {
       reference_mode: 'custom',
     });
   });
+
+  it('keeps the by-reference payload shape when the image URL is temporarily unavailable', () => {
+    expect(
+      buildReferenceParams('by-reference', {
+        styleReferenceImageGeneration: null,
+        styleReferenceStrength: 0.9,
+        subjectStrength: 0.2,
+        effectiveSubjectDescription: 'subject',
+        inThisScene: false,
+        inThisSceneStrength: 0.5,
+        referenceMode: 'style',
+      })
+    ).toEqual({
+      style_reference_image: undefined,
+      subject_reference_image: undefined,
+      style_reference_strength: 0.9,
+      subject_strength: 0.2,
+      subject_description: 'subject',
+      in_this_scene: false,
+      in_this_scene_strength: 0.5,
+      reference_mode: 'style',
+    });
+  });
 });
