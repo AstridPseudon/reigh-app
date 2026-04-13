@@ -302,6 +302,24 @@ export function getShotDropData(e: React.DragEvent): ShotDropData | null {
 }
 
 /**
+ * Coordination flag for variant drops.
+ * When a child image handles a drop as a variant, it marks the event so that
+ * the parent drop handler (useUnifiedDrop / BatchDropZone) can skip processing
+ * the action (creating a standalone image) while still resetting its own visual
+ * state. This avoids stopPropagation which would prevent the parent from
+ * cleaning up stale drag indicators.
+ */
+const VARIANT_HANDLED_KEY = '__reigh_variant_drop_handled__';
+
+export function markDropHandledByVariant(e: React.DragEvent): void {
+  (e.nativeEvent as unknown as Record<string, boolean>)[VARIANT_HANDLED_KEY] = true;
+}
+
+export function wasDropHandledByVariant(e: React.DragEvent): boolean {
+  return (e.nativeEvent as unknown as Record<string, boolean>)[VARIANT_HANDLED_KEY] === true;
+}
+
+/**
  * Check if the drag event is a valid drop target (generation or file)
  */
 export function isValidDropTarget(e: React.DragEvent): boolean {

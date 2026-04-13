@@ -87,6 +87,10 @@ interface UseSegmentSettingsFormOptions extends UseSegmentSettingsOptions {
   onRemoveSegmentStructureVideo?: () => void;
 
   // Navigation to constituent images
+  /** Generation ID for the start image (for variant picking) */
+  startImageGenerationId?: string;
+  /** Generation ID for the end image (for variant picking) */
+  endImageGenerationId?: string;
   /** Shot generation ID for the start image (for navigation) */
   startImageShotGenerationId?: string;
   /** Shot generation ID for the end image (for navigation) */
@@ -242,6 +246,8 @@ function useBuiltSegmentSettingsFormProps(input: SegmentSettingsFormPropsInput) 
     onAddSegmentStructureVideo,
     onUpdateSegmentStructureVideo,
     onRemoveSegmentStructureVideo,
+    startImageGenerationId,
+    endImageGenerationId,
     startImageShotGenerationId,
     endImageShotGenerationId,
     onNavigateToImage,
@@ -279,6 +285,8 @@ function useBuiltSegmentSettingsFormProps(input: SegmentSettingsFormPropsInput) 
     onAddSegmentStructureVideo,
     onUpdateSegmentStructureVideo,
     onRemoveSegmentStructureVideo,
+    startImageGenerationId,
+    endImageGenerationId,
     startImageShotGenerationId,
     endImageShotGenerationId,
     onNavigateToImage,
@@ -314,6 +322,8 @@ function useBuiltSegmentSettingsFormProps(input: SegmentSettingsFormPropsInput) 
     onAddSegmentStructureVideo,
     onUpdateSegmentStructureVideo,
     onRemoveSegmentStructureVideo,
+    startImageGenerationId,
+    endImageGenerationId,
     startImageShotGenerationId,
     endImageShotGenerationId,
     onNavigateToImage,

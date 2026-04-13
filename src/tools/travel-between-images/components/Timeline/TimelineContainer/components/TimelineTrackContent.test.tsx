@@ -211,6 +211,64 @@ describe('TimelineTrackContent', () => {
     });
   });
 
+  it('suppresses parent indicators while a variant drop target is active and restores them after leave', () => {
+    const data = buildData();
+    data.isFileOver = true;
+    data.dropTargetFrame = 48;
+
+    render(<TimelineTrackContent data={data} />);
+
+    expect(captures.trackProps).toMatchObject({
+      isFileOver: true,
+      suppressFileOverHighlight: false,
+    });
+    expect(captures.dragLayerProps).toMatchObject({
+      isFileOver: true,
+      dropTargetFrame: 48,
+      suppressIndicator: false,
+    });
+    expect(captures.pairRegionsProps).toMatchObject({
+      isFileOver: true,
+      dropTargetFrame: 48,
+    });
+
+    const itemsLayerProps = captures.itemsLayerProps as {
+      actions: { onVariantDropTargetChange?: (targetId: string | null) => void };
+    };
+
+    act(() => {
+      itemsLayerProps.actions.onVariantDropTargetChange?.('img-1');
+    });
+
+    expect(captures.trackProps).toMatchObject({
+      isFileOver: false,
+      suppressFileOverHighlight: true,
+    });
+    expect(captures.dragLayerProps).toMatchObject({
+      isFileOver: false,
+      dropTargetFrame: null,
+      suppressIndicator: true,
+    });
+    expect(captures.pairRegionsProps).toMatchObject({
+      isFileOver: false,
+      dropTargetFrame: null,
+    });
+
+    act(() => {
+      itemsLayerProps.actions.onVariantDropTargetChange?.(null);
+    });
+
+    expect(captures.trackProps).toMatchObject({
+      isFileOver: true,
+      suppressFileOverHighlight: false,
+    });
+    expect(captures.dragLayerProps).toMatchObject({
+      isFileOver: true,
+      dropTargetFrame: 48,
+      suppressIndicator: false,
+    });
+  });
+
   it('either clears selection or tap-moves depending on the current interaction mode', () => {
     const data = buildData();
     render(<TimelineTrackContent data={data} />);

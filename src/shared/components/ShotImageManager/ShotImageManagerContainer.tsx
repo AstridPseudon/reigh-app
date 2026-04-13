@@ -416,6 +416,7 @@ export function ShotImageManagerContent({
     <>
       <ShotImageManagerDesktop
         {...props}
+        onVariantDrop={props.onVariantDrop}
         selection={state.selectionOrder.selection}
         dragAndDrop={state.selectionOrder.dragAndDrop}
         lightbox={state.navigation.lightbox}

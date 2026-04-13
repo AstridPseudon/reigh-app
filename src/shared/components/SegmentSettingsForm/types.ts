@@ -169,6 +169,8 @@ interface SegmentSettingsFormTimelineProps {
     updates: Partial<StructureVideoConfigWithMetadata>
   ) => void;
   onRemoveSegmentStructureVideo?: () => void;
+  startImageGenerationId?: string;
+  endImageGenerationId?: string;
   startImageShotGenerationId?: string;
   endImageShotGenerationId?: string;
   onNavigateToImage?: (shotGenerationId: string) => void;

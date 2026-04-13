@@ -18,6 +18,7 @@ interface DragLayerProps {
   isInternalDropProcessing: boolean;
   projectAspectRatio?: string;
   imagesLength: number;
+  suppressIndicator?: boolean;
 }
 
 export const DragLayer: React.FC<DragLayerProps> = ({
@@ -35,6 +36,7 @@ export const DragLayer: React.FC<DragLayerProps> = ({
   isInternalDropProcessing,
   projectAspectRatio,
   imagesLength,
+  suppressIndicator = false,
 }) => {
   return (
     <>
@@ -45,6 +47,7 @@ export const DragLayer: React.FC<DragLayerProps> = ({
         fullRange={fullRange}
         containerWidth={containerWidth}
         dragType={dragType}
+        suppressIndicator={suppressIndicator}
       />
 
       <PendingFrameMarker

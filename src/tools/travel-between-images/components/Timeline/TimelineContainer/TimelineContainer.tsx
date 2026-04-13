@@ -39,6 +39,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
   onClearEnhancedPrompt,
   onImageDelete,
   onImageDuplicate,
+  onVariantDrop,
   readOnly = false,
   duplicatingImageId,
   duplicateSuccessImageId,
@@ -97,7 +98,12 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
       .filter(([id]) => id !== TRAILING_ENDPOINT_KEY)
       .sort((a, b) => a[1] - b[1]);
     const lastImageShotGenId = sortedEntries[sortedEntries.length - 1]?.[0] || null;
-    return findTrailingVideoInfo(videoOutputs, lastImageShotGenId);
+    return findTrailingVideoInfo(videoOutputs as Array<{
+      type?: string | null;
+      location?: string | null;
+      pair_shot_generation_id?: string | null;
+      params?: Record<string, unknown> | null;
+    }>, lastImageShotGenId);
   }, [videoOutputs, framePositions, images.length]);
 
   const [callbackTrailingVideoUrl, setCallbackTrailingVideoUrl] = useState<string | null>(null);
@@ -233,7 +239,12 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
     }
 
     if (videoOutputs) {
-      return findTrailingVideoInfo(videoOutputs, liveLastImageShotGenId).hasTrailing;
+      return findTrailingVideoInfo(videoOutputs as Array<{
+        type?: string | null;
+        location?: string | null;
+        pair_shot_generation_id?: string | null;
+        params?: Record<string, unknown> | null;
+      }>, liveLastImageShotGenId).hasTrailing;
     }
 
     return false;
@@ -293,7 +304,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
         <TimelineControls
           timeline={{
             shotId,
-            projectId,
+            projectId: projectId ?? null,
             readOnly,
             hasNoImages,
             zoomLevel,
@@ -419,6 +430,7 @@ const TimelineContainer: React.FC<TimelineContainerProps> = ({
             prefetchTaskData,
             onImageDelete,
             handleDuplicateInterceptor,
+            onVariantDrop,
             handleInpaintClick,
             duplicatingImageId,
             duplicateSuccessImageId,

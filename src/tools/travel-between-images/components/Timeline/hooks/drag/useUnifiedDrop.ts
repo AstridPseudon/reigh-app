@@ -2,10 +2,11 @@ import { useState, useCallback } from "react";
 import { normalizeAndPresentError } from "@/shared/lib/errorHandling/runtimeError";
 import { pixelToFrame } from "../../utils/timeline-utils";
 import { TIMELINE_PADDING_OFFSET } from "../../constants";
-import { 
-  getDragType as sharedGetDragType, 
-  getGenerationDropData, 
-  type DragType, 
+import {
+  getDragType as sharedGetDragType,
+  getGenerationDropData,
+  wasDropHandledByVariant,
+  type DragType,
   type GenerationDropData
 } from "@/shared/lib/dnd/dragDrop";
 import { filterValidTimelineImageFiles } from "./imageDropValidation";
@@ -115,10 +116,18 @@ export const useUnifiedDrop = ({
       targetFrame = Math.max(0, pixelToFrame(relativeX, effectiveWidth, fullMin, fullRange));
     }
     
-    // Reset state
+    // Reset visual state — always, even if a child variant handler already
+    // processed the drop. This is the whole point: the event bubbles up so we
+    // can clean up, but we skip re-processing the action.
     setIsFileOver(false);
     setIsGenerationOver(false);
     setDropTargetFrame(null);
+
+    // A child variant drop target already handled this drop — don't also
+    // create a standalone image.
+    if (wasDropHandledByVariant(e)) {
+      return;
+    }
 
     // Handle file drops (from file system)
     if (dragType === 'file' && onFileDrop) {

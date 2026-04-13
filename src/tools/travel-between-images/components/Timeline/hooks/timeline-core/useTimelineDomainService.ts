@@ -21,8 +21,8 @@ interface UseTimelineDomainServiceResult {
   shotGenerations: GenerationRow[];
   images: GenerationRow[];
   readOnlyGenerations: GenerationRow[] | undefined;
-  displayPositions: Map<string, number>;
-  setFramePositions: (positions: Map<string, number>) => Promise<void>;
+  positions: Map<string, number>;
+  updatePositions: (positions: Map<string, number>) => Promise<void>;
   actualPairPrompts: Record<number, { prompt: string; negativePrompt: string }>;
   loadPositions: (opts?: { silent?: boolean; reason?: string }) => void | Promise<void>;
 }

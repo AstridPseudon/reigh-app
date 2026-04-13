@@ -3,13 +3,16 @@ import { ImagePlus, FileUp } from "lucide-react";
 import { TIMELINE_PADDING_OFFSET } from "./constants";
 import type { DragType } from "@/shared/lib/dnd/dragDrop";
 
+type DropIndicatorDragType = DragType | 'external-file' | 'gallery-item' | 'internal-reorder' | null;
+
 interface DropIndicatorProps {
   isVisible: boolean;
   dropTargetFrame: number | null;
   fullMin: number;
   fullRange: number;
   containerWidth: number;
-  dragType?: DragType;
+  dragType?: DropIndicatorDragType;
+  suppressIndicator?: boolean;
 }
 
 const DropIndicator: React.FC<DropIndicatorProps> = ({
@@ -19,8 +22,9 @@ const DropIndicator: React.FC<DropIndicatorProps> = ({
   fullRange,
   containerWidth,
   dragType = 'none',
+  suppressIndicator = false,
 }) => {
-  if (!isVisible || dropTargetFrame === null) {
+  if (!isVisible || dropTargetFrame === null || suppressIndicator) {
     return null;
   }
 

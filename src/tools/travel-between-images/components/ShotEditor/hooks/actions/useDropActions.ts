@@ -21,6 +21,10 @@ import { generationQueryKeys } from '@/shared/lib/queryKeys/generations';
 import { useDemoteOrphanedVariants } from '../../../../hooks/workflow/useDemoteOrphanedVariants';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
 import { findClosestAspectRatio } from '@/shared/lib/media/aspectRatios';
+import { VARIANT_TYPE } from '@/shared/constants/variantTypes';
+import { enqueueVariantInvalidation } from '@/shared/hooks/invalidation/useGenerationInvalidation';
+import { uploadImageForVariant } from '@/shared/hooks/shots/externalImageDrop';
+import type { VariantDropParams } from '@/shared/hooks/dnd/useImageVariantDrop';
 import type { ShotEditorActions } from '../../state/useShotEditorState';
 
 interface UseDropActionsProps {
@@ -570,10 +574,88 @@ export const useDropActions = ({
     }
   }, []);
 
+  const handleVariantDrop = useCallback(async (params: VariantDropParams) => {
+    const currentShot = selectedShotRef.current;
+    const currentProjectId = projectIdRef.current;
+
+    if (!currentShot?.id || !currentProjectId) {
+      toast.error("Cannot add variant: No shot or project selected.");
+      return;
+    }
+
+    try {
+      if (params.sourceGenerationId) {
+        if (!params.imageUrl) {
+          toast.error("Cannot add variant: Missing source image.");
+          return;
+        }
+
+        const { error } = await supabase().from('generation_variants').insert({
+          generation_id: params.targetGenerationId,
+          project_id: currentProjectId,
+          location: params.imageUrl,
+          thumbnail_url: params.thumbUrl || params.imageUrl,
+          is_primary: params.mode === 'main',
+          variant_type: VARIANT_TYPE.DROPPED,
+          params: {
+            source: 'generation-drop',
+            source_generation_id: params.sourceGenerationId,
+            source_variant_id: params.sourceVariantId || null,
+          },
+        });
+
+        if (error) {
+          throw error;
+        }
+      } else if (params.files?.length) {
+        const [file] = params.files;
+        if (!file) {
+          return;
+        }
+
+        const { imageUrl, thumbnailUrl } = await uploadImageForVariant(file, currentProjectId);
+        const { error } = await supabase().from('generation_variants').insert({
+          generation_id: params.targetGenerationId,
+          project_id: currentProjectId,
+          location: imageUrl,
+          thumbnail_url: thumbnailUrl || imageUrl,
+          is_primary: params.mode === 'main',
+          variant_type: VARIANT_TYPE.DROPPED,
+          params: {
+            source: 'file-drop',
+            original_filename: file.name,
+          },
+        });
+
+        if (error) {
+          throw error;
+        }
+      } else {
+        return;
+      }
+
+      await enqueueVariantInvalidation(queryClientRef.current, {
+        generationId: params.targetGenerationId,
+        shotId: currentShot.id,
+        reason: 'variant-drop',
+      });
+
+      if (params.mode === 'main') {
+        await queryClientRef.current.invalidateQueries({
+          queryKey: generationQueryKeys.byShot(currentShot.id),
+        });
+      }
+    } catch (error) {
+      normalizeAndPresentError(error, { context: 'VariantDrop', toastTitle: 'Failed to add variant' });
+      throw error;
+    }
+  }, []);
+
   return {
     handleTimelineImageDrop,
     handleTimelineGenerationDrop,
     handleBatchImageDrop,
     handleBatchGenerationDrop,
+    handleVariantDrop,
   };
 };

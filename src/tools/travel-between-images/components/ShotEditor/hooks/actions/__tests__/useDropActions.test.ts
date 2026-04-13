@@ -12,8 +12,10 @@ const {
   addImageToShotMutateAsyncMock,
   cropImagesToShotAspectRatioMock,
   demoteOrphanedVariantsMock,
+  enqueueVariantInvalidationMock,
   fetchNextAvailableFrameForShotMock,
   fromMock,
+  generationVariantsInsertMock,
   handleExternalImageDropMutateAsyncMock,
   normalizeAndPresentErrorMock,
   persistTimelinePositionsMock,
@@ -24,6 +26,7 @@ const {
   supabaseClientMock,
   toastErrorMock,
   updateShotAspectRatioMock,
+  uploadImageForVariantMock,
   useAddImageToShotMock,
   useHandleExternalImageDropMock,
   useProjectMock,
@@ -32,8 +35,10 @@ const {
   addImageToShotMutateAsyncMock: vi.fn(),
   cropImagesToShotAspectRatioMock: vi.fn(),
   demoteOrphanedVariantsMock: vi.fn(),
+  enqueueVariantInvalidationMock: vi.fn(),
   fetchNextAvailableFrameForShotMock: vi.fn(),
   fromMock: vi.fn(),
+  generationVariantsInsertMock: vi.fn(),
   handleExternalImageDropMutateAsyncMock: vi.fn(),
   normalizeAndPresentErrorMock: vi.fn(),
   persistTimelinePositionsMock: vi.fn(),
@@ -44,6 +49,7 @@ const {
   supabaseClientMock: vi.fn(),
   toastErrorMock: vi.fn(),
   updateShotAspectRatioMock: vi.fn(),
+  uploadImageForVariantMock: vi.fn(),
   useAddImageToShotMock: vi.fn(),
   useHandleExternalImageDropMock: vi.fn(),
   useProjectMock: vi.fn(),
@@ -58,6 +64,14 @@ vi.mock('@/shared/components/ui/runtime/sonner', () => ({
 
 vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
   normalizeAndPresentError: normalizeAndPresentErrorMock,
+}));
+
+vi.mock('@/shared/hooks/invalidation/useGenerationInvalidation', () => ({
+  enqueueVariantInvalidation: enqueueVariantInvalidationMock,
+}));
+
+vi.mock('@/shared/hooks/shots/externalImageDrop', () => ({
+  uploadImageForVariant: uploadImageForVariantMock,
 }));
 
 vi.mock('@/shared/contexts/ProjectContext', () => ({
@@ -258,10 +272,16 @@ describe('useDropActions', () => {
       data: [{ id: 'sg-1', timeline_frame: 12 }],
       error: null,
     });
+    generationVariantsInsertMock.mockResolvedValue({ error: null });
     shotGenerationsInMock.mockReturnValue({ limit: shotGenerationsLimitMock });
     selectEqMock.mockReturnValue({ in: shotGenerationsInMock });
     selectMock.mockReturnValue({ eq: selectEqMock });
-    fromMock.mockReturnValue({ select: selectMock });
+    fromMock.mockImplementation((table: string) => {
+      if (table === 'generation_variants') {
+        return { insert: generationVariantsInsertMock };
+      }
+      return { select: selectMock };
+    });
     supabaseClientMock.mockReturnValue({ from: fromMock });
 
     useProjectMock.mockReturnValue({
@@ -277,6 +297,10 @@ describe('useDropActions', () => {
     updateShotAspectRatioMock.mockResolvedValue(true);
     fetchNextAvailableFrameForShotMock.mockResolvedValue(12);
     cropImagesToShotAspectRatioMock.mockImplementation(async (files: File[]) => files);
+    uploadImageForVariantMock.mockResolvedValue({
+      imageUrl: 'https://example.com/variant.png',
+      thumbnailUrl: 'https://example.com/variant-thumb.png',
+    });
     persistTimelinePositionsMock.mockResolvedValue(undefined);
     handleExternalImageDropMutateAsyncMock.mockResolvedValue({
       generationIds: ['generation-1'],
@@ -406,5 +430,85 @@ describe('useDropActions', () => {
       expect.any(Array),
       { cropToProjectSize: true }
     );
+  });
+
+  it('creates a dropped variant from a generation drop and invalidates the main-image cache', async () => {
+    const queryClient = createQueryClient();
+    const invalidateQueriesSpy = vi.spyOn(queryClient, 'invalidateQueries');
+    const { result } = renderUseDropActions({ queryClient });
+
+    await act(async () => {
+      await result.current.handleVariantDrop({
+        sourceGenerationId: 'generation-source',
+        sourceVariantId: 'variant-source',
+        imageUrl: 'https://example.com/source.png',
+        thumbUrl: 'https://example.com/source-thumb.png',
+        targetGenerationId: 'generation-target',
+        mode: 'main',
+      });
+    });
+
+    expect(generationVariantsInsertMock).toHaveBeenCalledWith({
+      generation_id: 'generation-target',
+      project_id: 'project-1',
+      location: 'https://example.com/source.png',
+      thumbnail_url: 'https://example.com/source-thumb.png',
+      is_primary: true,
+      variant_type: 'dropped',
+      params: {
+        source: 'generation-drop',
+        source_generation_id: 'generation-source',
+        source_variant_id: 'variant-source',
+      },
+    });
+    expect(enqueueVariantInvalidationMock).toHaveBeenCalledWith(queryClient, {
+      generationId: 'generation-target',
+      shotId: 'shot-1',
+      reason: 'variant-drop',
+    });
+    expect(invalidateQueriesSpy).toHaveBeenCalledWith({
+      queryKey: generationQueryKeys.byShot('shot-1'),
+    });
+    expect(uploadImageForVariantMock).not.toHaveBeenCalled();
+    expect(handleExternalImageDropMutateAsyncMock).not.toHaveBeenCalled();
+  });
+
+  it('uploads a file variant without creating a new generation row', async () => {
+    const queryClient = createQueryClient();
+    const invalidateQueriesSpy = vi.spyOn(queryClient, 'invalidateQueries');
+    const { result } = renderUseDropActions({ queryClient });
+    const file = createFile('variant-file.png');
+
+    await act(async () => {
+      await result.current.handleVariantDrop({
+        files: [file],
+        targetGenerationId: 'generation-target',
+        mode: 'variant',
+      });
+    });
+
+    expect(uploadImageForVariantMock).toHaveBeenCalledWith(file, 'project-1');
+    expect(generationVariantsInsertMock).toHaveBeenCalledWith({
+      generation_id: 'generation-target',
+      project_id: 'project-1',
+      location: 'https://example.com/variant.png',
+      thumbnail_url: 'https://example.com/variant-thumb.png',
+      is_primary: false,
+      variant_type: 'dropped',
+      params: {
+        source: 'file-drop',
+        original_filename: 'variant-file.png',
+      },
+    });
+    expect(enqueueVariantInvalidationMock).toHaveBeenCalledWith(queryClient, {
+      generationId: 'generation-target',
+      shotId: 'shot-1',
+      reason: 'variant-drop',
+    });
+    expect(invalidateQueriesSpy).not.toHaveBeenCalledWith({
+      queryKey: generationQueryKeys.byShot('shot-1'),
+    });
+    expect(handleExternalImageDropMutateAsyncMock).not.toHaveBeenCalled();
+    expect(addImageToShotMutateAsyncMock).not.toHaveBeenCalled();
   });
 });

@@ -5,7 +5,7 @@
  * join clips list (stored in localStorage) and navigating to the join-clips tool.
  */
 
-import { useState, useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import {
@@ -35,13 +35,11 @@ export function useJoinClips({
   isVideo,
   selectedProjectId,
 }: UseJoinClipsProps): UseJoinClipsReturn {
-  const navigate = useNavigate();
-
   const [isAddingToJoin, setIsAddingToJoin] = useState(false);
   const [addToJoinSuccess, setAddToJoinSuccess] = useState(false);
+  const navigate = useNavigate();
 
   const handleAddToJoin = useCallback(() => {
-
     if (!media || !isVideo) {
       return;
     }

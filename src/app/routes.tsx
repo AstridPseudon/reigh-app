@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, RouterProvider, redirect } from 'react-router-dom';
+import { Navigate, Route, Routes } from 'react-router-dom';
 const HomePage = lazy(() => import('@/pages/Home/HomePage'));
 import ArtPage from '@/pages/ArtPage';
 import PaymentSuccessPage from '@/pages/PaymentSuccessPage';
@@ -20,7 +20,7 @@ const TrainingDataHelperPage = lazy(() => import('@/tools/training-data-helper/p
 const BlogListPage = lazy(() => import('@/pages/Blog/BlogListPage'));
 const BlogPostPage = lazy(() => import('@/pages/Blog/BlogPostPage'));
 import NotFoundPage from '@/pages/NotFoundPage';
-import ShotsPage from "@/pages/ShotsPage";
+import ShotsPage from '@/pages/ShotsPage';
 import { Layout } from './Layout';
 import { DefaultToolRedirect } from './DefaultToolRedirect';
 import { AppEnv } from '@/types/env';
@@ -37,10 +37,7 @@ const LazyLoadingFallback = () => (
   <ReighLoading />
 );
 
-// Synchronous loader — no navigator.locks, no network request.
-// Layout handles the authoritative auth check; if the stored session is expired,
-// AuthContext will detect it and Layout will redirect back to /home.
-function authRedirectLoader() {
+function HomeWithAuthRedirect() {
   const storedSessionProbe = probeStoredSessionToken();
   if (!storedSessionProbe.ok) {
     normalizeAndPresentError(storedSessionProbe.error, {
@@ -52,154 +49,114 @@ function authRedirectLoader() {
         policy: storedSessionProbe.policy,
       },
     });
-    return null;
+    return (
+      <Suspense fallback={<LazyLoadingFallback />}>
+        <HomePage />
+      </Suspense>
+    );
   }
 
-  return storedSessionProbe.value ? redirect('/tools') : null;
+  if (storedSessionProbe.value) {
+    return <Navigate to='/tools' replace />;
+  }
+
+  return (
+    <Suspense fallback={<LazyLoadingFallback />}>
+      <HomePage />
+    </Suspense>
+  );
 }
 
-const router = createBrowserRouter([
-  // HomePage route without Layout (no header) when in web environment
-  // Redirects logged-in users to /tools
-  ...(currentEnv === AppEnv.WEB ? [{
-    path: '/',
-    element: <Suspense fallback={<LazyLoadingFallback />}><HomePage /></Suspense>,
-    loader: authRedirectLoader,
-    errorElement: <NotFoundPage />,
-  }] : []),
-
-  // Add /home route that also leads to HomePage
-  {
-    path: '/home',
-    element: <Suspense fallback={<LazyLoadingFallback />}><HomePage /></Suspense>,
-    errorElement: <NotFoundPage />,
-  },
-
-  // Payment pages (outside of Layout to avoid auth requirements)
-  {
-    path: '/payments/success',
-    element: <PaymentSuccessPage />,
-    errorElement: <NotFoundPage />,
-  },
-  {
-    path: '/payments/cancel',
-    element: <PaymentCancelPage />,
-    errorElement: <NotFoundPage />,
-  },
-
-  // Share page (public, outside of Layout)
-  {
-    path: '/share/:shareId',
-    element: <SharePage />,
-    errorElement: <NotFoundPage />,
-  },
-
-  // Blog pages (public, outside of Layout)
-  {
-    path: '/blog',
-    element: (
-      <Suspense fallback={<LazyLoadingFallback />}>
-        <BlogListPage />
-      </Suspense>
-    ),
-    errorElement: <NotFoundPage />,
-  },
-  {
-    path: '/blog/:slug',
-    element: (
-      <Suspense fallback={<LazyLoadingFallback />}>
-        <BlogPostPage />
-      </Suspense>
-    ),
-    errorElement: <NotFoundPage />,
-  },
-
-
-  {
-    element: <Layout />,
-    errorElement: <NotFoundPage />,
-    children: [
-      // In non-web (PWA) environments, `/` just redirects to tools
-      // Layout handles auth - unauthed users get sent to /home
-      ...(currentEnv !== AppEnv.WEB ? [{
-        path: '/',
-        element: <DefaultToolRedirect />,
-      }] : []),
-      {
-        path: '/tools',
-        element: <DefaultToolRedirect />,
-      },
-      {
-        path: '/tools/image-generation',
-        element: <ToolErrorBoundary toolName="Image Generation"><ImageGenerationToolPage /></ToolErrorBoundary>,
-        // Add a stable key to prevent remounting on route revisits
-        loader: () => null,
-      },
-      {
-        path: '/tools/travel-between-images',
-        element: <ToolErrorBoundary toolName="Video Travel"><VideoTravelToolPage /></ToolErrorBoundary>,
-      },
-      {
-        path: '/tools/character-animate',
-        element: <ToolErrorBoundary toolName="Character Animate"><CharacterAnimatePage /></ToolErrorBoundary>,
-      },
-      {
-        path: '/tools/join-clips',
-        element: <ToolErrorBoundary toolName="Join Clips"><JoinClipsPage /></ToolErrorBoundary>,
-      },
-      {
-        path: '/tools/edit-images',
-        element: (
-          <ToolErrorBoundary toolName="Edit Images">
-            <Suspense fallback={<LazyLoadingFallback />}>
-              <EditImagesPage />
-            </Suspense>
-          </ToolErrorBoundary>
-        ),
-      },
-      {
-        path: '/tools/edit-video',
-        element: <ToolErrorBoundary toolName="Edit Video"><EditVideoPage /></ToolErrorBoundary>,
-      },
-      {
-        path: '/tools/video-editor',
-        element: <ToolErrorBoundary toolName="Video Editor"><VideoEditorPage /></ToolErrorBoundary>,
-      },
-      {
-        path: '/tools/training-data-helper',
-        element: (
-          <ToolErrorBoundary toolName="Training Data Helper">
-            <Suspense fallback={<LazyLoadingFallback />}>
-              <TrainingDataHelperPage />
-            </Suspense>
-          </ToolErrorBoundary>
-        ),
-      },
-      {
-        path: '/shots',
-        element: <ShotsPage />,
-      },
-      {
-        path: '/art',
-        element: <ArtPage />,
-      },
-      // Any other top-level page routes can become children here
-    ]
-  },
-  // If you have routes that shouldn't use the Layout, they can remain outside
-  // For example, a dedicated login page or a full-screen error page.
-  // However, for most standard pages, they will be children of the Layout route.
-  // The root NotFoundPage is handled by errorElement on the Layout route.
-  // If you need a catch-all * route, it can be added as a child of Layout as well.
-  {
-    path: '*',
-    element: <NotFoundPage /> // This can be a child of Layout or a separate top-level route
-    // If child of Layout: { path: '*', element: <NotFoundPage /> }
-    // If you want NotFoundPage to also have the Layout, put it in children array.
-    // For a non-layout 404, keep it separate or rely on the errorElement.
-  }
-]);
-
 export function AppRoutes() {
-  return <RouterProvider router={router} future={{ v7_startTransition: true }} />;
-} 
+  return (
+    <Routes>
+      {currentEnv === AppEnv.WEB ? (
+        <Route path="/" element={<HomeWithAuthRedirect />} />
+      ) : null}
+
+      <Route
+        path="/home"
+        element={(
+          <Suspense fallback={<LazyLoadingFallback />}>
+            <HomePage />
+          </Suspense>
+        )}
+      />
+
+      <Route path="/payments/success" element={<PaymentSuccessPage />} />
+      <Route path="/payments/cancel" element={<PaymentCancelPage />} />
+      <Route path="/share/:shareId" element={<SharePage />} />
+      <Route
+        path="/blog"
+        element={(
+          <Suspense fallback={<LazyLoadingFallback />}>
+            <BlogListPage />
+          </Suspense>
+        )}
+      />
+      <Route
+        path="/blog/:slug"
+        element={(
+          <Suspense fallback={<LazyLoadingFallback />}>
+            <BlogPostPage />
+          </Suspense>
+        )}
+      />
+
+      <Route element={<Layout />}>
+        {currentEnv !== AppEnv.WEB ? (
+          <Route path="/" element={<DefaultToolRedirect />} />
+        ) : null}
+        <Route path="/tools" element={<DefaultToolRedirect />} />
+        <Route
+          path="/tools/image-generation"
+          element={<ToolErrorBoundary toolName="Image Generation"><ImageGenerationToolPage /></ToolErrorBoundary>}
+        />
+        <Route
+          path="/tools/travel-between-images"
+          element={<ToolErrorBoundary toolName="Video Travel"><VideoTravelToolPage /></ToolErrorBoundary>}
+        />
+        <Route
+          path="/tools/character-animate"
+          element={<ToolErrorBoundary toolName="Character Animate"><CharacterAnimatePage /></ToolErrorBoundary>}
+        />
+        <Route
+          path="/tools/join-clips"
+          element={<ToolErrorBoundary toolName="Join Clips"><JoinClipsPage /></ToolErrorBoundary>}
+        />
+        <Route
+          path="/tools/edit-images"
+          element={(
+            <ToolErrorBoundary toolName="Edit Images">
+              <Suspense fallback={<LazyLoadingFallback />}>
+                <EditImagesPage />
+              </Suspense>
+            </ToolErrorBoundary>
+          )}
+        />
+        <Route
+          path="/tools/edit-video"
+          element={<ToolErrorBoundary toolName="Edit Video"><EditVideoPage /></ToolErrorBoundary>}
+        />
+        <Route
+          path="/tools/video-editor"
+          element={<ToolErrorBoundary toolName="Video Editor"><VideoEditorPage /></ToolErrorBoundary>}
+        />
+        <Route
+          path="/tools/training-data-helper"
+          element={(
+            <ToolErrorBoundary toolName="Training Data Helper">
+              <Suspense fallback={<LazyLoadingFallback />}>
+                <TrainingDataHelperPage />
+              </Suspense>
+            </ToolErrorBoundary>
+          )}
+        />
+        <Route path="/shots" element={<ShotsPage />} />
+        <Route path="/art" element={<ArtPage />} />
+      </Route>
+
+      <Route path="*" element={<NotFoundPage />} />
+    </Routes>
+  );
+}

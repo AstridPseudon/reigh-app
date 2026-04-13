@@ -11,6 +11,7 @@ import type {
 import type { OnPrimaryStructureVideoInputChange } from '@/tools/travel-between-images/types/mediaHandlers';
 import type { SelectedModel } from '@/tools/travel-between-images/settings';
 import type { TravelGuidanceMode } from '@/shared/lib/tasks/travelGuidance';
+import type { VariantDropParams } from '@/shared/hooks/dnd/useImageVariantDrop';
 
 // =============================================================================
 // Main Component Props
@@ -77,6 +78,7 @@ interface ShotImagesEditorEditActions {
   onGenerationDrop?: (generationId: string, imageUrl: string, thumbUrl: string | undefined, targetFrame?: number) => Promise<void>;
   onBatchFileDrop?: (files: File[], targetPosition?: number) => Promise<void>;
   onBatchGenerationDrop?: (generationId: string, imageUrl: string, thumbUrl: string | undefined, targetPosition?: number) => Promise<void>;
+  onVariantDrop?: (params: VariantDropParams) => Promise<void>;
   onPendingPositionApplied: (generationId: string) => void;
   onImageDelete: (id: string) => void;
   onBatchImageDelete?: (ids: string[]) => void;

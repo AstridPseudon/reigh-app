@@ -15,6 +15,7 @@ import { usePrefetchTaskData } from '@/shared/hooks/tasks/useTaskPrefetch';
 import { useSourceImageChanges } from '@/shared/hooks/sourceImageChanges/useSourceImageChanges';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 import { resolveDuplicateFrame } from '../utils/image-utils';
+import type { VariantDropParams } from '@/shared/hooks/dnd/useImageVariantDrop';
 
 const FPS = 16;
 
@@ -45,6 +46,8 @@ interface ImageGridInteractionModel {
   onItemDoubleClick: (idx: number) => void;
   onDelete: (id: string) => void;
   onDuplicate?: (shotImageEntryId: string, timeline_frame: number) => void;
+  onVariantDrop?: (params: VariantDropParams) => Promise<void>;
+  onVariantDropTargetChange?: (targetId: string | null) => void;
   duplicatingImageId?: string | null;
   duplicateSuccessImageId?: string | null;
   onGridDoubleClick?: () => void;
@@ -101,6 +104,8 @@ export const ImageGrid: React.FC<ImageGridProps> = ({
     onItemDoubleClick,
     onDelete,
     onDuplicate,
+    onVariantDrop,
+    onVariantDropTargetChange,
     duplicatingImageId,
     duplicateSuccessImageId,
     onGridDoubleClick,
@@ -235,7 +240,11 @@ export const ImageGrid: React.FC<ImageGridProps> = ({
 
         
         // Get the actual generation ID for prefetching (shot_generations stores generation_id)
-        const generationId = getGenerationId(image);
+        const generationId = getGenerationId(image as {
+          generation_id?: string | null;
+          id?: string | null;
+          metadata?: Record<string, unknown>;
+        });
 
         return (
           <div
@@ -272,6 +281,8 @@ export const ImageGrid: React.FC<ImageGridProps> = ({
                 },
                 onDelete: () => onDelete(image.id),
                 onDuplicate,
+                onVariantDrop,
+                onVariantDropTargetChange,
                 onOpenLightbox: isMobile ? () => {} : () => onItemDoubleClick(index),
               }}
             />

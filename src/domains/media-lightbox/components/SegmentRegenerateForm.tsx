@@ -253,6 +253,8 @@ export const SegmentRegenerateForm: React.FC<SegmentRegenerateFormProps> = ({
     onUpdateSegmentStructureVideo,
     onRemoveSegmentStructureVideo,
     // Navigation to constituent images
+    startImageGenerationId,
+    endImageGenerationId,
     startImageShotGenerationId: pairShotGenerationId,
     endImageShotGenerationId,
     onNavigateToImage,

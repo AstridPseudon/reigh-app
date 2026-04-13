@@ -19,7 +19,7 @@
  * ```
  */
 
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { Label } from '@/shared/components/ui/primitives/label';
 import { Slider } from '@/shared/components/ui/slider';
@@ -39,6 +39,7 @@ import {
 // Extracted components
 import { AdvancedSettingsSection } from './components/AdvancedSettingsSection';
 import { FieldDefaultControls } from './components/FieldDefaultControls';
+import { ImageVariantPicker } from './components/ImageVariantPicker';
 import { PromptSection } from './components/PromptSection';
 
 // Extracted hooks
@@ -89,6 +90,8 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
   onAddSegmentStructureVideo,
   onRemoveSegmentStructureVideo,
   // Navigation to constituent images
+  startImageGenerationId,
+  endImageGenerationId,
   startImageShotGenerationId,
   endImageShotGenerationId,
   onNavigateToImage,
@@ -118,6 +121,10 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
   const [isSavingDefaults, setIsSavingDefaults] = useState(false);
   const [saveDefaultsSuccess, setSaveDefaultsSuccess] = useState(false);
   const [isDraggingVideo, setIsDraggingVideo] = useState(false);
+  const [startImageUrlOverride, setStartImageUrlOverride] = useState<string | null>(null);
+  const [endImageUrlOverride, setEndImageUrlOverride] = useState<string | null>(null);
+  const displayedStartImageUrl = startImageUrlOverride ?? startImageUrl;
+  const displayedEndImageUrl = endImageUrlOverride ?? endImageUrl;
 
   // Model change handler (shared between PromptSection toggle and AdvancedSettingsSection)
   const handleModelChange = useModelChange({ onChange, settings, shotDefaults });
@@ -145,6 +152,14 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
     onSettingsChange: (value) => onChange({ prompt: value }),
     onClearEnhancedPrompt,
   });
+
+  useEffect(() => {
+    setStartImageUrlOverride(null);
+  }, [startImageUrl]);
+
+  useEffect(() => {
+    setEndImageUrlOverride(null);
+  }, [endImageUrl]);
 
   // ==========================================================================
   // HANDLERS
@@ -235,12 +250,12 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
       )}
 
       {/* Input Images with Frames Slider */}
-      {(startImageUrl || endImageUrl) && (
+      {(displayedStartImageUrl || displayedEndImageUrl) && (
         <div className="@container">
           <div className="grid grid-cols-2 gap-2 @[280px]:grid-cols-3">
             {/* Start Image */}
             <div className="relative aspect-video">
-              {startImageUrl && (
+              {displayedStartImageUrl && (
                 <button
                   type="button"
                   onClick={() => startImageShotGenerationId && onNavigateToImage?.(startImageShotGenerationId)}
@@ -248,8 +263,15 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
                   className="w-full h-full relative bg-muted/30 rounded-lg overflow-hidden border border-border/50 transition-all hover:ring-2 hover:ring-primary/50 hover:scale-[1.02] disabled:hover:ring-0 disabled:hover:scale-100 disabled:cursor-default"
                   title={onNavigateToImage && startImageShotGenerationId ? "View start image" : undefined}
                 >
+                  {startImageGenerationId && startImageUrl && (
+                    <ImageVariantPicker
+                      generationId={startImageGenerationId}
+                      currentImageUrl={startImageUrl}
+                      onImageUrlChange={setStartImageUrlOverride}
+                    />
+                  )}
                   <img
-                    src={startImageUrl}
+                    src={displayedStartImageUrl}
                     alt="Start frame"
                     className="absolute inset-0 w-full h-full object-cover"
                   />
@@ -285,7 +307,7 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
 
             {/* End Image */}
             <div className="relative aspect-video">
-              {endImageUrl && (
+              {displayedEndImageUrl && (
                 <button
                   type="button"
                   onClick={() => endImageShotGenerationId && onNavigateToImage?.(endImageShotGenerationId)}
@@ -293,8 +315,15 @@ export const SegmentSettingsForm: React.FC<SegmentSettingsFormProps> = ({
                   className="w-full h-full relative bg-muted/30 rounded-lg overflow-hidden border border-border/50 transition-all hover:ring-2 hover:ring-primary/50 hover:scale-[1.02] disabled:hover:ring-0 disabled:hover:scale-100 disabled:cursor-default"
                   title={onNavigateToImage && endImageShotGenerationId ? "View end image" : undefined}
                 >
+                  {endImageGenerationId && endImageUrl && (
+                    <ImageVariantPicker
+                      generationId={endImageGenerationId}
+                      currentImageUrl={endImageUrl}
+                      onImageUrlChange={setEndImageUrlOverride}
+                    />
+                  )}
                   <img
-                    src={endImageUrl}
+                    src={displayedEndImageUrl}
                     alt="End frame"
                     className="absolute inset-0 w-full h-full object-cover"
                   />

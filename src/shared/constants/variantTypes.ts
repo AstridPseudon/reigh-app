@@ -16,6 +16,7 @@ export const VARIANT_TYPE = {
   JOIN_FINAL_STITCH: 'join_final_stitch',
   REGENERATED: 'regenerated',
   CHILD_PROMOTED: 'child_promoted',
+  DROPPED: 'dropped',
 } as const;
 
 export type VariantType = typeof VARIANT_TYPE[keyof typeof VARIANT_TYPE];
@@ -26,8 +27,6 @@ export const EDIT_VARIANT_TYPES = [
   VARIANT_TYPE.ANNOTATED_EDIT,
   VARIANT_TYPE.EDIT,
 ] as const;
-
-type EditVariantType = typeof EDIT_VARIANT_TYPES[number];
 
 const VARIANT_TYPE_VALUES = new Set<VariantType>(Object.values(VARIANT_TYPE));
 

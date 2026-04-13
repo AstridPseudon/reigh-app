@@ -1,27 +1,9 @@
-import { useEffect } from 'react';
-import { useRouteError, useNavigate, isRouteErrorResponse } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Home, Compass, Sparkles } from 'lucide-react';
 import { Button } from '@/shared/components/ui/button';
-import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 
 export default function NotFoundPage() {
-  const error = useRouteError();
   const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!error) return;
-    normalizeAndPresentError(error, {
-      context: 'NotFoundPage.routeError',
-      showToast: false,
-    });
-  }, [error]);
-
-  // Extract displayable error message with proper narrowing
-  const errorMessage = isRouteErrorResponse(error)
-    ? error.statusText
-    : error instanceof Error
-      ? error.message
-      : null;
 
   return (
     <div className="min-h-screen wes-texture relative overflow-hidden flex items-center justify-center">
@@ -53,14 +35,6 @@ export default function NotFoundPage() {
               It seems you've wandered into uncharted territory. 
               The page you're looking for has taken a different creative journey.
             </p>
-            
-            {errorMessage ? (
-              <div className="bg-wes-yellow/20 border border-wes-yellow/30 rounded-lg p-4 mb-6">
-                <p className="font-cocogoose text-sm text-muted-foreground">
-                  <span className="font-light">Technical details:</span> {errorMessage}
-                </p>
-              </div>
-            ) : null}
           </div>
 
           {/* Navigation Options */}

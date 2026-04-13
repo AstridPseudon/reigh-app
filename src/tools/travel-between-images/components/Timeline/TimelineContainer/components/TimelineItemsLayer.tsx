@@ -2,6 +2,7 @@ import React from 'react';
 import { GenerationRow } from '@/domains/generation/types';
 import { TimelineItem } from '../../TimelineItem';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
+import type { VariantDropParams } from '@/shared/hooks/dnd/useImageVariantDrop';
 
 interface TimelineItemsLayerProps {
   images: GenerationRow[];
@@ -32,6 +33,8 @@ interface TimelineItemsLayerProps {
   actions: {
     onImageDelete: (imageId: string) => void;
     onImageDuplicate: (imageId: string, timelineFrame: number) => void;
+    onVariantDrop?: (params: VariantDropParams) => Promise<void>;
+    onVariantDropTargetChange?: (targetId: string | null) => void;
     onInpaintClick?: (idx: number) => void;
     duplicatingImageId?: string | null;
     duplicateSuccessImageId?: string | null;
@@ -89,7 +92,11 @@ export const TimelineItemsLayer: React.FC<TimelineItemsLayerProps> = ({
               currentDragFrame: isDragging ? drag.currentDragFrame : null,
               originalFramePos: framePositions.get(imageKey) ?? 0,
               onPrefetch: !interaction.isMobile ? () => {
-                const generationId = getGenerationId(image);
+                const generationId = getGenerationId(image as {
+                  generation_id?: string | null;
+                  id?: string | null;
+                  metadata?: Record<string, unknown>;
+                });
                 if (generationId) {
                   interaction.prefetchTaskData(generationId);
                 }
@@ -98,6 +105,8 @@ export const TimelineItemsLayer: React.FC<TimelineItemsLayerProps> = ({
             actions={{
               onDelete: actions.onImageDelete,
               onDuplicate: actions.onImageDuplicate,
+              onVariantDrop: actions.onVariantDrop,
+              onVariantDropTargetChange: actions.onVariantDropTargetChange,
               onInpaintClick: actions.onInpaintClick ? () => actions.onInpaintClick?.(idx) : undefined,
               duplicatingImageId: actions.duplicatingImageId ?? undefined,
               duplicateSuccessImageId: actions.duplicateSuccessImageId ?? undefined,

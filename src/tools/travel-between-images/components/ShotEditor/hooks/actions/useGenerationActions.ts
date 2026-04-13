@@ -62,6 +62,7 @@ export const useGenerationActions = ({
     handleTimelineGenerationDrop,
     handleBatchImageDrop,
     handleBatchGenerationDrop,
+    handleVariantDrop,
   } = useDropActions({
     actions,
     selectedShot,
@@ -79,6 +80,7 @@ export const useGenerationActions = ({
     handleTimelineGenerationDrop,
     handleBatchImageDrop,
     handleBatchGenerationDrop,
+    handleVariantDrop,
   }), [
     handleDeleteImageFromShot,
     handleBatchDeleteImages,
@@ -87,5 +89,6 @@ export const useGenerationActions = ({
     handleTimelineGenerationDrop,
     handleBatchImageDrop,
     handleBatchGenerationDrop,
+    handleVariantDrop,
   ]);
 };

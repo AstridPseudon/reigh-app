@@ -18,6 +18,9 @@ import { getImageAspectRatioStyle } from '@/shared/lib/media/imageAspectRatio';
 import { framesToSeconds } from '@/shared/lib/media/videoUtils';
 import { VariantBadge } from '@/shared/components/VariantBadge';
 import { useMarkVariantViewed } from '@/shared/hooks/variants/useMarkVariantViewed';
+import { VariantDropOverlay } from '@/shared/components/VariantDropOverlay';
+import { useImageVariantDrop, type VariantDropParams } from '@/shared/hooks/dnd/useImageVariantDrop';
+import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 
 interface ShotBatchItemModel {
   image: GenerationRow;
@@ -42,6 +45,8 @@ interface ShotBatchItemModel {
 interface ShotBatchItemDesktopActions {
   onDelete: (shotImageEntryId: string) => void;
   onDuplicate?: (shotImageEntryId: string, timeline_frame: number) => void;
+  onVariantDrop?: (params: VariantDropParams) => Promise<void>;
+  onVariantDropTargetChange?: (targetId: string | null) => void;
   onClick: (event: React.MouseEvent) => void;
   onPointerDown?: (event: React.PointerEvent) => void;
   onOpenLightbox: () => void;
@@ -62,7 +67,16 @@ const ShotBatchItemDesktopComponent: React.FC<ShotBatchItemDesktopProps> = ({
   const { timelineFrame, displayTimeSeconds } = timing;
   const { duplicatingImageId, duplicateSuccessImageId } = duplication;
   const { shouldLoad = true, projectAspectRatio } = loading;
-  const { onDelete, onDuplicate, onMobileTap, onClick, onPointerDown, onOpenLightbox } = actions;
+  const {
+    onDelete,
+    onDuplicate,
+    onVariantDrop,
+    onVariantDropTargetChange,
+    onMobileTap,
+    onClick,
+    onPointerDown,
+    onOpenLightbox,
+  } = actions;
 
   // Hook for marking variants as viewed
   const { markAllViewed } = useMarkVariantViewed();
@@ -147,6 +161,20 @@ const ShotBatchItemDesktopComponent: React.FC<ShotBatchItemDesktopProps> = ({
     }
   };
 
+  const generationId = getGenerationId(image as {
+    generation_id?: string | null;
+    id?: string | null;
+    metadata?: Record<string, unknown>;
+  });
+  const { isVariantDropTarget, activeRegion, dragHandlers } = useImageVariantDrop({
+    generationId,
+    onVariantDrop: onVariantDrop ?? (async () => {}),
+    disabled: !onVariantDrop,
+    onTargetStateChange: (isActive) => {
+      onVariantDropTargetChange?.(isActive ? image.id : null);
+    },
+  });
+
   const finalClassName = cn(
     "group relative border rounded-lg overflow-hidden cursor-pointer bg-card hover:ring-2 hover:ring-primary/50 transition-colors",
     isSelected && "ring-4 ring-orange-500 ring-offset-2 ring-offset-background bg-orange-500/15 border-orange-500",
@@ -161,6 +189,7 @@ const ShotBatchItemDesktopComponent: React.FC<ShotBatchItemDesktopProps> = ({
       data-selected={isSelected}
       data-image-id={image.id?.substring(0, 8)}
       {...(!isDragDisabled ? attributes : {})}
+      {...dragHandlers}
       onClick={(e) => {
         // Check if the click originated from a button or its children
         const target = e.target as HTMLElement;
@@ -183,6 +212,11 @@ const ShotBatchItemDesktopComponent: React.FC<ShotBatchItemDesktopProps> = ({
       }}
       onDoubleClick={isMobile ? undefined : onOpenLightbox}
     >
+      <VariantDropOverlay
+        isVisible={isVariantDropTarget}
+        activeRegion={activeRegion}
+      />
+
       {/* Progressive image display */}
       <img
         ref={progressiveRef}

@@ -1,11 +1,13 @@
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 
 const mocks = vi.hoisted(() => ({
   prefetchTaskData: vi.fn(),
   navigateToShot: vi.fn(),
   isMobile: false,
+  batchDropZoneProps: null as unknown,
+  imageGridProps: null as unknown,
 }));
 
 vi.mock('react-dom', async () => {
@@ -28,7 +30,10 @@ vi.mock('@dnd-kit/sortable', () => ({
 }));
 
 vi.mock('./components/ImageGrid', () => ({
-  ImageGrid: () => <div data-testid="image-grid" />,
+  ImageGrid: (props: unknown) => {
+    mocks.imageGridProps = props;
+    return <div data-testid="image-grid" />;
+  },
 }));
 
 vi.mock('./components/SelectionActionBar', () => ({
@@ -49,9 +54,13 @@ vi.mock('../ImageDragPreview', () => ({
 }));
 
 vi.mock('./components/BatchDropZone', () => ({
-  BatchDropZone: ({ children }: { children: (isFileDragOver: boolean, dropTargetIndex: number | null) => React.ReactNode }) => (
-    <div data-testid="batch-drop-zone">{children(false, null)}</div>
-  ),
+  BatchDropZone: (props: {
+    activeVariantDropTargetId?: string | null;
+    children: (isFileDragOver: boolean, dropTargetIndex: number | null) => React.ReactNode;
+  }) => {
+    mocks.batchDropZoneProps = props;
+    return <div data-testid="batch-drop-zone">{props.children(false, null)}</div>;
+  },
 }));
 
 vi.mock('./components/DesktopLightboxOverlay', () => ({
@@ -228,6 +237,8 @@ describe('ShotImageManagerDesktop', () => {
     mocks.prefetchTaskData = vi.fn();
     mocks.navigateToShot = vi.fn();
     mocks.isMobile = false;
+    mocks.batchDropZoneProps = null;
+    mocks.imageGridProps = null;
   });
 
   it('renders grid/selection UI in desktop mode', () => {
@@ -272,6 +283,42 @@ describe('ShotImageManagerDesktop', () => {
     await waitFor(() => {
       expect(mocks.prefetchTaskData).toHaveBeenCalledWith('gen-1');
       expect(mocks.prefetchTaskData).toHaveBeenCalledWith('gen-2');
+    });
+  });
+
+  it('threads variant-drop coordination into the grid and suppresses parent indicators while active', () => {
+    const props = createProps();
+    props.onVariantDrop = vi.fn();
+
+    render(<ShotImageManagerDesktop {...props} />);
+
+    expect(mocks.batchDropZoneProps).toMatchObject({
+      activeVariantDropTargetId: null,
+    });
+
+    const imageGridProps = mocks.imageGridProps as {
+      interactions: {
+        onVariantDrop?: unknown;
+        onVariantDropTargetChange?: (targetId: string | null) => void;
+      };
+    };
+
+    expect(imageGridProps.interactions.onVariantDrop).toBe(props.onVariantDrop);
+
+    act(() => {
+      imageGridProps.interactions.onVariantDropTargetChange?.('img-1');
+    });
+
+    expect(mocks.batchDropZoneProps).toMatchObject({
+      activeVariantDropTargetId: 'img-1',
+    });
+
+    act(() => {
+      imageGridProps.interactions.onVariantDropTargetChange?.(null);
+    });
+
+    expect(mocks.batchDropZoneProps).toMatchObject({
+      activeVariantDropTargetId: null,
     });
   });
 });

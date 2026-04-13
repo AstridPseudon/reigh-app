@@ -122,6 +122,7 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
   isUploadingImage,
   onFileDrop,
   onGenerationDrop,
+  onVariantDrop,
   columns,
   duplicatingImageId,
   duplicateSuccessImageId,
@@ -129,6 +130,7 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
   batchVideoFrames,
   readOnly,
 }) => {
+  const [activeVariantDropTargetId, setActiveVariantDropTargetId] = useState<string | null>(null);
   const {
     showTickForImageId,
     setShowTickForImageId,
@@ -203,7 +205,7 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
       <DesktopScrubbingPreview
         activeScrubbingIndex={activeScrubbingIndex}
         activeSegmentSlot={activeSegmentSlot ?? null}
-        activeSegmentVideoUrl={activeSegmentVideoUrl}
+        activeSegmentVideoUrl={activeSegmentVideoUrl ?? null}
         clampedPreviewX={clampedPreviewX}
         previewY={previewY}
         previewDimensions={previewDimensions}
@@ -214,6 +216,7 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
       <BatchDropZone
         onFileDrop={onFileDrop}
         onGenerationDrop={onGenerationDrop}
+        activeVariantDropTargetId={activeVariantDropTargetId}
         columns={columns || 4}
         itemCount={lightbox.currentImages.length}
         disabled={readOnly || (!onFileDrop && !onGenerationDrop)}
@@ -256,6 +259,8 @@ export const ShotImageManagerDesktop: React.FC<ShotImageManagerDesktopProps> = (
                   onItemDoubleClick: (index) => lightbox.setLightboxIndex(index),
                   onDelete: batchOps.handleIndividualDelete,
                   onDuplicate: onImageDuplicate,
+                  onVariantDrop,
+                  onVariantDropTargetChange: setActiveVariantDropTargetId,
                   duplicatingImageId,
                   duplicateSuccessImageId,
                   onGridDoubleClick: () => {

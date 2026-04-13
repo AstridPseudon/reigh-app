@@ -14,6 +14,7 @@ import type { SegmentSlot } from '@/shared/hooks/segments';
 import type { OperationResult } from '@/shared/lib/operationResult';
 import type { PrimaryStructureVideo } from '@/shared/lib/tasks/travelBetweenImages';
 import type { OnPrimaryStructureVideoInputChange } from '@/tools/travel-between-images/types/mediaHandlers';
+import type { VariantDropParams } from '@/shared/hooks/dnd/useImageVariantDrop';
 
 interface BatchModeBatchConfig {
   selectedShotId: string;
@@ -53,6 +54,7 @@ interface BatchModeUIOptions {
 
   onFileDrop?: (files: File[], targetPosition?: number) => Promise<void>;
   onGenerationDrop?: (generationId: string, imageUrl: string, thumbUrl: string | undefined, targetPosition?: number) => Promise<void>;
+  onVariantDrop?: (params: VariantDropParams) => Promise<void>;
 
   onClearEnhancedPrompt: (pairIndex: number) => Promise<void>;
   onDragStateChange: (isDragging: boolean) => void;
@@ -123,6 +125,7 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
     duplicateSuccessImageId,
     onFileDrop,
     onGenerationDrop,
+    onVariantDrop,
     onClearEnhancedPrompt,
     onDragStateChange,
     onPairClick,
@@ -180,6 +183,7 @@ export const BatchModeContent: React.FC<BatchModeContentProps> = ({
         readOnly={readOnly}
         onFileDrop={onFileDrop}
         onGenerationDrop={onGenerationDrop}
+        onVariantDrop={onVariantDrop}
         shotId={selectedShotId}
         projectId={projectId}
         toolTypeOverride={TOOL_IDS.TRAVEL_BETWEEN_IMAGES}

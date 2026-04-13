@@ -1,4 +1,5 @@
 import React, { useContext } from 'react';
+import { BrowserRouter } from 'react-router-dom';
 import { TooltipProvider } from '@/shared/components/ui/tooltip';
 import { Toaster as Sonner } from '@/shared/components/ui/runtime/sonner';
 import {
@@ -74,8 +75,10 @@ const AppInternalContent: React.FC = () => {
 
 export function App() {
   return (
-    <AppProviders>
-      <AppInternalContent />
-    </AppProviders>
+    <BrowserRouter>
+      <AppProviders>
+        <AppInternalContent />
+      </AppProviders>
+    </BrowserRouter>
   );
 }

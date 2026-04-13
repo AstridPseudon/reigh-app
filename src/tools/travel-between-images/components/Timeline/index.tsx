@@ -20,6 +20,7 @@ import { useTimelineLightboxOrchestrator } from "./hooks/useTimelineLightboxOrch
 
 import { TimelineContainer } from "./TimelineContainer/TimelineContainer";
 import { useEmptyStateDrop } from "./hooks/drag/useEmptyStateDrop";
+import type { VariantDropParams } from '@/shared/hooks/dnd/useImageVariantDrop';
 
 interface TimelineCoreAdapter {
   shotId: string;
@@ -36,6 +37,7 @@ interface TimelineInteractionAdapter {
   onFramePositionsChange?: (framePositions: Map<string, number>) => void;
   onFileDrop?: (files: File[], targetFrame?: number) => Promise<void>;
   onGenerationDrop?: (generationId: string, imageUrl: string, thumbUrl: string | undefined, targetFrame?: number) => Promise<void>;
+  onVariantDrop?: (params: VariantDropParams) => Promise<void>;
   onImageDelete: NonNullable<LightboxActionHandlers['onDelete']>;
   onImageDuplicate?: (imageId: string, timelineFrame: number, nextTimelineFrame?: number) => void;
   duplicatingImageId?: string | null;
@@ -113,6 +115,7 @@ const Timeline: React.FC<TimelineProps> = ({
     onFramePositionsChange,
     onFileDrop,
     onGenerationDrop,
+    onVariantDrop,
     onImageDelete,
     onImageDuplicate,
     duplicatingImageId,
@@ -245,6 +248,9 @@ const Timeline: React.FC<TimelineProps> = ({
     onImageUpload,
   });
 
+  // The orchestrator return objects are stable enough for this memoized view model;
+  // exhaustive-deps over-reports on the nested controller references here.
+  /* eslint-disable react-hooks/exhaustive-deps */
   const timelineLightboxProps = useMemo<MediaLightboxProps | null>(() => {
     if (!shotSelection.lightboxShotState || !media.currentLightboxImage) {
       return null;
@@ -320,6 +326,7 @@ const Timeline: React.FC<TimelineProps> = ({
       taskDetailsData: {
         task: taskDetails.task ?? null,
         isLoading: taskDetails.isLoadingTask,
+        status: taskDetails.taskError ? 'error' : taskDetails.task ? 'ok' : 'missing',
         error: taskDetails.taskError,
         inputImages: taskDetails.inputImages,
         taskId: taskDetails.task?.id || null,
@@ -362,6 +369,7 @@ const Timeline: React.FC<TimelineProps> = ({
     taskDetails.task,
     taskDetails.taskError,
   ]);
+  /* eslint-enable react-hooks/exhaustive-deps */
 
   return (
     <div className="w-full overflow-x-hidden relative" data-tour="timeline">
@@ -392,6 +400,7 @@ const Timeline: React.FC<TimelineProps> = ({
         onImageReorder={onImageReorder}
         onFileDrop={onFileDrop}
         onGenerationDrop={onGenerationDrop}
+        onVariantDrop={onVariantDrop}
         setIsDragInProgress={setIsDragInProgress}
         onPairClick={onPairClick}
         pairPrompts={actualPairPrompts}

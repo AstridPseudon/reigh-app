@@ -25,6 +25,7 @@ import { LoraManagerReturn } from './useLoraSync';
 import type { LoraModel } from '@/domains/lora/types/lora';
 import type { UseStructureVideoReturn } from '../video/useStructureVideo';
 import type { UseAudioReturn } from '../video/useAudio';
+import type { VariantDropParams } from '@/shared/hooks/dnd/useImageVariantDrop';
 
 // Type for generation actions from useGenerationActions
 // All drop handlers now use unified targetFrame parameter
@@ -43,6 +44,7 @@ interface GenerationActionsReturn {
     thumbUrl: string | undefined,
     targetFrame?: number
   ) => Promise<void>;
+  handleVariantDrop: (params: VariantDropParams) => Promise<void>;
   handleDeleteImageFromShot: (generationId: string) => Promise<void>;
   handleBatchDeleteImages: (generationIds: string[]) => Promise<void>;
   handleDuplicateImage: (generationId: string, currentFrame: number, nextFrame?: number) => Promise<void>;
@@ -236,6 +238,9 @@ export function useShotSettingsValue({
           thumbUrl,
           targetFrame
         );
+      },
+      onVariantDrop: async (params: VariantDropParams) => {
+        await generationActions.handleVariantDrop(params);
       },
       onDelete: (id: string) => {
         generationActions.handleDeleteImageFromShot(id);

@@ -132,6 +132,7 @@ export const TimelineSection: React.FC<TimelineSectionProps> = ({
           onGenerationDrop: imageHandlers.onGenerationDrop,
           onBatchFileDrop: imageHandlers.onBatchFileDrop,
           onBatchGenerationDrop: imageHandlers.onBatchGenerationDrop,
+          onVariantDrop: imageHandlers.onVariantDrop,
           onPendingPositionApplied,
           onImageDelete: imageHandlers.onDelete,
           onBatchImageDelete: imageHandlers.onBatchDelete,

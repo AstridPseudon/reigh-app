@@ -90,6 +90,8 @@ export const SegmentSlotFormView: React.FC<SegmentSlotFormViewProps> = ({
     onUpdateSegmentStructureVideo: segmentSlotMode.onUpdateSegmentStructureVideo,
     onRemoveSegmentStructureVideo: segmentSlotMode.onRemoveSegmentStructureVideo,
     // Navigation to constituent images
+    startImageGenerationId: segmentSlotMode.pairData.startImage?.generationId,
+    endImageGenerationId: segmentSlotMode.pairData.endImage?.generationId,
     startImageShotGenerationId: pairShotGenerationId,
     endImageShotGenerationId: segmentSlotMode.pairData.endImage?.id,
     onNavigateToImage: segmentSlotMode.onNavigateToImage,

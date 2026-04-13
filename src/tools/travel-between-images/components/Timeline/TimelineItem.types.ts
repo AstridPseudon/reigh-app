@@ -1,5 +1,6 @@
 import type { GenerationRow } from '@/domains/generation/types';
 import type { MouseEvent } from 'react';
+import type { VariantDropParams } from '@/shared/hooks/dnd/useImageVariantDrop';
 
 interface TimelineItemLayoutModel {
   timelineWidth: number;
@@ -22,6 +23,8 @@ interface TimelineItemInteractionModel {
 interface TimelineItemActionModel {
   onDelete?: (imageId: string) => void;
   onDuplicate?: (imageId: string, timeline_frame: number) => void;
+  onVariantDrop?: (params: VariantDropParams) => Promise<void>;
+  onVariantDropTargetChange?: (targetId: string | null) => void;
   onInpaintClick?: () => void;
   duplicatingImageId?: string;
   duplicateSuccessImageId?: string;

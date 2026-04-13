@@ -45,6 +45,20 @@ function createQueryResult(data: unknown) {
   };
 }
 
+function createInsertResult(data: unknown) {
+  return {
+    insert: vi.fn().mockReturnThis(),
+    select: vi.fn().mockReturnThis(),
+    single: vi.fn().mockResolvedValue({ data, error: null }),
+  };
+}
+
+function createInsertOnlyResult() {
+  return {
+    insert: vi.fn().mockResolvedValue({ error: null }),
+  };
+}
+
 describe('processDroppedImages', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -62,6 +76,25 @@ describe('processDroppedImages', () => {
       }
       if (table === 'shots') {
         return createQueryResult({ aspect_ratio: null });
+      }
+      if (table === 'generations') {
+        return createInsertResult({
+          id: 'gen-1',
+          location: 'https://example.com/image.png',
+          thumbnail_url: 'https://example.com/thumb.png',
+          type: 'image',
+          created_at: '2026-04-06T00:00:00.000Z',
+          params: {
+            source: 'upload',
+            original_filename: 'frame.png',
+            file_type: 'image/png',
+            file_size: 3,
+          },
+          primary_variant_id: null,
+        });
+      }
+      if (table === 'generation_variants') {
+        return createInsertOnlyResult();
       }
       return createQueryResult(null);
     });
@@ -107,15 +140,6 @@ describe('processDroppedImages', () => {
       createShot: vi.fn(),
       addImageToShot,
       addImageToShotWithoutPosition,
-      createGeneration: vi.fn().mockResolvedValue({
-        id: 'gen-1',
-        location: 'https://example.com/image.png',
-        thumbnail_url: 'https://example.com/thumb.png',
-        type: 'image',
-        created_at: '2026-04-06T00:00:00.000Z',
-        params: { source: 'upload' },
-        primary_variant_id: 'variant-1',
-      }),
     });
 
     expect(result).toEqual({
@@ -128,8 +152,13 @@ describe('processDroppedImages', () => {
           thumbnail_url: 'https://example.com/thumb.png',
           type: 'image',
           created_at: '2026-04-06T00:00:00.000Z',
-          params: { source: 'upload' },
-          primary_variant_id: 'variant-1',
+          params: {
+            source: 'upload',
+            original_filename: 'frame.png',
+            file_type: 'image/png',
+            file_size: 3,
+          },
+          primary_variant_id: null,
           shot_generation_id: 'shot-gen-1',
           timeline_frame: 42,
         },

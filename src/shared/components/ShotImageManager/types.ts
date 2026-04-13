@@ -11,6 +11,7 @@ import type {
   AddToShotHandler,
   AddToShotWithoutPositionHandler,
 } from '@/shared/types/imageHandlers';
+import type { VariantDropParams } from '@/shared/hooks/dnd/useImageVariantDrop';
 
 /** Per-pair parameter overrides for showing override icons */
 type PairOverridesMap = Record<number, {
@@ -51,6 +52,8 @@ interface ShotUploadProps {
   onFileDrop?: FileDropHandler;
   /** Drop generation onto batch grid - component calculates targetFrame from grid position */
   onGenerationDrop?: GenerationDropHandler;
+  /** Drop files or generations onto an existing image to create/replace variants */
+  onVariantDrop?: (params: VariantDropParams) => Promise<void>;
 }
 
 /** Shot management and cross-shot operations */

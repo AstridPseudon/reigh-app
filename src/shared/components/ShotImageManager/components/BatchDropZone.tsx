@@ -1,7 +1,7 @@
 import React, { useRef, useCallback, useState, useEffect } from "react";
 import { toast } from "@/shared/components/ui/runtime/sonner";
 import { ImagePlus, FileUp, Loader2 } from "lucide-react";
-import { getDragType, getGenerationDropData, type DragType } from "@/shared/lib/dnd/dragDrop";
+import { getDragType, getGenerationDropData, wasDropHandledByVariant, type DragType } from "@/shared/lib/dnd/dragDrop";
 import { getProjectAspectRatioStyle } from '@/shared/lib/media/imageAspectRatio';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 
@@ -95,6 +95,7 @@ interface BatchDropZoneProps {
   getFramePositionForIndex?: (index: number) => number | undefined;
   /** Project aspect ratio for skeleton sizing */
   projectAspectRatio?: string;
+  activeVariantDropTargetId?: string | null;
 }
 
 /**
@@ -170,11 +171,12 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
   disabled = false,
   getFramePositionForIndex,
   projectAspectRatio,
+  activeVariantDropTargetId = null,
 }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const [dropTargetIndex, setDropTargetIndex] = useState<number | null>(null);
   const [dragType, setDragType] = useState<DragType>('none');
-  
+
   // Pending drop state for optimistic skeleton
   const [pendingDropIndex, setPendingDropIndex] = useState<number | null>(null);
   const prevItemCountRef = useRef(itemCount);
@@ -272,9 +274,16 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
     // Unified targetFrame: prefer calculated frame, fall back to grid position
     const targetFrame = framePosition ?? targetPosition ?? undefined;
 
-    // Clear visual drop indicator state
+    // Clear visual drop indicator state — always, even if a child variant
+    // handler already processed the drop.
     setDropTargetIndex(null);
     setDragType('none');
+
+    // A child variant drop target already handled this drop — don't also
+    // create a standalone image.
+    if (wasDropHandledByVariant(e)) {
+      return;
+    }
 
     // Show optimistic skeleton at drop position
     if (targetPosition !== null) {
@@ -337,6 +346,7 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
   }
 
   const isOver = dragType !== 'none';
+  const showParentDropIndicator = isOver && !activeVariantDropTargetId;
 
   return (
     <div
@@ -348,7 +358,7 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
       onDrop={handleDrop}
     >
       {/* Render children (support function for render prop pattern) */}
-      {typeof children === 'function' ? children(isOver, dropTargetIndex) : children}
+      {typeof children === 'function' ? children(showParentDropIndicator, showParentDropIndicator ? dropTargetIndex : null) : children}
 
       {/* Optimistic skeleton for pending drop - Rendered AFTER children to ensure visibility */}
       {pendingDropIndex !== null && (
@@ -361,7 +371,7 @@ const BatchDropZone: React.FC<BatchDropZoneProps> = ({
       )}
 
       {/* Insertion line indicator - shows between images */}
-      {isOver && dropTargetIndex !== null && (() => {
+      {showParentDropIndicator && dropTargetIndex !== null && (() => {
         const containerElement = containerRef.current;
         if (!containerElement) return null;
         

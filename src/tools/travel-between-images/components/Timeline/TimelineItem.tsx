@@ -11,6 +11,9 @@ import { useTimelineMedia } from './TimelineMediaContext';
 import { getTimelineItemAspectRatioStyle, getTimelineItemPosition } from './TimelineItem.helpers';
 import { TimelineItemActionButtons } from './TimelineItemActionButtons';
 import type { TimelineItemProps } from './TimelineItem.types';
+import { VariantDropOverlay } from '@/shared/components/VariantDropOverlay';
+import { useImageVariantDrop } from '@/shared/hooks/dnd/useImageVariantDrop';
+import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 
 const SCROLL_THRESHOLD = 10;
 
@@ -39,6 +42,8 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
   const {
     onDelete,
     onDuplicate,
+    onVariantDrop,
+    onVariantDropTargetChange,
     onInpaintClick,
     duplicatingImageId,
     duplicateSuccessImageId,
@@ -80,6 +85,11 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
 
   const isElevated = isHovered || showDropEffect || isDragging || isSelected;
   const imageKey = image.id;
+  const generationId = getGenerationId(image as {
+    generation_id?: string | null;
+    id?: string | null;
+    metadata?: Record<string, unknown>;
+  });
 
   const buttonClickedRef = useRef(false);
   const mouseDownPosRef = useRef<{ x: number; y: number } | null>(null);
@@ -174,9 +184,19 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
     currentDragFrame,
   });
 
+  const { isVariantDropTarget, activeRegion, dragHandlers } = useImageVariantDrop({
+    generationId,
+    onVariantDrop: onVariantDrop ?? (async () => {}),
+    disabled: readOnly || !onVariantDrop,
+    onTargetStateChange: (isActive) => {
+      onVariantDropTargetChange?.(isActive ? imageKey : null);
+    },
+  });
+
   return (
     <div
       data-item-id={imageKey}
+      {...dragHandlers}
       style={{
         position: 'absolute',
         left: `${leftPercent}%`,
@@ -248,6 +268,11 @@ const TimelineItem: React.FC<TimelineItemProps> = ({
             ...aspectRatioStyle,
           }}
         >
+          <VariantDropOverlay
+            isVisible={isVariantDropTarget}
+            activeRegion={activeRegion}
+          />
+
           <img
             ref={progressiveRef}
             src={shouldLoad ? displayImageUrl : '/placeholder.svg'}

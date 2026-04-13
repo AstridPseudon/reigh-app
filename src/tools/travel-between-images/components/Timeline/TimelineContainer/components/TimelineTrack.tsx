@@ -6,6 +6,7 @@ interface TimelineTrackProps {
   containerRef: React.RefObject<HTMLDivElement>;
   zoomLevel: number;
   isFileOver: boolean;
+  suppressFileOverHighlight?: boolean;
   hasNoImages: boolean;
   enableTapToMove: boolean;
   selectedCount: number;
@@ -25,6 +26,7 @@ export const TimelineTrack: React.FC<TimelineTrackProps> = ({
   containerRef,
   zoomLevel,
   isFileOver,
+  suppressFileOverHighlight = false,
   enableTapToMove,
   selectedCount,
   onDragEnter,
@@ -39,7 +41,7 @@ export const TimelineTrack: React.FC<TimelineTrackProps> = ({
   return (
     <div
       ref={timelineRef}
-      className={`timeline-scroll relative bg-muted/20 border rounded-lg px-5 overflow-x-auto ${zoomLevel <= 1 ? 'no-scrollbar' : ''} ${isFileOver ? 'ring-2 ring-primary bg-primary/5' : ''}`}
+      className={`timeline-scroll relative bg-muted/20 border rounded-lg px-5 overflow-x-auto ${zoomLevel <= 1 ? 'no-scrollbar' : ''} ${isFileOver && !suppressFileOverHighlight ? 'ring-2 ring-primary bg-primary/5' : ''}`}
       style={{ minHeight: '240px', paddingTop: '2.5rem', paddingBottom: '7.5rem' }}
       onDragEnter={onDragEnter}
       onDragOver={(e) => onDragOver(e, containerRef)}

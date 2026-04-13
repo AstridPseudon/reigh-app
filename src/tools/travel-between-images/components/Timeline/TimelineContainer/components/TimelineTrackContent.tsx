@@ -12,6 +12,9 @@ interface TimelineTrackContentProps {
 }
 
 export const TimelineTrackContent: React.FC<TimelineTrackContentProps> = ({ data }) => {
+  const [activeVariantDropTargetId, setActiveVariantDropTargetId] = React.useState<string | null>(null);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const timelineData = data as Record<string, any>;
   const {
     timelineRef,
     containerRef,
@@ -97,19 +100,25 @@ export const TimelineTrackContent: React.FC<TimelineTrackContentProps> = ({ data
     prefetchTaskData,
     onImageDelete,
     handleDuplicateInterceptor,
+    onVariantDrop,
     handleInpaintClick,
     duplicatingImageId,
     duplicateSuccessImageId,
     isSelected,
     toggleSelection,
-  } = data;
+  } = timelineData;
+
+  const suppressParentDropIndicators = Boolean(activeVariantDropTargetId);
+  const effectiveIsFileOver = suppressParentDropIndicators ? false : isFileOver;
+  const effectiveDropTargetFrame = suppressParentDropIndicators ? null : dropTargetFrame;
 
   return (
     <TimelineTrack
       timelineRef={timelineRef}
       containerRef={containerRef}
       zoomLevel={zoomLevel}
-      isFileOver={isFileOver}
+      isFileOver={effectiveIsFileOver}
+      suppressFileOverHighlight={suppressParentDropIndicators}
       hasNoImages={hasNoImages}
       enableTapToMove={enableTapToMove}
       selectedCount={selectedIds.length}
@@ -196,8 +205,8 @@ export const TimelineTrackContent: React.FC<TimelineTrackContentProps> = ({ data
       )}
     >
       <DragLayer
-        isFileOver={isFileOver}
-        dropTargetFrame={dropTargetFrame}
+        isFileOver={effectiveIsFileOver}
+        dropTargetFrame={effectiveDropTargetFrame}
         fullMin={fullMin}
         fullRange={fullRange}
         containerWidth={containerWidth}
@@ -210,6 +219,7 @@ export const TimelineTrackContent: React.FC<TimelineTrackContentProps> = ({ data
         isInternalDropProcessing={isInternalDropProcessing}
         projectAspectRatio={projectAspectRatio}
         imagesLength={images.length}
+        suppressIndicator={suppressParentDropIndicators}
       />
       <TimelineRuler
         fullMin={fullMin}
@@ -223,20 +233,20 @@ export const TimelineTrackContent: React.FC<TimelineTrackContentProps> = ({ data
         images={images}
         imagePositionsWithPending={imagePositions}
         pairInfoWithPending={pairInfoWithPending}
-        pairPrompts={data.pairPrompts}
-        defaultPrompt={data.defaultPrompt}
-        defaultNegativePrompt={data.defaultNegativePrompt}
-        showPairLabels={data.showPairLabels}
+        pairPrompts={timelineData.pairPrompts}
+        defaultPrompt={timelineData.defaultPrompt}
+        defaultNegativePrompt={timelineData.defaultNegativePrompt}
+        showPairLabels={timelineData.showPairLabels}
         dragState={{
           isDragging: dragState.isDragging,
         }}
         onPairClick={onPairClick}
-        onClearEnhancedPrompt={data.onClearEnhancedPrompt}
+        onClearEnhancedPrompt={timelineData.onClearEnhancedPrompt}
         readOnly={readOnly}
         enableTapToMove={enableTapToMove}
         selectedIdsCount={selectedIds.length}
-        isFileOver={isFileOver}
-        dropTargetFrame={dropTargetFrame}
+        isFileOver={effectiveIsFileOver}
+        dropTargetFrame={effectiveDropTargetFrame}
         currentDragFrame={currentDragFrame}
         fullMin={fullMin}
         fullRange={fullRange}
@@ -262,7 +272,7 @@ export const TimelineTrackContent: React.FC<TimelineTrackContentProps> = ({ data
       />
       <TimelineItemsLayer
         images={images}
-        currentPositions={data.currentPositions}
+        currentPositions={timelineData.currentPositions}
         framePositions={framePositions}
         drag={{
           isDragging: dragState.isDragging,
@@ -289,6 +299,8 @@ export const TimelineTrackContent: React.FC<TimelineTrackContentProps> = ({ data
         actions={{
           onImageDelete,
           onImageDuplicate: handleDuplicateInterceptor,
+          onVariantDrop,
+          onVariantDropTargetChange: setActiveVariantDropTargetId,
           onInpaintClick: handleInpaintClick,
           duplicatingImageId,
           duplicateSuccessImageId,

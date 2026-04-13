@@ -6,6 +6,7 @@ import type {
   GenerationDropHandler,
 } from '@/shared/types/imageHandlers';
 import type { SegmentSlot } from '@/shared/hooks/segments';
+import type { VariantDropParams } from '@/shared/hooks/dnd/useImageVariantDrop';
 
 // Re-export PairData from shared for backwards compatibility
 export type { PairData } from '@/shared/types/pairData';
@@ -25,6 +26,7 @@ interface TimelinePairProps {
 interface TimelineImageActionProps {
   onImageDelete: ImageDeleteHandler;
   onImageDuplicate: (imageId: string, timelineFrame: number, nextTimelineFrame?: number) => void;
+  onVariantDrop?: (params: VariantDropParams) => Promise<void>;
   duplicatingImageId?: string | null;
   duplicateSuccessImageId?: string | null;
 }

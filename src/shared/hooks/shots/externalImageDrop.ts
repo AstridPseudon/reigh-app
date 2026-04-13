@@ -65,6 +65,16 @@ interface ProcessDroppedImagesInput {
   createGeneration?: typeof createGenerationForUploadedImage;
 }
 
+interface UploadImageForVariantOptions {
+  onProgress?: (progress: number) => void;
+}
+
+interface CreateGenerationForUploadedImageInput {
+  imageFile: File;
+  projectId: string;
+  onProgress?: (progress: number) => void;
+}
+
 const buildProgressHandler = (
   onProgress: ExternalImageDropVariables['onProgress'],
   fileIndex: number,
@@ -77,19 +87,41 @@ const buildProgressHandler = (
       }
     : undefined;
 
-const createGenerationForUploadedImage = async (
-  imageUrl: string,
-  fileName: string,
-  fileType: string,
-  fileSize: number,
-  projectId: string,
-  thumbnailUrl?: string,
-): Promise<Database['public']['Tables']['generations']['Row']> => {
+export async function uploadImageForVariant(
+  imageFile: File,
+  _projectId: string,
+  options: UploadImageForVariantOptions = {},
+): Promise<{ imageUrl: string; thumbnailUrl: string }> {
+  void _projectId;
+  const { onProgress } = options;
+  try {
+    const thumbnailResult = await generateClientThumbnail(imageFile, 300, 0.8);
+    return await uploadImageWithThumbnail(imageFile, thumbnailResult.thumbnailBlob, {
+      onProgress,
+    });
+  } catch (error) {
+    normalizeAndPresentError(error, { context: `useShotCreation:thumbnail:${imageFile.name}`, showToast: false });
+    const imageUrl = await uploadImageToStorage(imageFile, 3, onProgress);
+    return {
+      imageUrl,
+      thumbnailUrl: imageUrl,
+    };
+  }
+}
+
+const createGenerationForUploadedImage = async ({
+  imageFile,
+  projectId,
+  onProgress,
+}: CreateGenerationForUploadedImageInput): Promise<Database['public']['Tables']['generations']['Row']> => {
+  const { imageUrl, thumbnailUrl } = await uploadImageForVariant(imageFile, projectId, {
+    onProgress,
+  });
   const generationParams = {
     source: 'upload',
-    original_filename: fileName,
-    file_type: fileType,
-    file_size: fileSize,
+    original_filename: imageFile.name,
+    file_type: imageFile.type,
+    file_size: imageFile.size,
   };
 
   const { data, error } = await supabase().from('generations')
@@ -211,39 +243,11 @@ async function ensureTargetShotId(
   return result.shot.id;
 }
 
-async function uploadImageWithFallback(
-  imageFile: File,
-  fileIndex: number,
-  totalFiles: number,
-  onProgress?: ExternalImageDropVariables['onProgress'],
-): Promise<{ imageUrl: string; thumbnailUrl: string }> {
-  const progressHandler = buildProgressHandler(onProgress, fileIndex, totalFiles);
-  let imageUrl = '';
-  let thumbnailUrl = '';
-
-  try {
-    const thumbnailResult = await generateClientThumbnail(imageFile, 300, 0.8);
-    const uploadResult = await uploadImageWithThumbnail(
-      imageFile,
-      thumbnailResult.thumbnailBlob,
-      { onProgress: progressHandler },
-    );
-    imageUrl = uploadResult.imageUrl;
-    thumbnailUrl = uploadResult.thumbnailUrl;
-  } catch (error) {
-    normalizeAndPresentError(error, { context: `useShotCreation:thumbnail:${imageFile.name}`, showToast: false });
-    imageUrl = await uploadImageToStorage(imageFile, 3, progressHandler);
-    thumbnailUrl = imageUrl;
-  }
-
-  return { imageUrl, thumbnailUrl };
-}
-
 async function attachGenerationToShot(input: {
   shotId: string;
   generation: Database['public']['Tables']['generations']['Row'];
   projectId: string;
-  thumbnailUrl: string;
+  thumbnailUrl?: string | null;
   fileIndex: number;
   variables: ExternalImageDropVariables;
   addImageToShot: ProcessDroppedImagesInput['addImageToShot'];
@@ -343,28 +347,13 @@ async function processSingleDroppedImage(input: {
     createGeneration,
   } = input;
 
-  const { imageUrl, thumbnailUrl } = await uploadImageWithFallback(
-    imageFile,
-    fileIndex,
-    totalFiles,
-    variables.onProgress,
-  );
-
-  if (!imageUrl) {
-    toast.error(`Failed to upload image ${imageFile.name} to storage.`);
-    return null;
-  }
-
   let generation: Database['public']['Tables']['generations']['Row'];
   try {
-    generation = await createGeneration(
-      imageUrl,
-      imageFile.name,
-      imageFile.type,
-      imageFile.size,
+    generation = await createGeneration({
+      imageFile,
       projectId,
-      thumbnailUrl,
-    );
+      onProgress: buildProgressHandler(variables.onProgress, fileIndex, totalFiles),
+    });
   } catch (error) {
     toast.error(`Failed to create generation data for ${imageFile.name}: ${(error as Error).message}`);
     return null;
@@ -379,7 +368,7 @@ async function processSingleDroppedImage(input: {
     shotId,
     generation,
     projectId,
-    thumbnailUrl,
+    thumbnailUrl: generation.thumbnail_url ?? generation.location,
     fileIndex,
     variables,
     addImageToShot,
@@ -389,7 +378,7 @@ async function processSingleDroppedImage(input: {
   return {
     generationId: generation.id,
     location: generation.location,
-    thumbnail_url: generation.thumbnail_url ?? thumbnailUrl ?? generation.location,
+    thumbnail_url: generation.thumbnail_url ?? generation.location,
     type: generation.type,
     created_at: generation.created_at,
     params: generation.params,

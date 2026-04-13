@@ -20,6 +20,7 @@ import type {
   GenerationDropHandler,
   ImageUploadHandler,
 } from '@/shared/types/imageHandlers';
+import type { VariantDropParams } from '@/shared/hooks/dnd/useImageVariantDrop';
 
 export interface ShotCoreState {
   selectedShot: Shot;
@@ -49,6 +50,7 @@ export interface ShotImageHandlers {
   onGenerationDrop: GenerationDropHandler;
   onBatchFileDrop: FileDropHandler;
   onBatchGenerationDrop: GenerationDropHandler;
+  onVariantDrop?: (params: VariantDropParams) => Promise<void>;
   onDelete: ImageDeleteHandler;
   onBatchDelete: BatchImageDeleteHandler;
   onDuplicate: ImageDuplicateHandler;
