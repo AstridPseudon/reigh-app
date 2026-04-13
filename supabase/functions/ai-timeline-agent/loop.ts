@@ -597,6 +597,29 @@ export async function runAgentLoop(
       const assistantText = extractAssistantText(responseMessage);
 
       if (extractedToolCalls.length === 0) {
+        // Count tasks actually created during this loop (turns added since session.turns)
+        const newTurns = turns.slice(session.turns.length);
+        const tasksCreated = newTurns.filter(
+          (t) => t.role === "tool_result" && t.tool_name === "create_task" && t.content.includes("Queued"),
+        ).length;
+        const userMessages = newTurns
+          .filter((t) => t.role === "user")
+          .map((t) => t.content);
+
+        // If the LLM is exiting without having called any tools this iteration,
+        // give it a reality check before accepting the exit
+        if (iteration === 0 && userMessages.length > 0) {
+          const checkMsg = [
+            `Before you respond to the user, verify you've done everything needed.`,
+            `User messages this turn: ${JSON.stringify(userMessages)}`,
+            `Tasks you actually created this turn: ${tasksCreated}`,
+            `If you still need to call create_task or any other tool, do it now. If everything is done, reply to the user.`,
+          ].join("\n");
+          messages.push({ role: "assistant", content: assistantText || "" });
+          messages.push({ role: "user", content: checkMsg });
+          continue;
+        }
+
         const text = assistantText || "What would you like me to do?";
         turns.push(createTurn("assistant", text));
         messages.push({ role: "assistant", content: text });
