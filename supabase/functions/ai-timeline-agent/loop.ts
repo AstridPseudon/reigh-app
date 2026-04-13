@@ -582,7 +582,6 @@ export async function runAgentLoop(
   }
   let status: AgentSessionStatus = "processing";
   let activeToolCallId: string | null = null;
-  let madeToolCall = false;
 
   let summary = session.summary;
 
@@ -712,22 +711,6 @@ export async function runAgentLoop(
       const assistantText = extractAssistantText(responseMessage);
 
       if (extractedToolCalls.length === 0) {
-        // If the LLM made zero tool calls this entire loop and a user message exists,
-        // nudge it once to verify it hasn't skipped work
-        if (!madeToolCall && userMessage) {
-          const newTurns = turns.slice(session.turns.length);
-          const tasksCreated = newTurns.filter(
-            (t) => t.role === "tool_result" && t.tool_name === "create_task" && t.content.includes("Queued"),
-          ).length;
-          // Mark so we don't nudge again
-          madeToolCall = true;
-          messages.push({
-            role: "user",
-            content: `[System] You responded without calling any tools. User message: "${userMessage}". Tasks created this turn: ${tasksCreated}. If you need to call create_task or another tool, do it now. Otherwise reply to the user.`,
-          });
-          continue;
-        }
-
         const text = assistantText || "What would you like me to do?";
         turns.push(createTurn("assistant", text));
         messages.push({ role: "assistant", content: text });
@@ -735,7 +718,6 @@ export async function runAgentLoop(
         break;
       }
 
-      madeToolCall = true;
       const { hasError } = await processToolCalls({
         toolCalls: extractedToolCalls,
         assistantText,

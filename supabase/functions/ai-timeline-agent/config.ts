@@ -15,5 +15,4 @@ export const ANTHROPIC_API_VERSION = "2023-06-01";
 
 export const LOOP_LIMIT = 8;
 export const SOFT_TIMEOUT_MS = 50_000;
-export const MAX_CONTEXT_TURNS = 30;
 export const SUMMARIZE_THRESHOLD = 40; // Summarize when total turns exceed this

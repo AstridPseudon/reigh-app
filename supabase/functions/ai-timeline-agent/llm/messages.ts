@@ -1,5 +1,4 @@
 import { toErrorMessage } from "../../_shared/errorMessage.ts";
-import { MAX_CONTEXT_TURNS } from "../config.ts";
 import { isRecord } from "../utils.ts";
 import type {
   AgentSession,
@@ -143,26 +142,14 @@ export function buildInitialMessages(
   turns: AgentTurn[],
   sessionSummary?: string | null,
 ): LlmMessage[] {
-  const messages: LlmMessage[] = [{ role: "system", content: systemPrompt }];
+  // Fold session summary into the system prompt so the LLM treats it as ground truth
+  const fullSystemPrompt = sessionSummary
+    ? `${systemPrompt}\n\n## Session history\nThis is an ongoing session. Here is what happened earlier:\n\n${sessionSummary}\n\nThe user's next message continues this session. Always use tools (create_task, etc.) to execute requests — never just describe what you would do.`
+    : systemPrompt;
 
-  // Inject session summary as context before recent turns
-  if (sessionSummary) {
-    messages.push({
-      role: "user",
-      content: `[System — session context] This is an ongoing session. Here is what happened earlier:\n\n${sessionSummary}\n\nThe user's next message is a continuation of this session. You MUST use tools (create_task, etc.) to execute their request — do not just describe what you would do. If they ask for images, call create_task. If they say "more", call create_task again with the same reference images and adjusted prompts.`,
-    });
-    messages.push({
-      role: "assistant",
-      content: "Got it — I have the session context and will use tools to execute the next request.",
-    });
-  }
+  const messages: LlmMessage[] = [{ role: "system", content: fullSystemPrompt }];
 
-  // Only send the most recent turns to avoid blowing up the context window.
-  const recentTurns = turns.length > MAX_CONTEXT_TURNS
-    ? turns.slice(-MAX_CONTEXT_TURNS)
-    : turns;
-
-  for (const turn of recentTurns) {
+  for (const turn of turns) {
     if (turn.role === "user") {
       messages.push({ role: "user", content: turn.content });
       continue;
