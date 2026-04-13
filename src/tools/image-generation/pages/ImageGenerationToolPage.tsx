@@ -120,7 +120,7 @@ const ImageGenerationToolPage: React.FC = React.memo(() => {
           <h1 className="text-3xl font-light tracking-tight text-foreground">Image Generation</h1>
         </div>
 
-        <div ref={collapsibleContainerRef} className="mb-8">
+        <div ref={collapsibleContainerRef} className="mb-2">
           <Collapsible
             open={isFormExpanded}
             onOpenChange={handleCollapsibleOpenChange}
