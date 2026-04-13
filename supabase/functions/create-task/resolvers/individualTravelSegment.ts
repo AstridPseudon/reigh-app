@@ -223,7 +223,14 @@ function buildIndividualTravelSegmentParams(
   } | undefined;
   const numInferenceSteps = input.num_inference_steps
     ?? (phaseConfig?.steps_per_phase?.reduce((sum, steps) => sum + steps, 0) ?? 6);
+  // Start from the original orchestrator_details (preserves pipeline layout fields
+  // like segment_frames_expanded, frame_overlap_expanded, etc.) then override with
+  // the user-editable fields. This way new fields added to the pipeline path don't
+  // silently disappear on frontend retries.
+  const origParams = asRecord(input.originalParams);
+  const origOrchestrator = asRecord(origParams?.orchestrator_details) ?? {};
   const orchestratorDetails: Record<string, unknown> = {
+    ...origOrchestrator,
     generation_source: "individual_segment",
     parsed_resolution_wh: finalResolution,
     input_image_paths_resolved: inputImages,
