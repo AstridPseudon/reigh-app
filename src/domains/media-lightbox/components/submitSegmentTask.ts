@@ -193,7 +193,8 @@ function buildSubmitParamsBuilder(
 ): BuildTaskParams {
   const selectedModel = effectiveSettings.selectedModel
     ?? resolveSelectedModelFromModelName(task.modelName);
-  const policy = resolveGenerationPolicy(getModelSpec(selectedModel), {
+  const spec = getModelSpec(selectedModel);
+  const policy = resolveGenerationPolicy(spec, {
     smoothContinuations: effectiveSettings.smoothContinuations ?? false,
     requestedExecutionMode: task.generationTypeMode ?? 'i2v',
     guidanceKind: (() => {
@@ -243,6 +244,7 @@ function buildSubmitParamsBuilder(
           }),
         ...(enhancedPromptParam ? { enhancedPrompt: enhancedPromptParam } : {}),
         ...(task.structureInput?.travelGuidance ? { travelGuidance: task.structureInput.travelGuidance } : {}),
+        skipMotionFields: !spec.supportsMotionFields,
       },
     );
   };

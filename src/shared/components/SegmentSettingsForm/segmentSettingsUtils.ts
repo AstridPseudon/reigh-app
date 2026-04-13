@@ -152,15 +152,19 @@ export function buildTaskParams(
     enhancedPrompt?: string;
     // Canonical travel guidance input for this segment.
     travelGuidance?: TravelGuidance;
+    // When true, skip phase_config and motion fields entirely (model doesn't support them)
+    skipMotionFields?: boolean;
   }
 ): IndividualTravelSegmentParams {
-  const motionFields = buildMotionTaskFields({
-    amountOfMotion: settings.amountOfMotion,
-    motionMode: settings.motionMode,
-    phaseConfig: settings.phaseConfig ?? DEFAULT_PHASE_CONFIG,
-    selectedPhasePresetId: settings.selectedPhasePresetId,
-    omitBasicPhaseConfig: true,
-  });
+  const motionFields = context.skipMotionFields
+    ? {}
+    : buildMotionTaskFields({
+      amountOfMotion: settings.amountOfMotion,
+      motionMode: settings.motionMode,
+      phaseConfig: settings.phaseConfig ?? DEFAULT_PHASE_CONFIG,
+      selectedPhasePresetId: settings.selectedPhasePresetId,
+      omitBasicPhaseConfig: true,
+    });
 
   // Detect trailing segment: no end image means single-image-to-video (last segment)
   const isTrailingSegment = !context.endImageUrl;
