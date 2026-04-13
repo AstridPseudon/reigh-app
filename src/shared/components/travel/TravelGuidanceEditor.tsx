@@ -51,6 +51,7 @@ const MODE_LABELS: Record<TravelGuidanceMode, string> = {
   uni3c: 'Uni3C',
   pose: 'Pose',
   video: 'Video',
+  cameraman: 'Camera',
 };
 
 function renderFieldHeader(

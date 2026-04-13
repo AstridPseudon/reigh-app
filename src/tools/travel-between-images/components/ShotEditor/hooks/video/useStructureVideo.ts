@@ -63,11 +63,11 @@ export interface UseStructureVideoReturn {
   structureVideoMetadata: VideoMetadata | null;
   structureVideoTreatment: 'adjust' | 'clip';
   structureVideoMotionStrength: number;
-  structureVideoType: 'uni3c' | 'flow' | 'canny' | 'depth' | 'raw' | 'pose' | 'video';
+  structureVideoType: 'uni3c' | 'flow' | 'canny' | 'depth' | 'raw' | 'pose' | 'video' | 'cameraman';
   structureVideoResourceId: string | null;
   structureVideoUni3cEndPercent: number;
   structureVideoDefaultsByModel?: Partial<Record<SelectedModel, {
-    mode: 'uni3c' | 'flow' | 'canny' | 'depth' | 'raw' | 'pose' | 'video';
+    mode: 'uni3c' | 'flow' | 'canny' | 'depth' | 'raw' | 'pose' | 'video' | 'cameraman';
     motionStrength: number;
     treatment: 'adjust' | 'clip';
     uni3cEndPercent: number;

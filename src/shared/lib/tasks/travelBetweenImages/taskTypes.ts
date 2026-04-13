@@ -57,7 +57,7 @@ export interface TravelGuidanceVace {
 
 export interface TravelGuidanceLtxControl {
   kind: 'ltx_control';
-  mode: 'pose' | 'depth' | 'canny' | 'video';
+  mode: 'pose' | 'depth' | 'canny' | 'video' | 'cameraman';
   videos: TravelGuidanceVideoConfig[];
   strength?: number;
 }

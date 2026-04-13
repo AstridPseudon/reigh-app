@@ -117,7 +117,7 @@ describe('travelGuidance', () => {
       'pose',
       'depth',
       'canny',
-      'uni3c',
+      'cameraman',
     ]);
     expect(getSupportedTravelGuidanceModes('ltx2_22B')).toEqual([]);
   });

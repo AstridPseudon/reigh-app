@@ -7,7 +7,7 @@ import type {
 import { normalizeStructureGuidance } from './structureGuidance';
 import { asNumber, asRecord, asString, type UnknownRecord } from './taskParamParsers';
 
-export type TravelGuidanceMode = 'uni3c' | 'flow' | 'canny' | 'depth' | 'raw' | 'pose' | 'video';
+export type TravelGuidanceMode = 'uni3c' | 'flow' | 'canny' | 'depth' | 'raw' | 'pose' | 'video' | 'cameraman';
 
 export interface TravelGuidanceControls {
   mode: TravelGuidanceMode;
@@ -46,7 +46,7 @@ interface BuildTravelGuidanceFromControlsInput {
 }
 
 const WAN_GUIDANCE_MODES: TravelGuidanceMode[] = ['flow', 'canny', 'depth', 'raw', 'uni3c'];
-const DISTILLED_LTX_GUIDANCE_MODES: TravelGuidanceMode[] = ['video', 'pose', 'depth', 'canny', 'uni3c'];
+const DISTILLED_LTX_GUIDANCE_MODES: TravelGuidanceMode[] = ['video', 'pose', 'depth', 'canny', 'cameraman'];
 
 function sanitizeTreatment(
   value: unknown,
@@ -138,7 +138,7 @@ export function getDefaultTravelGuidanceStrength(
   }
 
   if (isDistilledLtxModelName(modelName)) {
-    return mode === 'video' ? 1 : 0.5;
+    return mode === 'video' || mode === 'cameraman' ? 1 : 0.5;
   }
 
   return 1;
@@ -160,7 +160,7 @@ function isTravelGuidanceAllowedForModel(
   }
 
   if (guidance.kind === 'uni3c') {
-    return isGuidanceModeSupportedForModel('uni3c', modelName);
+    return isGuidanceModeSupportedForModel('uni3c', modelName) || isDistilledLtxModelName(modelName);
   }
 
   if (guidance.kind === 'ltx_control') {
@@ -271,7 +271,7 @@ function sanitizeTravelGuidance(
 
   if (kind === 'ltx_control') {
     const mode = asString(record.mode);
-    if (mode !== 'pose' && mode !== 'depth' && mode !== 'canny' && mode !== 'video') {
+    if (mode !== 'pose' && mode !== 'depth' && mode !== 'canny' && mode !== 'video' && mode !== 'cameraman') {
       return undefined;
     }
     const guidance: TravelGuidance = {
@@ -402,7 +402,7 @@ export function buildTravelGuidanceFromControls({
   }
 
   if (isDistilledLtxModelName(modelName)) {
-    if (controls.mode !== 'video' && controls.mode !== 'pose' && controls.mode !== 'depth' && controls.mode !== 'canny') {
+    if (controls.mode !== 'video' && controls.mode !== 'pose' && controls.mode !== 'depth' && controls.mode !== 'canny' && controls.mode !== 'cameraman') {
       return undefined;
     }
 

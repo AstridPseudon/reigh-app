@@ -75,7 +75,7 @@ const CONTINUATION_LIMITS: Record<
 };
 
 const WAN_GUIDANCE_MODES: TravelGuidanceMode[] = ['flow', 'canny', 'depth', 'raw', 'uni3c'];
-const DISTILLED_LTX_GUIDANCE_MODES: TravelGuidanceMode[] = ['video', 'pose', 'depth', 'canny', 'uni3c'];
+const DISTILLED_LTX_GUIDANCE_MODES: TravelGuidanceMode[] = ['video', 'pose', 'depth', 'canny', 'cameraman'];
 
 export const MODEL_SPEC_REGISTRY: Record<SelectedModel, ModelSpec> = {
   'wan-2.2': {
