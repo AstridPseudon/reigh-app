@@ -479,6 +479,7 @@ export async function runAgentLoop(
   let status: AgentSessionStatus = "processing";
   const summary = session.summary;
   let activeToolCallId: string | null = null;
+  let madeToolCall = false;
 
   try {
     await persistSessionState(supabaseAdmin, {
@@ -597,26 +598,19 @@ export async function runAgentLoop(
       const assistantText = extractAssistantText(responseMessage);
 
       if (extractedToolCalls.length === 0) {
-        // Count tasks actually created during this loop (turns added since session.turns)
-        const newTurns = turns.slice(session.turns.length);
-        const tasksCreated = newTurns.filter(
-          (t) => t.role === "tool_result" && t.tool_name === "create_task" && t.content.includes("Queued"),
-        ).length;
-        const userMessages = newTurns
-          .filter((t) => t.role === "user")
-          .map((t) => t.content);
-
-        // If the LLM is exiting without having called any tools this iteration,
-        // give it a reality check before accepting the exit
-        if (iteration === 0 && userMessages.length > 0) {
-          const checkMsg = [
-            `Before you respond to the user, verify you've done everything needed.`,
-            `User messages this turn: ${JSON.stringify(userMessages)}`,
-            `Tasks you actually created this turn: ${tasksCreated}`,
-            `If you still need to call create_task or any other tool, do it now. If everything is done, reply to the user.`,
-          ].join("\n");
-          messages.push({ role: "assistant", content: assistantText || "" });
-          messages.push({ role: "user", content: checkMsg });
+        // If the LLM made zero tool calls this entire loop and a user message exists,
+        // nudge it once to verify it hasn't skipped work
+        if (!madeToolCall && userMessage) {
+          const newTurns = turns.slice(session.turns.length);
+          const tasksCreated = newTurns.filter(
+            (t) => t.role === "tool_result" && t.tool_name === "create_task" && t.content.includes("Queued"),
+          ).length;
+          // Mark so we don't nudge again
+          madeToolCall = true;
+          messages.push({
+            role: "user",
+            content: `[System] You responded without calling any tools. User message: "${userMessage}". Tasks created this turn: ${tasksCreated}. If you need to call create_task or another tool, do it now. Otherwise reply to the user.`,
+          });
           continue;
         }
 
@@ -627,6 +621,7 @@ export async function runAgentLoop(
         break;
       }
 
+      madeToolCall = true;
       const { hasError } = await processToolCalls({
         toolCalls: extractedToolCalls,
         assistantText,
