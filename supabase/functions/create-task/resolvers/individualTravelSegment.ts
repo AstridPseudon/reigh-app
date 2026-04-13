@@ -1,4 +1,4 @@
-import type { ResolverResult, TaskFamilyResolver, TaskInsertObject } from "./types.ts";
+import type { ResolverContext, ResolverResult, TaskFamilyResolver, TaskInsertObject } from "./types.ts";
 import { resolveProjectResolutionFromAspectRatio } from "./shared/resolution.ts";
 import { resolveSeed32Bit } from "./shared/seed.ts";
 import {
@@ -194,12 +194,18 @@ function validateInput(input: IndividualTravelSegmentInput): void {
   }
 }
 
+interface SegmentLayout {
+  segmentFramesExpanded: number[];
+  frameOverlapExpanded: number[];
+}
+
 function buildIndividualTravelSegmentParams(
   input: IndividualTravelSegmentInput,
   finalResolution: string,
   parentGenerationId: string,
   childGenerationId: string | undefined,
   projectId: string,
+  segmentLayout?: SegmentLayout,
 ): Record<string, unknown> {
   const inputImages = input.end_image_url
     ? [input.start_image_url, input.end_image_url]
@@ -254,6 +260,10 @@ function buildIndividualTravelSegmentParams(
     chain_segments: Boolean(input.continuation_config),
     ...(input.continuation_config ? { continuation_config: input.continuation_config } : {}),
     ...(input.travel_guidance ? { travel_guidance: input.travel_guidance } : {}),
+    ...(segmentLayout ? {
+      segment_frames_expanded: segmentLayout.segmentFramesExpanded,
+      frame_overlap_expanded: segmentLayout.frameOverlapExpanded,
+    } : {}),
   };
 
   const hasPairShotGenerationId = Boolean(
@@ -367,6 +377,61 @@ function buildIndividualTravelSegmentParams(
 }
 
 /**
+ * Query sibling segments' completed tasks to reconstruct the pipeline layout.
+ * Returns segment_frames_expanded and frame_overlap_expanded so the worker
+ * can compute stitched positions for travel guidance slicing.
+ *
+ * Falls back gracefully: if siblings can't be queried or segment_index is 0,
+ * returns undefined (no layout needed).
+ */
+async function resolveSegmentLayout(
+  context: ResolverContext,
+  parentGenerationId: string,
+  segmentIndex: number,
+  currentNumFrames: number,
+): Promise<SegmentLayout | undefined> {
+  if (segmentIndex === 0) return undefined;
+
+  // Find the most recent completed task for each sibling segment
+  const { data: siblingTasks } = await context.supabaseAdmin
+    .from("tasks")
+    .select("parameters")
+    .eq("parameters->>parent_generation_id", parentGenerationId)
+    .eq("task_type", "individual_travel_segment")
+    .in("status", ["Complete", "In Progress"])
+    .order("created_at", { ascending: false });
+
+  if (!siblingTasks || siblingTasks.length === 0) return undefined;
+
+  // Build a map of segment_index -> num_frames from the most recent task per segment
+  const framesBySegment = new Map<number, number>();
+  const overlapBySegment = new Map<number, number>();
+  for (const task of siblingTasks) {
+    const params = task.parameters as Record<string, unknown>;
+    const idx = typeof params.segment_index === "number" ? params.segment_index : -1;
+    if (idx < 0 || framesBySegment.has(idx)) continue; // keep most recent (first in desc order)
+    framesBySegment.set(idx, typeof params.num_frames === "number" ? params.num_frames : 49);
+    overlapBySegment.set(idx, typeof params.frame_overlap_from_previous === "number" ? params.frame_overlap_from_previous : 0);
+  }
+
+  // Include current segment
+  framesBySegment.set(segmentIndex, currentNumFrames);
+
+  // Build arrays up to at least segmentIndex
+  const maxIdx = Math.max(segmentIndex, ...framesBySegment.keys());
+  const segmentFramesExpanded: number[] = [];
+  const frameOverlapExpanded: number[] = [];
+  for (let i = 0; i <= maxIdx; i++) {
+    segmentFramesExpanded.push(framesBySegment.get(i) ?? 49);
+    if (i > 0) {
+      frameOverlapExpanded.push(overlapBySegment.get(i) ?? 0);
+    }
+  }
+
+  return { segmentFramesExpanded, frameOverlapExpanded };
+}
+
+/**
  * Worker-created segment tasks (from travel_orchestrator) include
  * orchestrator_task_id_ref and a fully-built payload. Pass through as-is
  * to preserve pipeline linkage fields the stitch task needs.
@@ -396,13 +461,19 @@ export const individualTravelSegmentResolver: TaskFamilyResolver = async (
 
   const { parentGenerationId, childGenerationId } = await resolveSegmentGenerationRoute(context, input);
   const finalResolution = resolveFinalResolution(input, context.aspectRatio);
+  const segmentLayout = await resolveSegmentLayout(
+    context,
+    parentGenerationId,
+    input.segment_index,
+    Math.min(input.num_frames ?? 49, 81),
+  );
 
   return {
     tasks: [
       buildQueuedTask(
         context.projectId,
         "individual_travel_segment",
-        buildIndividualTravelSegmentParams(input, finalResolution, parentGenerationId, childGenerationId, context.projectId),
+        buildIndividualTravelSegmentParams(input, finalResolution, parentGenerationId, childGenerationId, context.projectId, segmentLayout),
       ),
     ],
   };
