@@ -17,7 +17,7 @@ import {
 } from '@/tools/video-editor/contexts/TimelineEditorContext';
 import { TimelinePlaybackContextProvider } from '@/tools/video-editor/contexts/TimelinePlaybackContext';
 import {
-  AgentChatProvider,
+  useAgentChatRegistry,
   type AgentChatContextValue,
 } from '@/shared/contexts/AgentChatContext';
 import { useEffects } from '@/tools/video-editor/hooks/useEffects';
@@ -67,10 +67,14 @@ export function buildVideoEditorLightboxMedia(
   };
 }
 
-function VideoEditorAgentChatBridge({ children }: { children: React.ReactNode }) {
+/** Registers video-editor state into the app-level AgentChatContext so the
+ *  global AgentChat component (rendered outside this provider tree) can access
+ *  timeline clips and selection ops. Must be rendered inside TimelineEditorOpsContextProvider. */
+function AgentChatBridgeRegistration() {
   const { timelineId } = useVideoEditorRuntime();
   const timelineEditorOps = useTimelineEditorOps();
   const { clips: timelineClips } = useSelectedMediaClips();
+  const { register, unregister } = useAgentChatRegistry();
 
   const replaceSelectedTimelineClips = useCallback((nextClips: AgentChatContextValue['timelineClips']) => {
     const nextClipIds = nextClips.map((clip) => clip.clipId);
@@ -88,11 +92,12 @@ function VideoEditorAgentChatBridge({ children }: { children: React.ReactNode })
     replaceSelectedTimelineClips,
   }), [replaceSelectedTimelineClips, timelineClips, timelineId]);
 
-  return (
-    <AgentChatProvider value={value}>
-      {children}
-    </AgentChatProvider>
-  );
+  useEffect(() => {
+    register(value);
+    return unregister;
+  }, [register, unregister, value]);
+
+  return null;
 }
 
 function InnerProvider({
@@ -295,28 +300,27 @@ function InnerProvider({
   return (
     <TimelineEditorDataContextProvider value={editorData}>
       <TimelineEditorOpsContextProvider value={editorOps}>
-        <VideoEditorAgentChatBridge>
-          <TimelineChromeContextProvider value={chrome}>
-            <TimelinePlaybackContextProvider value={playback}>
-              {children}
-              {lightboxAssetKey && resolvedLightboxMedia && (
-                <>
-                  <MediaLightbox
-                    media={resolvedLightboxMedia}
-                    navigation={navResult.navigation}
-                    initialVariantId={lightboxAsset?.variantId ?? resolvedLightboxMedia.primary_variant_id ?? undefined}
-                    onClose={() => {
-                      setLightboxAssetKey(null);
-                      setLightboxClipId(null);
-                    }}
-                    features={{ showDownload: true, showTaskDetails: true }}
-                  />
-                  {navResult.indicator ? <VideoEditorLightboxOverlay indicator={navResult.indicator} /> : null}
-                </>
-              )}
-            </TimelinePlaybackContextProvider>
-          </TimelineChromeContextProvider>
-        </VideoEditorAgentChatBridge>
+        <AgentChatBridgeRegistration />
+        <TimelineChromeContextProvider value={chrome}>
+          <TimelinePlaybackContextProvider value={playback}>
+            {children}
+            {lightboxAssetKey && resolvedLightboxMedia && (
+              <>
+                <MediaLightbox
+                  media={resolvedLightboxMedia}
+                  navigation={navResult.navigation}
+                  initialVariantId={lightboxAsset?.variantId ?? resolvedLightboxMedia.primary_variant_id ?? undefined}
+                  onClose={() => {
+                    setLightboxAssetKey(null);
+                    setLightboxClipId(null);
+                  }}
+                  features={{ showDownload: true, showTaskDetails: true }}
+                />
+                {navResult.indicator ? <VideoEditorLightboxOverlay indicator={navResult.indicator} /> : null}
+              </>
+            )}
+          </TimelinePlaybackContextProvider>
+        </TimelineChromeContextProvider>
       </TimelineEditorOpsContextProvider>
     </TimelineEditorDataContextProvider>
   );

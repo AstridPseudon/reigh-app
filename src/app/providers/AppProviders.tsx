@@ -10,15 +10,11 @@ import { GenerationTaskProvider } from '@/shared/contexts/GenerationTaskContext'
 import { IncomingTasksProvider } from '@/shared/contexts/IncomingTasksContext';
 import { PanesProvider } from '@/shared/contexts/PanesContext';
 import { GallerySelectionProvider } from '@/shared/contexts/GallerySelectionContext';
-import {
-  AgentChatProvider,
-  type AgentChatContextValue,
-} from '@/shared/contexts/AgentChatContext';
+import { AgentChatProvider } from '@/shared/contexts/AgentChatContext';
 import { LastAffectedShotProvider } from '@/shared/contexts/LastAffectedShotContext';
 import { CurrentShotProvider } from '@/shared/contexts/CurrentShotContext';
 import { ToolPageHeaderProvider } from '@/shared/contexts/ToolPageHeaderContext';
 import { ShotAdditionSelectionProvider } from '@/shared/contexts/ShotAdditionSelectionContext';
-import { useUserSettings } from '@/shared/contexts/UserSettingsContext';
 import { TaskTypeConfigInitializer } from '@/shared/components/TaskTypeConfigInitializer';
 import { TooltipProvider } from '@/shared/components/ui/tooltip';
 import { queryClient } from '@/app/providers/queryClient';
@@ -28,23 +24,6 @@ interface AppProvidersProps {
 }
 
 type TreeProvider = React.ComponentType<{ children: React.ReactNode }>;
-
-const noopReplaceSelectedTimelineClips: AgentChatContextValue['replaceSelectedTimelineClips'] = () => {};
-
-function DefaultAgentChatProvider({ children }: { children: React.ReactNode }) {
-  const { userSettings } = useUserSettings();
-  const value = React.useMemo<AgentChatContextValue>(() => ({
-    timelineId: userSettings?.lastTimelineId ?? null,
-    timelineClips: [],
-    replaceSelectedTimelineClips: noopReplaceSelectedTimelineClips,
-  }), [userSettings?.lastTimelineId]);
-
-  return (
-    <AgentChatProvider value={value}>
-      {children}
-    </AgentChatProvider>
-  );
-}
 
 function composeProviders(providers: TreeProvider[]): TreeProvider {
   return function ProviderTree({ children }: { children: React.ReactNode }) {
@@ -67,7 +46,7 @@ const AppProviderTree = composeProviders([
   IncomingTasksProvider,
   PanesProvider,
   GallerySelectionProvider,
-  DefaultAgentChatProvider,
+  AgentChatProvider,
   ShotAdditionSelectionProvider,
   LastAffectedShotProvider,
   CurrentShotProvider,
