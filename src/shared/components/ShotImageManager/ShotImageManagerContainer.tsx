@@ -105,9 +105,17 @@ function useSegmentController(
     shouldFetchSegments ? localShotGenPositions : undefined
   );
 
-  const segmentSlots = (localShotGenPositions && localShotGenPositions.size > 0)
+  const rawSegmentSlots = (localShotGenPositions && localShotGenPositions.size > 0)
     ? (hookResult.segmentSlots.length > 0 ? hookResult.segmentSlots : props.segmentSlots ?? [])
     : (props.segmentSlots ?? hookResult.segmentSlots);
+
+  // When the shot has ≤2 positioned timeline images, the segment video IS
+  // the final video — don't render inline segments between batch items.
+  // Reactive: a 3rd image flips this back.
+  const positionedImageCount = localShotGenPositions?.size ?? 0;
+  const segmentSlots = positionedImageCount > 0 && positionedImageCount <= 2
+    ? []
+    : rawSegmentSlots;
 
   const selectedParentId = hookResult.selectedParentId;
   const { hasPendingTask } = usePendingSegmentTasks(
