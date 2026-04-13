@@ -62,6 +62,23 @@ const APPEND_SHOT_POSITION = 2_147_483_647;
 
 // ── Session summarization ──────────────────────────────────────────
 
+function summarizeToolCallArgs(toolName: string, args: Record<string, unknown> | undefined): string {
+  if (!args) return "";
+  if (toolName === "create_task") {
+    // Keep the fields that matter for continuity
+    const parts: string[] = [];
+    if (args.task_type) parts.push(`task_type=${args.task_type}`);
+    if (args.prompt) parts.push(`prompt="${String(args.prompt).slice(0, 150)}"`);
+    if (args.count) parts.push(`count=${args.count}`);
+    if (args.model) parts.push(`model=${args.model}`);
+    if (Array.isArray(args.reference_image_urls) && args.reference_image_urls.length > 0) {
+      parts.push(`reference_image_urls=${JSON.stringify(args.reference_image_urls)}`);
+    }
+    return parts.join(", ");
+  }
+  return JSON.stringify(args).slice(0, 200);
+}
+
 function turnsToTranscript(turns: AgentTurn[]): string {
   const lines: string[] = [];
   for (const turn of turns) {
@@ -70,12 +87,9 @@ function turnsToTranscript(turns: AgentTurn[]): string {
     } else if (turn.role === "assistant") {
       lines.push(`ASSISTANT: ${turn.content}`);
     } else if (turn.role === "tool_call") {
-      const argsPreview = turn.tool_args
-        ? JSON.stringify(turn.tool_args).slice(0, 200)
-        : turn.content.slice(0, 200);
-      lines.push(`TOOL CALL ${turn.tool_name}: ${argsPreview}`);
+      lines.push(`TOOL CALL ${turn.tool_name}: ${summarizeToolCallArgs(turn.tool_name ?? "", turn.tool_args)}`);
     } else if (turn.role === "tool_result") {
-      lines.push(`TOOL RESULT ${turn.tool_name}: ${turn.content.slice(0, 150)}`);
+      lines.push(`TOOL RESULT ${turn.tool_name}: ${turn.content}`);
     }
   }
   return lines.join("\n");
