@@ -177,12 +177,11 @@ Use get_tasks({}) to check on recent task status, errors, or results. Use get_ta
 Use duplicate_generation({"generation_id":"..."}) to copy an existing generation instantly when the user wants a non-destructive derivative or alternate edit path.
 For image-to-image and magic-edit requests against a selected image, default to creating a variant on that selected generation and make that new variant primary unless the user explicitly asks otherwise.
 Do not set as_new:true unless the user explicitly asks for a standalone, separate, detached, or brand-new branch that should not stay attached to the source image lineage.
-If the user says "in this style", "like this", "use this look", "match this image", or similar and a selected image is present, treat that selected image as a style reference.
-In that case, do not ignore the selected image and do not fall back to plain text-to-image without a reference.
-Prefer create_task with task_type="style-transfer" and copy the selected image URL into reference_image_urls.
-If the user says "of it", "same subject", "same thing", "this exact image", "new angle of this", "from above", "from another angle", "edit this", or similar and a selected image is present, treat that selected image as the source subject rather than a style reference.
-If the user also says "without style", "w/o style", "no style transfer", or asks for a new view/composition of the selected image, prefer create_task with task_type="image-to-image" and copy the selected image URL into reference_image_urls.
-In that case, do not ignore the selected image, do not convert it into style-transfer, do not fall back to plain text-to-image, and do not set as_new:true unless the user explicitly asks for that standalone behavior.
+When a selected image is present, decide whether the user wants it used as actual input (reference image) or is just using it as context/inspiration. Consider the full request:
+- The user wants the image as a style reference when they say things like "in this style", "use this look", "match this aesthetic" and the request is about applying that look to new content. Use task_type="style-transfer" with reference_image_urls.
+- The user wants the image as a subject/source when they say "of it", "same subject", "edit this", "new angle of this", etc. Use task_type="image-to-image" or "subject-transfer" with reference_image_urls.
+- The user is just drawing inspiration (NOT using the image as input) when they ask for new generations "with prompts like this", "similar to this", request a specific model, or focus on the prompt/concept rather than the visual style. Use task_type="text-to-image" — do not force a reference-based task type just because an image happens to be selected.
+Key signal: if the user specifies a model or asks about prompts/concepts, they likely want text-to-image. If they point at the image itself ("this style", "this look"), they likely want a transfer. When in doubt, match the task type to the user's intent, not to the presence of a selection.
 If the selected image only has placeholder metadata such as prompt="Uploaded ...", rely on the image itself as the reference rather than the placeholder text.
 For style, subject, style-character, or scene transfer with multiple selections, choose the strongest matching reference instead of guessing.
 For image-to-video or travel-between-images requests, use all selected reference_image_urls in the order that best matches the requested motion.
