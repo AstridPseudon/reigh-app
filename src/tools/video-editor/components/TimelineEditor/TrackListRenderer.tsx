@@ -114,7 +114,7 @@ const SortableRow = React.memo(function SortableRow({
         const override = resizePreviewSnapshot[action.id];
         const renderedAction = override ? { ...action, ...override } : action;
         const left = startLeft + renderedAction.start * pixelsPerSecond;
-        const width = Math.max((renderedAction.end - renderedAction.start) * pixelsPerSecond, 1);
+        const width = Math.max((renderedAction.end - renderedAction.start) * pixelsPerSecond, resizeHandleWidth * 2);
 
         return (
           <div

@@ -7,6 +7,7 @@ import type {
 } from '@/tools/video-editor/lib/resize-math';
 import { getSourceTime, type ClipMeta, type TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import { resolveOverlaps } from '@/tools/video-editor/lib/resolve-overlaps';
+import { ensureGroupContiguity } from '@/tools/video-editor/lib/shot-group-contiguity';
 import type { TimelineApplyEdit } from '@/tools/video-editor/hooks/timeline-state-types';
 import type { TrackKind } from '@/tools/video-editor/types';
 import type { TimelineAction, TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
@@ -258,7 +259,8 @@ export function useClipResize({
     }
 
     if (session.context.kind === 'group') {
-      const nextRows = applyActionUpdates(current.rows, session.rowId, updates);
+      const updatedRows = applyActionUpdates(current.rows, session.rowId, updates);
+      const nextRows = ensureGroupContiguity(updatedRows, current.config.pinnedShotGroups);
       const perClipMetaUpdates: Record<string, Partial<ClipMeta>> = {};
       for (const update of updates) {
         const clip = getResizeOrigin(current, resizeStartRef.current, session.rowId, update.clipId);

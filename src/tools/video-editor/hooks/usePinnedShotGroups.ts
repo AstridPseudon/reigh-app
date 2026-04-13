@@ -11,6 +11,7 @@ import {
   clonePinnedShotGroup,
 } from '@/tools/video-editor/lib/shot-group-commands';
 import { orderClipIdsByAt } from '@/tools/video-editor/lib/pinned-group-projection';
+import { ensureGroupContiguity } from '@/tools/video-editor/lib/shot-group-contiguity';
 import type { ClipMeta, TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { PinnedShotGroup } from '@/tools/video-editor/types';
 import type { TimelineAction } from '@/tools/video-editor/types/timeline-canvas';
@@ -388,9 +389,11 @@ export function usePinnedGroupSync({
         return;
       }
 
+      const contiguousRows = ensureGroupContiguity(workingData.rows, workingPinnedShotGroups);
+
       applyEdit({
         type: 'rows',
-        rows: workingData.rows,
+        rows: contiguousRows,
         metaUpdates: Object.keys(accumulatedMetaUpdates).length > 0 ? accumulatedMetaUpdates : undefined,
         metaDeletes: accumulatedMetaDeletes.size > 0 ? [...accumulatedMetaDeletes] : undefined,
         clipOrderOverride: workingData.clipOrder,

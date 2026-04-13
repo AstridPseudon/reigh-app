@@ -1,5 +1,6 @@
 import { updateClipOrder } from '@/tools/video-editor/lib/coordinate-utils';
 import { orderClipIdsByAt } from '@/tools/video-editor/lib/pinned-group-projection';
+import { ensureGroupContiguity } from '@/tools/video-editor/lib/shot-group-contiguity';
 import { getNextClipId, type ClipMeta, type TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { PinnedShotGroup, PinnedShotImageClipSnapshot } from '@/tools/video-editor/types';
 import type { TimelineAction } from '@/tools/video-editor/types/timeline-canvas';
@@ -458,18 +459,21 @@ export function buildSwitchShotGroupToImagesMutation({
       : [...filtered.slice(0, insertionIndex), ...restoredClipIds, ...filtered.slice(insertionIndex)];
   });
 
+  const nextPinnedShotGroups = buildPinnedShotGroupsOverride(currentData, {
+    shotId,
+    trackId: rowId,
+    clipIds: restoredClipIds,
+    mode: 'images',
+    imageClipSnapshot: pinnedGroup.imageClipSnapshot,
+  });
+  const contiguousRows = ensureGroupContiguity(nextRows, nextPinnedShotGroups);
+
   return {
     type: 'rows' as const,
-    rows: nextRows,
+    rows: contiguousRows,
     metaUpdates: restoredMetaUpdates,
     metaDeletes: [videoClipId],
     clipOrderOverride: nextClipOrder,
-    pinnedShotGroupsOverride: buildPinnedShotGroupsOverride(currentData, {
-      shotId,
-      trackId: rowId,
-      clipIds: restoredClipIds,
-      mode: 'images',
-      imageClipSnapshot: pinnedGroup.imageClipSnapshot,
-    }),
+    pinnedShotGroupsOverride: nextPinnedShotGroups,
   };
 }

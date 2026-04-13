@@ -606,6 +606,34 @@ function TimelineEditorComponent() {
     handleSplitClipAtTime(clipId, time);
   }, [clientXToTime, handleSplitClipAtTime]);
 
+  const handleExpandTinyClip = useCallback((clipId: string) => {
+    const current = dataRef.current;
+    if (!current) return;
+    const row = current.rows.find((r) => r.actions.some((a) => a.id === clipId));
+    const action = row?.actions.find((a) => a.id === clipId);
+    if (!row || !action) return;
+    const duration = action.end - action.start;
+    if (duration >= 0.5) return;
+    const newEnd = action.start + 0.5;
+    const clipMeta = current.meta[clipId];
+    const metaUpdates: Record<string, Partial<ClipMeta>> = {};
+    if (clipMeta && typeof clipMeta.hold === 'number') {
+      metaUpdates[clipId] = { hold: 0.5 };
+    }
+    applyEdit({
+      type: 'rows',
+      rows: current.rows.map((r) =>
+        r.id !== row.id ? r : {
+          ...r,
+          actions: r.actions.map((a) =>
+            a.id !== clipId ? a : { ...a, end: newEnd },
+          ),
+        },
+      ),
+      ...(Object.keys(metaUpdates).length > 0 ? { metaUpdates } : {}),
+    });
+  }, [applyEdit, dataRef]);
+
   const handleDuplicateGenerationClip = useCallback(async (clipId: string) => {
     if (!selectedProjectId) {
       toast.error('Select a project before duplicating a generation.');
@@ -715,6 +743,7 @@ function TimelineEditorComponent() {
         onSelect={handleClipSelect}
         onDoubleClickAsset={onDoubleClickAsset}
         onDoubleClickVideoClip={handleDoubleClickVideoClip}
+        onExpandTinyClip={handleExpandTinyClip}
         onSplitHere={handleSplitClipHere}
         onSplitClipsAtPlayhead={handleSplitClipsAtPlayhead}
         onDeleteClips={handleDeleteClips}
@@ -750,6 +779,7 @@ function TimelineEditorComponent() {
     handleDuplicateGenerationClip,
     handleCreateShotFromSelection,
     handleDoubleClickVideoClip,
+    handleExpandTinyClip,
     handleClipSelect,
     handleDeleteClip,
     handleDeleteClips,
