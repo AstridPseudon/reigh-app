@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
 import { Loader2, MessageSquareText, Mic, Send, Square, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
+import { useLocation } from 'react-router-dom';
 import type { GenerationRow } from '@/domains/generation/types';
 import { MediaLightbox } from '@/domains/media-lightbox/MediaLightbox';
 import { Button } from '@/shared/components/ui/button';
@@ -122,6 +123,9 @@ function buildRenderedTurns(turns: AgentTurn[]): RenderedTurn[] {
 
 export function AgentChat() {
   useRenderDiagnostic('AgentChat');
+  const location = useLocation();
+  const isToolPage = location.pathname.startsWith('/tools') || location.pathname === '/shots' || location.pathname === '/art';
+
   const {
     timelineId,
     timelineClips,
@@ -421,7 +425,11 @@ export function AgentChat() {
     setDraft('');
   }, [createSession, hasTimeline]);
 
-  const hasMessages = renderedTurns.length > 0;
+  const hasUnseenActivity = isProcessing && !isOpen;
+  if (!isToolPage) {
+    return null;
+  }
+
   let content: JSX.Element;
 
   if (!isOpen && (voice.isRecording || voice.isProcessing)) {
@@ -458,24 +466,41 @@ export function AgentChat() {
     );
   } else if (!isOpen) {
     content = (
-      <button
-        type="button"
-        onClick={() => setIsOpen(true)}
-        className={cn(
-          'group fixed z-50 flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all hover:scale-105 active:scale-95',
-          'bg-primary text-primary-foreground',
-        )}
-        style={positionStyle}
-        title="Timeline Agent (Cmd+Shift+R to talk)"
-      >
-        <MessageSquareText className="h-6 w-6" />
-        {hasMessages && (
-          <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75" />
-            <span className="relative inline-flex h-3 w-3 rounded-full bg-sky-500" />
-          </span>
-        )}
-      </button>
+      <div className="fixed z-50 flex items-center gap-2" style={positionStyle}>
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            voice.startRecording();
+          }}
+          disabled={!hasTimeline || voice.isProcessing}
+          className={cn(
+            'flex h-10 w-10 items-center justify-center rounded-full shadow-md transition-all hover:scale-105 active:scale-95',
+            'bg-muted text-muted-foreground hover:bg-muted/80',
+            'disabled:pointer-events-none disabled:opacity-50',
+          )}
+          title="Voice input (Cmd+Shift+R)"
+        >
+          <Mic className="h-4 w-4" />
+        </button>
+        <button
+          type="button"
+          onClick={() => setIsOpen(true)}
+          className={cn(
+            'group relative flex h-14 w-14 items-center justify-center rounded-full shadow-lg transition-all hover:scale-105 active:scale-95',
+            'bg-primary text-primary-foreground',
+          )}
+          title="Timeline Agent"
+        >
+          <MessageSquareText className="h-6 w-6" />
+          {hasUnseenActivity && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75" />
+              <span className="relative inline-flex h-3 w-3 rounded-full bg-sky-500" />
+            </span>
+          )}
+        </button>
+      </div>
     );
   } else {
     content = (
