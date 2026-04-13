@@ -167,6 +167,47 @@ export const findNearestFreeTrack = (
   return null;
 };
 
+export const trySnapToEdge = (
+  rows: { id: string; actions: { start: number; end: number; id: string }[] }[],
+  trackId: string,
+  time: number,
+  duration: number,
+  excludeClipIds?: string | Set<string>,
+  thresholdS?: number,
+): { time: number; snapped: boolean } => {
+  const originalTime = Math.max(0, time);
+  const row = rows.find((candidate) => candidate.id === trackId);
+  const excludeSet = excludeClipIds instanceof Set
+    ? excludeClipIds
+    : excludeClipIds
+      ? new Set([excludeClipIds])
+      : null;
+  const siblings = row
+    ? (excludeSet ? row.actions.filter((action) => !excludeSet.has(action.id)) : row.actions)
+    : [];
+  const overlapsAny = (candidateTime: number) => siblings.some(
+    (action) => candidateTime < action.end && (candidateTime + duration) > action.start,
+  );
+
+  if (!overlapsAny(originalTime)) {
+    return { time: originalTime, snapped: false };
+  }
+
+  const snappedTime = siblings
+    .flatMap((action) => [action.end, action.start - duration])
+    .filter((candidate) => candidate >= 0 && !overlapsAny(candidate))
+    .reduce<number | null>((nearest, candidate) => {
+      if (nearest === null) return candidate;
+      return Math.abs(candidate - originalTime) < Math.abs(nearest - originalTime) ? candidate : nearest;
+    }, null);
+
+  if (snappedTime === null || Math.abs(snappedTime - originalTime) > (thresholdS ?? duration)) {
+    return { time: originalTime, snapped: false };
+  }
+
+  return { time: snappedTime, snapped: true };
+};
+
 export interface DropTargetResult {
   kind: 'track' | 'create' | 'reject';
   trackId?: string;

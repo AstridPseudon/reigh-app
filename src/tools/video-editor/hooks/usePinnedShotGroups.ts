@@ -10,7 +10,7 @@ import {
   buildUpdatePinnedShotGroupMutation,
   clonePinnedShotGroup,
 } from '@/tools/video-editor/lib/shot-group-commands';
-import { orderClipIdsByAt } from '@/tools/video-editor/lib/pinned-group-projection';
+import { orderClipIdsByAt, resolveGroupTrackId } from '@/tools/video-editor/lib/pinned-group-projection';
 import { ensureGroupContiguity } from '@/tools/video-editor/lib/shot-group-contiguity';
 import type { ClipMeta, TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { PinnedShotGroup } from '@/tools/video-editor/types';
@@ -189,13 +189,16 @@ export function usePinnedGroupSync({
           continue;
         }
 
+        const resolvedTrackId = resolveGroupTrackId(group, workingData.rows);
+        const storedTrackId = group.trackId;
+
         const shot = shots.find((candidate) => candidate.id === group.shotId);
         const desiredImages = getSyncableShotImages(shot);
         const desiredGenerationIds = desiredImages
           .map((image) => image.generation_id)
           .filter((generationId): generationId is string => typeof generationId === 'string' && generationId.length > 0);
 
-        const targetRowIndex = workingData.rows.findIndex((row) => row.id === group.trackId);
+        const targetRowIndex = workingData.rows.findIndex((row) => row.id === resolvedTrackId);
         if (targetRowIndex < 0) {
           continue;
         }
@@ -239,7 +242,7 @@ export function usePinnedGroupSync({
           )),
           clipOrder: {
             ...workingData.clipOrder,
-            [group.trackId]: (workingData.clipOrder[group.trackId] ?? []).filter((clipId) => beforeActionIds.has(clipId)),
+            [resolvedTrackId]: (workingData.clipOrder[resolvedTrackId] ?? []).filter((clipId) => beforeActionIds.has(clipId)),
           },
         };
 
@@ -275,7 +278,7 @@ export function usePinnedGroupSync({
             };
             groupWorkingData = appendActionToTrack({
               current: groupWorkingData,
-              trackId: group.trackId,
+              trackId: resolvedTrackId,
               action,
             });
             nextGroupClipIds.push(reusableClipId);
@@ -314,7 +317,7 @@ export function usePinnedGroupSync({
           const nextEdit = buildAssetDropEdit({
             current: groupWorkingData,
             assetKey,
-            trackId: group.trackId,
+            trackId: resolvedTrackId,
             time: cursor,
           });
           if (!nextEdit) {
@@ -354,21 +357,25 @@ export function usePinnedGroupSync({
         ));
         const nextClipOrder = {
           ...groupWorkingData.clipOrder,
-          [group.trackId]: [
-            ...(groupWorkingData.clipOrder[group.trackId] ?? []),
-            ...(workingData.clipOrder[group.trackId] ?? []).filter((clipId) => afterActionIds.has(clipId)),
+          [resolvedTrackId]: [
+            ...(groupWorkingData.clipOrder[resolvedTrackId] ?? []),
+            ...(workingData.clipOrder[resolvedTrackId] ?? []).filter((clipId) => afterActionIds.has(clipId)),
           ],
         };
         const orderedNextGroupClipIds = orderClipIdsByAt(nextGroupClipIds, { rows: nextRows });
         const nextGroups = workingPinnedShotGroups
           .map((candidate) => (
-            candidate.shotId === group.shotId && candidate.trackId === group.trackId
-              ? { ...clonePinnedShotGroup(candidate), clipIds: orderedNextGroupClipIds }
+            candidate.shotId === group.shotId && candidate.trackId === storedTrackId
+              ? {
+                  ...clonePinnedShotGroup(candidate),
+                  ...(resolvedTrackId !== storedTrackId ? { trackId: resolvedTrackId } : {}),
+                  clipIds: orderedNextGroupClipIds,
+                }
               : clonePinnedShotGroup(candidate)
           ))
           .filter((candidate) => (
             candidate.shotId !== group.shotId
-            || candidate.trackId !== group.trackId
+            || (candidate.trackId !== storedTrackId && candidate.trackId !== resolvedTrackId)
             || candidate.clipIds.length > 0
           ));
 

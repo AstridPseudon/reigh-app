@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import type { Shot } from '@/domains/generation/types';
+import { resolveGroupTrackId } from '@/tools/video-editor/lib/pinned-group-projection';
 import type { TimelineConfig } from '@/tools/video-editor/types';
 import type { TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 
@@ -36,7 +37,8 @@ export function useShotGroups(
 
     const result: ShotGroup[] = [];
     for (const group of pinnedShotGroups ?? []) {
-      const rowIndex = rowIndexById.get(group.trackId);
+      const resolvedTrackId = resolveGroupTrackId(group, rows);
+      const rowIndex = rowIndexById.get(resolvedTrackId);
       if (typeof rowIndex !== 'number') continue;
 
       // Soft-tag model: derive children (clipId/offset/duration) from
@@ -63,7 +65,7 @@ export function useShotGroups(
       result.push({
         shotId: group.shotId,
         shotName: shotNameById.get(group.shotId) ?? group.shotId,
-        rowId: group.trackId,
+        rowId: resolvedTrackId,
         rowIndex,
         start: groupStart,
         clipIds: children.map((child) => child.clipId),

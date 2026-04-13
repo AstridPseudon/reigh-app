@@ -4,7 +4,7 @@ import type { PinnedGroupKey } from '@/tools/video-editor/lib/pinned-group-proje
 import { getSourceTime, type ClipMeta, type ClipOrderMap, type TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 import type { PinnedShotGroup, ResolvedTimelineConfig, TrackKind } from '@/tools/video-editor/types';
-import { findNearestFreeTrack, moveClipBetweenTracks } from '@/tools/video-editor/lib/coordinate-utils';
+import { findNearestFreeTrack, moveClipBetweenTracks, trySnapToEdge } from '@/tools/video-editor/lib/coordinate-utils';
 import {
   findBestGroupStart,
   type GroupExtent,
@@ -258,14 +258,29 @@ export function planMultiDragMoves(
       actions: row.actions.filter((a) => !memberClipIdSet.has(a.id)),
     }));
 
+    const snapResult = trySnapToEdge(
+      rowsWithoutGroup,
+      anchorTargetRowId,
+      groupStart,
+      groupDuration,
+    );
+    const effectiveGroupStart = snapResult.snapped ? snapResult.time : groupStart;
+
     // Find nearest free track for the group's bounding box.
     // Fall back to the requested target if every track is occupied — the
     // caller (commitDraggingSession) can create a new track if needed,
     // and applyMultiDragMoves will shift to the nearest gap as a last resort.
-    const resolvedTargetRowId = findNearestFreeTrack(
-      data.tracks, rowsWithoutGroup, anchorTargetRowId, sourceTrack.kind,
-      groupStart, groupDuration,
-    ) ?? anchorTargetRowId;
+    const resolvedTargetRowId = snapResult.snapped
+      ? anchorTargetRowId
+      : findNearestFreeTrack(
+          data.tracks,
+          rowsWithoutGroup,
+          anchorTargetRowId,
+          sourceTrack.kind,
+          effectiveGroupStart,
+          groupDuration,
+        ) ?? anchorTargetRowId;
+    const snapDelta = effectiveGroupStart - groupStart;
 
     for (const member of memberPositions) {
       pinnedGroupClipIds.add(member.clipId);
@@ -274,7 +289,7 @@ export function planMultiDragMoves(
         clipId: member.clipId,
         sourceRowId: member.actualRowId,
         targetRowId: resolvedTargetRowId,
-        newStart: member.start + timeDelta,
+        newStart: member.start + timeDelta + snapDelta,
       });
     }
   }

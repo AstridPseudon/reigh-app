@@ -1,5 +1,9 @@
 import { updateClipOrder } from '@/tools/video-editor/lib/coordinate-utils';
-import { orderClipIdsByAt } from '@/tools/video-editor/lib/pinned-group-projection';
+import {
+  findGroupForTrack,
+  orderClipIdsByAt,
+  resolveGroupTrackId,
+} from '@/tools/video-editor/lib/pinned-group-projection';
 import { ensureGroupContiguity } from '@/tools/video-editor/lib/shot-group-contiguity';
 import { getNextClipId, type ClipMeta, type TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { PinnedShotGroup, PinnedShotImageClipSnapshot } from '@/tools/video-editor/types';
@@ -60,15 +64,29 @@ function buildPinnedShotGroupEntry(
   };
 }
 
+function findLocatedPinnedShotGroup(
+  currentData: TimelineData,
+  locator: ShotGroupLocator,
+  groups = currentData.config.pinnedShotGroups ?? [],
+): {
+  matchedGroup: PinnedShotGroup | undefined;
+  resolvedTrackId: string;
+} {
+  const matchedGroup = findGroupForTrack(groups, locator.shotId, locator.trackId, currentData.rows);
+  return {
+    matchedGroup,
+    resolvedTrackId: matchedGroup ? resolveGroupTrackId(matchedGroup, currentData.rows) : locator.trackId,
+  };
+}
+
 export function buildPinnedShotGroupsOverride(
   currentData: TimelineData,
   nextGroup: ShotGroupModeInput,
   existingGroups = currentData.config.pinnedShotGroups ?? [],
 ): NonNullable<TimelineData['config']['pinnedShotGroups']> {
   const builtGroup = buildPinnedShotGroupEntry(currentData, nextGroup);
-  const existingIndex = existingGroups.findIndex((group) => (
-    group.shotId === nextGroup.shotId && group.trackId === nextGroup.trackId
-  ));
+  const { matchedGroup } = findLocatedPinnedShotGroup(currentData, nextGroup, existingGroups);
+  const existingIndex = matchedGroup ? existingGroups.indexOf(matchedGroup) : -1;
 
   if (existingIndex < 0) {
     return [...existingGroups.map(clonePinnedShotGroup), builtGroup];
@@ -101,10 +119,16 @@ export function buildUnpinShotGroupMutation(
     return null;
   }
 
+  const { matchedGroup } = findLocatedPinnedShotGroup(currentData, { shotId, trackId });
+
   return {
     type: 'pinnedShotGroups' as const,
     pinnedShotGroups: (currentData.config.pinnedShotGroups ?? [])
-      .filter((group) => group.shotId !== shotId || group.trackId !== trackId)
+      .filter((group) => (
+        matchedGroup
+          ? group !== matchedGroup
+          : group.shotId !== shotId || group.trackId !== trackId
+      ))
       .map(clonePinnedShotGroup),
   };
 }
@@ -118,16 +142,18 @@ export function buildUpdatePinnedShotGroupMutation(
     return null;
   }
 
+  const { matchedGroup, resolvedTrackId } = findLocatedPinnedShotGroup(currentData, { shotId, trackId });
+
   return {
     type: 'pinnedShotGroups' as const,
     pinnedShotGroups: (currentData.config.pinnedShotGroups ?? []).map((group) => {
-      if (group.shotId !== shotId || group.trackId !== trackId) {
+      if (group !== matchedGroup) {
         return clonePinnedShotGroup(group);
       }
 
       return buildPinnedShotGroupEntry(currentData, {
         shotId,
-        trackId,
+        trackId: resolvedTrackId,
         clipIds: updates.clipIds ?? group.clipIds,
         mode: updates.mode ?? group.mode,
         videoAssetKey: updates.videoAssetKey ?? group.videoAssetKey,
@@ -150,6 +176,7 @@ export function buildDeleteShotGroupMutation({
 
   const deletedClipIds = [...new Set(group.clipIds)];
   const deletedClipIdSet = new Set(deletedClipIds);
+  const { matchedGroup } = findLocatedPinnedShotGroup(currentData, group);
 
   return {
     type: 'rows' as const,
@@ -158,9 +185,13 @@ export function buildDeleteShotGroupMutation({
       actions: row.actions.filter((action) => !deletedClipIdSet.has(action.id)),
     })),
     metaDeletes: deletedClipIds,
-    pinnedShotGroupsOverride: (currentData.config.pinnedShotGroups ?? []).filter((candidate) => (
-      candidate.shotId !== group.shotId || candidate.trackId !== group.trackId
-    )).map(clonePinnedShotGroup),
+    pinnedShotGroupsOverride: (currentData.config.pinnedShotGroups ?? [])
+      .filter((candidate) => (
+        matchedGroup
+          ? candidate !== matchedGroup
+          : candidate.shotId !== group.shotId || candidate.trackId !== group.trackId
+      ))
+      .map(clonePinnedShotGroup),
   };
 }
 
@@ -221,15 +252,16 @@ export function buildSwitchShotGroupToFinalVideoMutation({
   clipIds: string[];
   assetKey: string;
 }) {
-  if (!currentData || clipIds.length === 0 || !currentData.rows.some((row) => row.id === rowId)) {
+  if (!currentData || clipIds.length === 0) {
     return null;
   }
 
   const existingPinnedGroups = currentData.config.pinnedShotGroups ?? [];
-  const pinnedGroup = existingPinnedGroups.find((group) => group.shotId === shotId && group.trackId === rowId);
+  const pinnedGroup = findGroupForTrack(existingPinnedGroups, shotId, rowId, currentData.rows);
+  const resolvedTrackId = pinnedGroup ? resolveGroupTrackId(pinnedGroup, currentData.rows) : rowId;
   const sourceClipIds = pinnedGroup?.mode === 'images' ? pinnedGroup.clipIds : clipIds;
   const clipIdSet = new Set(sourceClipIds);
-  const targetRow = currentData.rows.find((row) => row.id === rowId);
+  const targetRow = currentData.rows.find((row) => row.id === resolvedTrackId);
   if (!targetRow) {
     return null;
   }
@@ -265,12 +297,12 @@ export function buildSwitchShotGroupToFinalVideoMutation({
   }
 
   const videoClipId = getNextClipId(currentData.meta);
-  const targetTrack = currentData.tracks.find((track) => track.id === rowId);
+  const targetTrack = currentData.tracks.find((track) => track.id === resolvedTrackId);
   const isManualVisualTrack = targetTrack?.kind === 'visual' && targetTrack.fit === 'manual';
   const duration = endTime - startTime;
   const videoMeta: ClipMeta = {
     asset: assetKey,
-    track: rowId,
+    track: resolvedTrackId,
     clipType: 'media',
     from: 0,
     to: duration,
@@ -292,7 +324,7 @@ export function buildSwitchShotGroupToFinalVideoMutation({
   const insertionIndex = targetRow.actions.findIndex((action) => clipIdSet.has(action.id));
   const nextRows = currentData.rows.map((row) => {
     const remainingActions = row.actions.filter((action) => !clipIdSet.has(action.id));
-    if (row.id !== rowId) {
+    if (row.id !== resolvedTrackId) {
       return remainingActions.length === row.actions.length ? row : { ...row, actions: remainingActions };
     }
 
@@ -301,7 +333,7 @@ export function buildSwitchShotGroupToFinalVideoMutation({
       : [...remainingActions.slice(0, insertionIndex), videoAction, ...remainingActions.slice(insertionIndex)];
     return { ...row, actions: nextActions };
   });
-  const nextClipOrder = updateClipOrder(currentData.clipOrder, rowId, (ids) => {
+  const nextClipOrder = updateClipOrder(currentData.clipOrder, resolvedTrackId, (ids) => {
     const filtered = ids.filter((id) => !clipIdSet.has(id));
     const orderInsertionIndex = ids.findIndex((id) => clipIdSet.has(id));
     return orderInsertionIndex < 0
@@ -317,7 +349,7 @@ export function buildSwitchShotGroupToFinalVideoMutation({
     clipOrderOverride: nextClipOrder,
     pinnedShotGroupsOverride: buildPinnedShotGroupsOverride(currentData, {
       shotId,
-      trackId: rowId,
+      trackId: resolvedTrackId,
       clipIds: [videoClipId],
       mode: 'video',
       videoAssetKey: assetKey,
@@ -344,15 +376,13 @@ export function buildUpdateShotGroupToLatestVideoMutation({
   }
 
   const existingPinnedGroups = currentData.config.pinnedShotGroups ?? [];
-  const pinnedGroup = existingPinnedGroups.find((group) => (
-    group.shotId === shotId
-    && group.trackId === rowId
-    && group.mode === 'video'
-    && typeof group.videoAssetKey === 'string'
-    && group.videoAssetKey.length > 0
-  ));
+  const foundGroup = findGroupForTrack(existingPinnedGroups, shotId, rowId, currentData.rows);
+  const pinnedGroup = foundGroup?.mode === 'video' && typeof foundGroup.videoAssetKey === 'string' && foundGroup.videoAssetKey.length > 0
+    ? foundGroup
+    : undefined;
+  const resolvedTrackId = pinnedGroup ? resolveGroupTrackId(pinnedGroup, currentData.rows) : rowId;
   const videoClipId = pinnedGroup?.clipIds[0];
-  const targetRow = currentData.rows.find((row) => row.id === rowId);
+  const targetRow = currentData.rows.find((row) => row.id === resolvedTrackId);
   const videoAction = videoClipId ? targetRow?.actions.find((action) => action.id === videoClipId) : undefined;
   const videoMeta = videoClipId ? currentData.meta[videoClipId] : undefined;
   const currentGenerationId = pinnedGroup?.videoAssetKey
@@ -372,7 +402,7 @@ export function buildUpdateShotGroupToLatestVideoMutation({
     },
     pinnedShotGroupsOverride: buildPinnedShotGroupsOverride(currentData, {
       shotId,
-      trackId: rowId,
+      trackId: resolvedTrackId,
       clipIds: pinnedGroup.clipIds,
       mode: pinnedGroup.mode,
       videoAssetKey: assetKey,
@@ -395,12 +425,10 @@ export function buildSwitchShotGroupToImagesMutation({
   }
 
   const existingPinnedGroups = currentData.config.pinnedShotGroups ?? [];
-  const pinnedGroup = existingPinnedGroups.find((group) => (
-    group.shotId === shotId
-    && group.trackId === rowId
-    && group.mode === 'video'
-  ));
-  const targetRow = currentData.rows.find((row) => row.id === rowId);
+  const foundGroup = findGroupForTrack(existingPinnedGroups, shotId, rowId, currentData.rows);
+  const pinnedGroup = foundGroup?.mode === 'video' ? foundGroup : undefined;
+  const resolvedTrackId = pinnedGroup ? resolveGroupTrackId(pinnedGroup, currentData.rows) : rowId;
+  const targetRow = currentData.rows.find((row) => row.id === resolvedTrackId);
   const videoClipId = pinnedGroup?.clipIds[0];
   const videoActionIndex = targetRow?.actions.findIndex((action) => action.id === videoClipId) ?? -1;
   const videoAction = videoActionIndex >= 0 ? targetRow?.actions[videoActionIndex] : undefined;
@@ -414,7 +442,7 @@ export function buildSwitchShotGroupToImagesMutation({
     const clipMeta: ClipMeta = {
       ...snapshot.meta,
       asset: snapshot.assetKey,
-      track: rowId,
+      track: resolvedTrackId,
     };
     restoredMetaUpdates[snapshot.clipId] = clipMeta;
     const duration = getClipDuration(clipMeta, videoAction);
@@ -437,7 +465,7 @@ export function buildSwitchShotGroupToImagesMutation({
   });
   const restoredClipIds = orderedRestoredActions.map((action) => action.id);
   const nextRows = currentData.rows.map((row) => {
-    if (row.id !== rowId) {
+    if (row.id !== resolvedTrackId) {
       return row;
     }
 
@@ -451,7 +479,7 @@ export function buildSwitchShotGroupToImagesMutation({
       ],
     };
   });
-  const nextClipOrder = updateClipOrder(currentData.clipOrder, rowId, (ids) => {
+  const nextClipOrder = updateClipOrder(currentData.clipOrder, resolvedTrackId, (ids) => {
     const filtered = ids.filter((id) => id !== videoClipId);
     const insertionIndex = ids.indexOf(videoClipId);
     return insertionIndex < 0
@@ -461,7 +489,7 @@ export function buildSwitchShotGroupToImagesMutation({
 
   const nextPinnedShotGroups = buildPinnedShotGroupsOverride(currentData, {
     shotId,
-    trackId: rowId,
+    trackId: resolvedTrackId,
     clipIds: restoredClipIds,
     mode: 'images',
     imageClipSnapshot: pinnedGroup.imageClipSnapshot,

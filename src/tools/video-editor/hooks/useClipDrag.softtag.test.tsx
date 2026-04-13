@@ -182,7 +182,7 @@ describe('T9 — soft-tag grouped drag', () => {
     ]);
   });
 
-  it('same-track colliding with a free clip: planner resolves to nearest free track (V2)', () => {
+  it('same-track colliding with a free clip: planner snaps to the nearest open edge on V1', () => {
     const { data } = buildGroupedData([
       // A free clip sitting where the dragged group would land on V1.
       { id: 'free', row: 'V1', start: 8, end: 10 },
@@ -208,26 +208,26 @@ describe('T9 — soft-tag grouped drag', () => {
     );
 
     expect(canMove).toBe(true);
-    // Group should resolve to V2 (nearest free track) instead of shifting on V1
-    expect(moves.every((m) => m.targetRowId === 'V2')).toBe(true);
+    expect(moves.every((m) => m.targetRowId === 'V1')).toBe(true);
+    expect(moves.map((m) => m.newStart)).toEqual([5, 6, 7]);
     const { nextRows } = applyMultiDragMoves(data, moves);
 
-    // All members should be on V2 at the requested times (no shifting)
-    const v2 = nextRows.find((r) => r.id === 'V2')!;
-    const groupActions = v2.actions
+    const v1 = nextRows.find((r) => r.id === 'V1')!;
+    const groupActions = v1.actions
       .filter((a) => ['g-a', 'g-b', 'g-c'].includes(a.id))
       .sort((x, y) => x.start - y.start);
     expect(groupActions.map((a) => a.id)).toEqual(['g-a', 'g-b', 'g-c']);
+    expect(groupActions.map((a) => a.start)).toEqual([5, 6, 7]);
 
-    // The rebuilt override reflects the new track
+    // The rebuilt override keeps the group on the original track.
     const override = rebuildGroupAfterDrag(
       data.config.pinnedShotGroups,
       { shotId: 'shot-1', trackId: 'V1' },
-      'V2',
+      'V1',
       nextRows,
     );
     expect(override?.[0].clipIds).toEqual(['g-a', 'g-b', 'g-c']);
-    expect(override?.[0].trackId).toBe('V2');
+    expect(override?.[0].trackId).toBe('V1');
   });
 
   it('cross-track existing-row grouped drag: override trackId updates, clipIds preserved in at order', () => {

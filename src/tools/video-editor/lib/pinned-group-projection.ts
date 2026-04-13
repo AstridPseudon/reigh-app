@@ -13,6 +13,73 @@ export type CategorizedSelection = {
 
 const getGroupId = (groupKey: PinnedGroupKey): string => `${groupKey.shotId}:${groupKey.trackId}`;
 
+const countMatchingClipIds = (row: TimelineRow | undefined, clipIds: readonly string[]): number => {
+  if (!row || clipIds.length === 0) {
+    return 0;
+  }
+
+  const rowClipIds = new Set(row.actions.map((action) => action.id));
+  let matches = 0;
+  for (const clipId of clipIds) {
+    if (rowClipIds.has(clipId)) {
+      matches += 1;
+    }
+  }
+
+  return matches;
+};
+
+export function resolveGroupTrackId(group: PinnedShotGroup, rows: TimelineRow[]): string {
+  const storedRow = rows.find((row) => row.id === group.trackId);
+  const storedMatchCount = countMatchingClipIds(storedRow, group.clipIds);
+
+  // Fast path: every live clip still sits on the stored row.
+  if (storedMatchCount === group.clipIds.length && storedMatchCount > 0) {
+    return group.trackId;
+  }
+
+  let bestTrackId = storedMatchCount > 0 ? group.trackId : '';
+  let bestMatchCount = storedMatchCount;
+
+  for (const row of rows) {
+    if (row.id === group.trackId) {
+      continue;
+    }
+
+    const matchCount = countMatchingClipIds(row, group.clipIds);
+    if (matchCount > bestMatchCount) {
+      bestMatchCount = matchCount;
+      bestTrackId = row.id;
+    }
+  }
+
+  return bestMatchCount > 0 ? bestTrackId : group.trackId;
+}
+
+export function findGroupForTrack(
+  groups: PinnedShotGroup[],
+  shotId: string,
+  trackId: string,
+  rows: TimelineRow[],
+): PinnedShotGroup | undefined {
+  const exactMatch = groups.find((group) => group.shotId === shotId && group.trackId === trackId);
+  if (exactMatch) {
+    const exactResolvedTrackId = resolveGroupTrackId(exactMatch, rows);
+    if (exactResolvedTrackId === trackId) {
+      return exactMatch;
+    }
+
+    const resolvedMatch = groups.find(
+      (group) => group.shotId === shotId && resolveGroupTrackId(group, rows) === trackId,
+    );
+    return resolvedMatch ?? exactMatch;
+  }
+
+  return groups.find(
+    (group) => group.shotId === shotId && resolveGroupTrackId(group, rows) === trackId,
+  );
+}
+
 /**
  * Find the pinned group that contains `clipId`, if any. Soft-tag lookup only —
  * returns the first group whose `clipIds` list includes the target.

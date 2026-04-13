@@ -3,12 +3,14 @@ import { arrayMove } from '@dnd-kit/sortable';
 import { addTrack, getTrackIndex } from '@/tools/video-editor/lib/editor-utils';
 import { DEFAULT_VIDEO_TRACKS } from '@/tools/video-editor/lib/defaults';
 import type { PinnedShotGroup, TrackDefinition, TrackKind } from '@/tools/video-editor/types';
-import { findNearestFreeTrack, moveClipBetweenTracks } from '@/tools/video-editor/lib/coordinate-utils';
+import { findNearestFreeTrack, moveClipBetweenTracks, trySnapToEdge } from '@/tools/video-editor/lib/coordinate-utils';
 import type { ClipMeta, TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import {
   categorizeSelection,
   findEnclosingPinnedGroup,
+  findGroupForTrack,
   orderClipIdsByAt,
+  resolveGroupTrackId,
   type PinnedGroupKey,
 } from '@/tools/video-editor/lib/pinned-group-projection';
 import type { TimelineApplyEdit } from '@/tools/video-editor/hooks/timeline-state-types';
@@ -227,10 +229,23 @@ export function useTimelineTrackManagement({
         ...row,
         actions: row.actions.filter((a) => !memberSet.has(a.id)),
       }));
-      let finalTargetId = findNearestFreeTrack(
-        current.tracks, rowsWithoutGroup, targetRowId, sourceTrack.kind,
-        nextStart, groupDuration,
+      const snapResult = trySnapToEdge(
+        rowsWithoutGroup,
+        targetRowId,
+        nextStart,
+        groupDuration,
       );
+      const effectiveGroupStart = snapResult.snapped ? snapResult.time : nextStart;
+      let finalTargetId = snapResult.snapped
+        ? targetRowId
+        : findNearestFreeTrack(
+            current.tracks,
+            rowsWithoutGroup,
+            targetRowId,
+            sourceTrack.kind,
+            effectiveGroupStart,
+            groupDuration,
+          );
 
       if (!finalTargetId) {
         const prefix = sourceTrack.kind === 'audio' ? 'A' : 'V';
@@ -248,7 +263,7 @@ export function useTimelineTrackManagement({
         current,
         group: enclosingGroup.group,
         targetRowId: finalTargetId,
-        deltaTime: nextStart - groupStart,
+        deltaTime: effectiveGroupStart - groupStart,
       });
       applyEdit({
         type: 'rows',
@@ -277,10 +292,25 @@ export function useTimelineTrackManagement({
     const nextStart = typeof newStartTime === 'number' ? Math.max(0, newStartTime) : action.start;
 
     // Find a free track (target first, then nearest above/below), or create one
-    let finalTrackId = findNearestFreeTrack(
-      current.tracks, current.rows, targetRow.id, sourceTrack.kind,
-      nextStart, duration, clipId,
+    const snapResult = trySnapToEdge(
+      current.rows,
+      targetRow.id,
+      nextStart,
+      duration,
+      clipId,
     );
+    let effectiveStart = snapResult.snapped ? snapResult.time : nextStart;
+    let finalTrackId = snapResult.snapped
+      ? targetRow.id
+      : findNearestFreeTrack(
+          current.tracks,
+          current.rows,
+          targetRow.id,
+          sourceTrack.kind,
+          effectiveStart,
+          duration,
+          clipId,
+        );
 
     if (!finalTrackId) {
       const prefix = sourceTrack.kind === 'audio' ? 'A' : 'V';
@@ -294,7 +324,7 @@ export function useTimelineTrackManagement({
       dataRef.current = current;
     }
 
-    const nextAction = { ...action, start: nextStart, end: nextStart + duration };
+    const nextAction = { ...action, start: effectiveStart, end: effectiveStart + duration };
     const nextRows = current.rows.map((row) => {
       if (row.id === sourceRow.id && row.id === finalTrackId) {
         return {

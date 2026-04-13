@@ -10,7 +10,7 @@ import { extractVideoPosterFrame } from '@/shared/lib/media/videoPosterExtractor
 import { generateClientThumbnail, uploadImageWithThumbnail } from '@/shared/media/clientThumbnailGenerator';
 import { createExternalUploadGeneration } from '@/integrations/supabase/repositories/generationMutationsRepository';
 import { generateUUID } from '@/shared/lib/taskCreation/ids';
-import { findNearestFreeTrack, getCompatibleTrackId, updateClipOrder } from '@/tools/video-editor/lib/coordinate-utils';
+import { findNearestFreeTrack, getCompatibleTrackId, trySnapToEdge, updateClipOrder } from '@/tools/video-editor/lib/coordinate-utils';
 import { getTrackIndex } from '@/tools/video-editor/lib/editor-utils';
 import {
   getNextClipId,
@@ -86,6 +86,7 @@ export interface UseAssetManagementResult {
 export interface AssetDropTargetResolution {
   current: TimelineData;
   trackId: string;
+  snappedTime?: number;
 }
 
 export interface BuildAssetDropEditResult {
@@ -126,6 +127,10 @@ export function resolveAssetDropTarget({
 
   // When time/duration are provided, find the nearest free track (above or below)
   if (resolvedTrackId && time != null && duration != null) {
+    const snapResult = trySnapToEdge(current.rows, resolvedTrackId, time, duration);
+    if (snapResult.snapped) {
+      return { current, trackId: resolvedTrackId, snappedTime: snapResult.time };
+    }
     resolvedTrackId = findNearestFreeTrack(
       current.tracks, current.rows, resolvedTrackId, assetKind, time, duration,
     );
@@ -443,7 +448,7 @@ export function useAssetManagement({
       current: resolvedTarget.current,
       assetKey,
       trackId: resolvedTarget.trackId,
-      time,
+      time: resolvedTarget.snappedTime ?? time,
     });
     if (!nextEdit) {
       return;

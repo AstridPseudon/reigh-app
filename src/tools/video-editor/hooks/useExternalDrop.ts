@@ -133,6 +133,7 @@ async function dispatchTimelineDrop({
     let workingData = resolvedTarget.current;
     const metaUpdates: Record<string, TimelineData['meta'][string]> = {};
     const createdClipIds: string[] = [];
+    const baseTime = resolvedTarget.snappedTime ?? dropPosition.time;
     let timeOffset = 0;
 
     for (const shotImage of shotImages) {
@@ -156,7 +157,7 @@ async function dispatchTimelineDrop({
         current: workingData,
         assetKey,
         trackId: resolvedTarget.trackId,
-        time: dropPosition.time + timeOffset,
+        time: baseTime + timeOffset,
       });
       if (!nextEdit) {
         continue;

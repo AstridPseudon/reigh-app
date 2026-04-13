@@ -1,6 +1,6 @@
 import type { DragEvent as ReactDragEvent, MutableRefObject } from 'react';
 import { getDragType } from '@/shared/lib/dnd/dragDrop';
-import { findNearestFreeTrack, rawRowIndexFromY } from '@/tools/video-editor/lib/coordinate-utils';
+import { findNearestFreeTrack, rawRowIndexFromY, trySnapToEdge } from '@/tools/video-editor/lib/coordinate-utils';
 import { createTimelineScale } from '@/tools/video-editor/lib/timeline-scale';
 import type { TimelineData } from '@/tools/video-editor/lib/timeline-data';
 import type { TrackKind } from '@/tools/video-editor/types';
@@ -177,32 +177,49 @@ export const computeDropPosition = ({
     resolvedTrackName = '';
   }
 
-  // Overlap resolution: if the resolved track is occupied at this time, find the nearest free one
+  // Overlap resolution: prefer snapping to a sibling edge on the same track
+  // before falling back to another track.
+  let resolvedTime = time;
   let finalRowTop = rowTop;
   if (!needsNewTrack && current && resolvedTrackId && resolvedTrackKind) {
-    const freeTrackId = findNearestFreeTrack(
-      current.tracks, current.rows, resolvedTrackId, resolvedTrackKind,
-      time, clipDuration, excludeClipIds,
+    const snapResult = trySnapToEdge(
+      current.rows,
+      resolvedTrackId,
+      time,
+      clipDuration,
+      excludeClipIds,
     );
-    if (freeTrackId && freeTrackId !== resolvedTrackId) {
-      const freeIndex = current.tracks.findIndex((t) => t.id === freeTrackId);
-      const freeTrack = current.tracks[freeIndex];
-      if (freeTrack) {
-        resolvedTrackId = freeTrackId;
-        resolvedTrackName = freeTrack.label ?? freeTrack.id;
-        resolvedTrackKind = freeTrack.kind;
-        finalRowTop = editRect.top + freeIndex * rowHeight - scrollTop;
+    if (snapResult.snapped) {
+      resolvedTime = snapResult.time;
+    } else {
+      const freeTrackId = findNearestFreeTrack(
+        current.tracks, current.rows, resolvedTrackId, resolvedTrackKind,
+        time, clipDuration, excludeClipIds,
+      );
+      if (freeTrackId && freeTrackId !== resolvedTrackId) {
+        const freeIndex = current.tracks.findIndex((t) => t.id === freeTrackId);
+        const freeTrack = current.tracks[freeIndex];
+        if (freeTrack) {
+          resolvedTrackId = freeTrackId;
+          resolvedTrackName = freeTrack.label ?? freeTrack.id;
+          resolvedTrackKind = freeTrack.kind;
+          finalRowTop = editRect.top + freeIndex * rowHeight - scrollTop;
+        }
+      } else if (!freeTrackId) {
+        needsNewTrack = true;
+        newTrackKind = resolvedTrackKind;
+        resolvedTrackId = undefined;
+        resolvedTrackName = '';
       }
-    } else if (!freeTrackId) {
-      needsNewTrack = true;
-      newTrackKind = resolvedTrackKind;
-      resolvedTrackId = undefined;
-      resolvedTrackName = '';
     }
   }
 
+  const finalClipLeft = editRect.left + timeToPixel(resolvedTime) - scrollLeft;
+  const finalClipWidth = Math.max(0, Math.min(clipDuration * pixelsPerSecond, editRect.right - finalClipLeft));
+  const finalGhostCenter = finalClipLeft + finalClipWidth / 2;
+
   return {
-    time,
+    time: resolvedTime,
     rowIndex,
     trackId: needsNewTrack ? undefined : resolvedTrackId,
     trackKind: needsNewTrack ? sourceKind : resolvedTrackKind,
@@ -216,9 +233,9 @@ export const computeDropPosition = ({
       rowLeft: wrapperRect.left,
       rowWidth: wrapperRect.width,
       rowHeight,
-      clipLeft,
-      clipWidth,
-      ghostCenter,
+      clipLeft: finalClipLeft,
+      clipWidth: finalClipWidth,
+      ghostCenter: finalGhostCenter,
     },
   };
 };
