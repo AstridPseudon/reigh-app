@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { requireContextValue } from '@/shared/contexts/contextGuard';
-import { useUserSettings } from '@/shared/contexts/UserSettingsContext';
+import { useToolSettings } from '@/shared/hooks/settings/useToolSettings';
+import { videoEditorSettings } from '@/tools/video-editor/settings/videoEditorDefaults';
 import type { SelectedMediaClip } from '@/tools/video-editor/hooks/useSelectedMediaClips';
 
 export type AgentChatContextValue = {
@@ -24,14 +25,14 @@ const noopReplace: AgentChatContextValue['replaceSelectedTimelineClips'] = () =>
  * overridden by VideoEditorProvider via register/unregister.
  */
 export function AgentChatProvider({ children }: { children: ReactNode }) {
-  const { userSettings } = useUserSettings();
+  const { settings: videoSettings } = useToolSettings(videoEditorSettings.id);
   const [override, setOverride] = useState<AgentChatContextValue | null>(null);
 
   const defaultValue = useMemo<AgentChatContextValue>(() => ({
-    timelineId: userSettings?.lastTimelineId ?? null,
+    timelineId: videoSettings?.lastTimelineId ?? null,
     timelineClips: [],
     replaceSelectedTimelineClips: noopReplace,
-  }), [userSettings?.lastTimelineId]);
+  }), [videoSettings?.lastTimelineId]);
 
   const register = useCallback((value: AgentChatContextValue) => setOverride(value), []);
   const unregister = useCallback(() => setOverride(null), []);

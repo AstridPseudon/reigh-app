@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { MediaLightbox } from '@/domains/media-lightbox/MediaLightbox';
 import { useShots } from '@/shared/contexts/ShotsContext';
@@ -76,26 +76,33 @@ function AgentChatBridgeRegistration() {
   const { clips: timelineClips } = useSelectedMediaClips();
   const { register, unregister } = useAgentChatRegistry();
 
-  const replaceSelectedTimelineClips = useCallback((nextClips: AgentChatContextValue['timelineClips']) => {
+  // Use refs so the registered callback always reads fresh values without
+  // re-running the effect (which would cause register/unregister churn).
+  const opsRef = useRef(timelineEditorOps);
+  const clipsRef = useRef(timelineClips);
+  opsRef.current = timelineEditorOps;
+  clipsRef.current = timelineClips;
+
+  const stableReplace = useCallback((nextClips: AgentChatContextValue['timelineClips']) => {
     const nextClipIds = nextClips.map((clip) => clip.clipId);
-    if (typeof timelineEditorOps.replaceTimelineSelection === 'function') {
-      timelineEditorOps.replaceTimelineSelection(nextClipIds);
+    const ops = opsRef.current;
+    if (typeof ops.replaceTimelineSelection === 'function') {
+      ops.replaceTimelineSelection(nextClipIds);
       return;
     }
+    ops.selectClips(nextClipIds);
+  }, []);
 
-    timelineEditorOps.selectClips(nextClipIds);
-  }, [timelineEditorOps]);
-
-  const value = useMemo<AgentChatContextValue>(() => ({
-    timelineId,
-    timelineClips,
-    replaceSelectedTimelineClips,
-  }), [replaceSelectedTimelineClips, timelineClips, timelineId]);
-
+  // Only re-register when timelineId changes (mount, unmount, or timeline switch).
+  // Clips and ops are accessed via refs from the stable callback.
   useEffect(() => {
-    register(value);
+    register({
+      timelineId,
+      get timelineClips() { return clipsRef.current; },
+      replaceSelectedTimelineClips: stableReplace,
+    });
     return unregister;
-  }, [register, unregister, value]);
+  }, [register, unregister, stableReplace, timelineId]);
 
   return null;
 }
