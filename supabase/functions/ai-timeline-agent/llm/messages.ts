@@ -141,8 +141,21 @@ export function summarizeStoredToolTurn(turn: AgentTurn): string {
 export function buildInitialMessages(
   systemPrompt: string,
   turns: AgentTurn[],
+  sessionSummary?: string | null,
 ): LlmMessage[] {
   const messages: LlmMessage[] = [{ role: "system", content: systemPrompt }];
+
+  // Inject session summary as context before recent turns
+  if (sessionSummary) {
+    messages.push({
+      role: "user",
+      content: `[Session history summary — do not respond to this, it's context from earlier in the conversation]\n${sessionSummary}`,
+    });
+    messages.push({
+      role: "assistant",
+      content: "Understood, I have the context from our earlier conversation.",
+    });
+  }
 
   // Only send the most recent turns to avoid blowing up the context window.
   const recentTurns = turns.length > MAX_CONTEXT_TURNS

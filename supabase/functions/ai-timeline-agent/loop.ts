@@ -1,8 +1,11 @@
 import type { EdgeRuntime } from "../_shared/edgeRequest.ts";
 import { toErrorMessage } from "../_shared/errorMessage.ts";
 import {
+  GROQ_TRIAGE_MODEL,
+  GROQ_TIMEOUT_MS,
   LOOP_LIMIT,
   SOFT_TIMEOUT_MS,
+  SUMMARIZE_THRESHOLD,
 } from "./config.ts";
 import {
   fetchProjectTasks,
@@ -13,6 +16,7 @@ import {
   loadTimelineState,
   persistSessionState,
 } from "./db.ts";
+import Groq from "npm:groq-sdk@0.26.0";
 import { invokeLlm, triageDifficulty } from "./llm/client.ts";
 import {
   buildInitialMessages,
@@ -55,6 +59,92 @@ import type {
 type LoopLogger = Pick<EdgeRuntime["logger"], "error" | "info">;
 
 const APPEND_SHOT_POSITION = 2_147_483_647;
+
+// ── Session summarization ──────────────────────────────────────────
+
+function turnsToTranscript(turns: AgentTurn[]): string {
+  const lines: string[] = [];
+  for (const turn of turns) {
+    if (turn.role === "user") {
+      lines.push(`USER: ${turn.content}`);
+    } else if (turn.role === "assistant") {
+      lines.push(`ASSISTANT: ${turn.content}`);
+    } else if (turn.role === "tool_call") {
+      const argsPreview = turn.tool_args
+        ? JSON.stringify(turn.tool_args).slice(0, 200)
+        : turn.content.slice(0, 200);
+      lines.push(`TOOL CALL ${turn.tool_name}: ${argsPreview}`);
+    } else if (turn.role === "tool_result") {
+      lines.push(`TOOL RESULT ${turn.tool_name}: ${turn.content.slice(0, 150)}`);
+    }
+  }
+  return lines.join("\n");
+}
+
+async function summarizeTurns(
+  turnsToSummarize: AgentTurn[],
+  existingSummary: string | null,
+  logger: LoopLogger,
+): Promise<string | null> {
+  const apiKey = Deno.env.get("GROQ_API_KEY");
+  if (!apiKey) return existingSummary;
+
+  const transcript = turnsToTranscript(turnsToSummarize);
+  if (!transcript.trim()) return existingSummary;
+
+  const systemMsg = `You summarize AI agent conversation history for an image/video generation tool. Write a concise summary that captures:
+
+1. What the user originally asked for and their creative direction
+2. What tasks were created (task types, counts, key prompts used)
+3. What reference images were used (include URLs so they can be reused)
+4. The user's latest feedback or direction — what they liked, what they want changed
+5. Any unresolved requests or issues
+
+Keep it factual and compact. Use bullet points. Include specific URLs and prompt text — these are needed for follow-up requests.`;
+
+  const userMsg = existingSummary
+    ? `Here is the existing summary of earlier conversation:\n${existingSummary}\n\nHere is the new conversation to incorporate:\n${transcript}\n\nProduce an updated combined summary.`
+    : `Summarize this conversation:\n${transcript}`;
+
+  try {
+    const groq = new Groq({ apiKey, timeout: GROQ_TIMEOUT_MS });
+    const resp = await groq.chat.completions.create({
+      model: GROQ_TRIAGE_MODEL,
+      messages: [
+        { role: "system", content: systemMsg },
+        { role: "user", content: userMsg },
+      ],
+      temperature: 0.1,
+      max_tokens: 1024,
+    });
+    const summary = resp.choices[0]?.message?.content?.trim();
+    if (summary) {
+      logger.info("Session summarized", { oldTurns: turnsToSummarize.length, summaryLength: summary.length });
+      return summary;
+    }
+  } catch (err: unknown) {
+    logger.error("Failed to summarize session", { error: toErrorMessage(err) });
+  }
+  return existingSummary;
+}
+
+async function maybeCompressSession(
+  turns: AgentTurn[],
+  existingSummary: string | null,
+  logger: LoopLogger,
+): Promise<{ turns: AgentTurn[]; summary: string | null }> {
+  if (turns.length <= SUMMARIZE_THRESHOLD) {
+    return { turns, summary: existingSummary };
+  }
+
+  // Keep the most recent turns, summarize the rest
+  const keepCount = Math.floor(SUMMARIZE_THRESHOLD / 2);
+  const turnsToSummarize = turns.slice(0, turns.length - keepCount);
+  const recentTurns = turns.slice(turns.length - keepCount);
+
+  const summary = await summarizeTurns(turnsToSummarize, existingSummary, logger);
+  return { turns: recentTurns, summary };
+}
 
 export interface RunAgentLoopOptions {
   session: AgentSession;
@@ -477,9 +567,10 @@ export async function runAgentLoop(
     turns.push(userTurn);
   }
   let status: AgentSessionStatus = "processing";
-  const summary = session.summary;
   let activeToolCallId: string | null = null;
   let madeToolCall = false;
+
+  let summary = session.summary;
 
   try {
     await persistSessionState(supabaseAdmin, {
@@ -541,7 +632,16 @@ export async function runAgentLoop(
       sharedShotId: clipShotId,
       sharedShotName: clipShotName,
     });
-    const messages = buildInitialMessages(systemPrompt, turns);
+    // Compress long sessions: summarize old turns, keep recent ones
+    const compressed = await maybeCompressSession(turns, summary, logger);
+    summary = compressed.summary;
+    if (compressed.turns.length < turns.length) {
+      // Replace turns with compressed version
+      turns.length = 0;
+      turns.push(...compressed.turns);
+    }
+
+    const messages = buildInitialMessages(systemPrompt, turns, summary);
     const startedAt = Date.now();
 
     // Triage the user message to pick provider: easy/okay → Kimi K2.5, hard → Claude
