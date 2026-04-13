@@ -148,48 +148,42 @@ Respond with ONLY the word "direct" or "rewrite".`;
         .trim();
       logger.info('Direct prompt (cleaned)', { preview: promptText.substring(0, 100) });
     } else {
-      // Step 3: Rewrite via Kimi
-      const systemMsg = `You are a helpful assistant that transforms spoken instructions into appropriate text for AI generation fields. You interpret the user's INTENT, not just their literal words.
+      // Step 3: Light rewrite via Kimi — stay close to what the user said
+      const systemMsg = `You clean up spoken input for AI image generation prompt fields. Your job is to make minimal, conservative edits — NOT to rewrite or embellish.
 
-Key skill: Recognize when users are giving INSTRUCTIONS vs LITERAL CONTENT:
-- "blur, distortion, and similar quality issues" → User wants a LIST of quality issues, expand it
-- "something like a sunset over mountains" → User is describing what they want, elaborate on it
-- "make it more dramatic" → User wants you to modify existing content
-- "just write: a cat sitting on a windowsill" → User wants EXACT text, transcribe literally
+What you DO:
+- Remove filler words (um, uh, like, you know, I mean)
+- Fix grammar and punctuation from speech-to-text artifacts
+- If they say "X and similar things" or "etc" or "that kind of thing" → expand with a few more examples
+- If they say "make it more X" or "change Y" and there's existing content → apply the modification
+- If they explicitly ask you to elaborate, expand, or rewrite → then do so
 
-Sometimes users want direct transcription without enhancement. If they say "just", "exactly", "literally", or similar, output their words verbatim.`;
+What you DO NOT do:
+- Do not add descriptive details the user didn't mention
+- Do not embellish, poeticize, or "improve" the prompt
+- Do not add style keywords, quality tags, or atmosphere words they didn't say
+- Do not change the meaning or tone of what they said
+- Do not make short prompts longer — short is fine
 
-      let userMsg = `Transform this spoken input into appropriate text for the given context.
+Your output should sound like the user, just cleaned up.`;
+
+      let userMsg = `Clean up this spoken input for use in an AI generation field.
 
 SPOKEN INPUT: "${transcribedText}"
 ${existingValue ? `
 EXISTING CONTENT IN FIELD: "${existingValue}"
-(The user may want to modify, extend, or replace this based on their spoken input)
+(The user may want to modify, extend, or replace this)
 ` : ""}
-${context ? `CONTEXT (important - this tells you what kind of field this is):
-${context}
-
-` : ""}${example ? `EXAMPLE of what good output looks like for this field:
-"${example}"
-
-` : ""}INTERPRETATION GUIDELINES:
-- CRITICAL: Interpret the user's INTENT, not just literal words
-- If they say "X, Y, and similar things" or "stuff like X" or "things like X" → Generate an expanded list of similar items
-- If they say "and so on" or "etc" or "that kind of thing" → Expand with more examples
-- If they give examples followed by ellipsis or trailing off → They want more of the same type
-- If they're describing a scene or subject → Transform into a well-crafted prompt
-- If they're giving modification instructions → Apply those to the existing content
-${existingValue ? "- Consider how their input relates to the existing content - are they adding, modifying, or replacing?" : ""}
-
-CRITICAL FORMATTING:
-- Output ONLY the final text, ready to use in the field
-- NO commentary, explanations, or meta-text
-- NO quotation marks around the output
-- Match the expected format for the context (e.g., comma-separated list for negative prompts)
-- AVOID keyword stuffing like "4k, best quality, masterpiece, highly detailed" unless the user specifically requests quality tags
-- Ignore filler words like "um", "uh", "like", "you know" from the input
-- PRESERVE specific details the user mentions: names, colors, numbers, camera angles, style references
-- Be concise - quality prompts are typically 1-3 sentences, not paragraphs
+${context ? `FIELD CONTEXT: ${context}
+` : ""}${example ? `EXAMPLE FORMAT: "${example}"
+` : ""}
+${existingValue ? `Consider how their input relates to the existing content - are they adding, modifying, or replacing?
+` : ""}
+RULES:
+- Output ONLY the final text, no commentary or quotes
+- Match the expected format for the field (e.g., comma-separated list for negative prompts)
+- Stay as close to the user's original words as possible
+- Preserve all specific details: names, colors, numbers, camera angles, references
 
 Output:`;
 
