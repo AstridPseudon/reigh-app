@@ -260,13 +260,34 @@ export function useClipResize({
 
     if (session.context.kind === 'group') {
       const updatedRows = applyActionUpdates(current.rows, session.rowId, updates);
-      const nextRows = ensureGroupContiguity(updatedRows, current.config.pinnedShotGroups);
+      let nextRows = ensureGroupContiguity(updatedRows, current.config.pinnedShotGroups);
+
+      // Resolve overlaps between group clips and non-group siblings on the same row.
+      // The resized group clip may extend into non-group clips; resolveOverlaps trims it to fit.
+      const groupClipIds = new Set(session.context.groupClipIds);
+      let overlapMetaPatches: Record<string, Partial<ClipMeta>> = {};
+      for (const update of updates) {
+        if (!groupClipIds.has(update.clipId)) continue;
+        const { rows: resolved, metaPatches } = resolveOverlaps(
+          nextRows,
+          session.rowId,
+          update.clipId,
+          current.meta,
+        );
+        nextRows = resolved;
+        overlapMetaPatches = { ...overlapMetaPatches, ...metaPatches };
+      }
+
       const perClipMetaUpdates: Record<string, Partial<ClipMeta>> = {};
       for (const update of updates) {
         const clip = getResizeOrigin(current, resizeStartRef.current, session.rowId, update.clipId);
         if (!clip) {
           continue;
         }
+        // Use resolved positions for meta calculation
+        const resolvedAction = getResolvedAction(nextRows, session.rowId, update.clipId);
+        const effectiveStart = resolvedAction?.start ?? update.start;
+        const effectiveEnd = resolvedAction?.end ?? update.end;
         // The dragged clip is actually resized; other clips are just shifted
         const clipEdge = update.clipId === session.clipId ? session.edge : session.edge;
         perClipMetaUpdates[update.clipId] = {
@@ -274,8 +295,8 @@ export function useClipResize({
           ...computeClipResizeMetaPatch(
             clip.clipMeta,
             clip.origin,
-            update.start,
-            update.end,
+            effectiveStart,
+            effectiveEnd,
             clipEdge,
           ),
         };
@@ -288,6 +309,7 @@ export function useClipResize({
           {
             ...buildRowTrackPatches(nextRows),
           },
+          overlapMetaPatches,
           perClipMetaUpdates,
         ),
       }, { transactionId });
