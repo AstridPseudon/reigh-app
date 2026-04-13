@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import type { DragEvent, MouseEvent as ReactMouseEvent, RefObject } from 'react';
+import { useGallerySelectionBridge } from '@/shared/hooks/gallery/useGallerySelectionBridge';
 import { useIsMobile, useIsTablet } from '@/shared/hooks/mobile';
 import { usePrefetchTaskData } from '@/shared/hooks/tasks/useTaskPrefetch';
 import {
@@ -214,6 +215,12 @@ export function useTimelineOrchestrator({
     lockSelection,
     unlockSelection,
   } = useTimelineSelection({ isEnabled: !readOnly });
+
+  useGallerySelectionBridge({
+    selectedIds,
+    images,
+    clearLocalSelection: clearSelection,
+  });
 
   const trailingEffectiveEnd = getTrailingEffectiveEnd({
     framePositions,

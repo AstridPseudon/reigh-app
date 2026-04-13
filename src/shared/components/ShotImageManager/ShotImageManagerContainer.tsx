@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { GenerationRow } from '@/domains/generation/types';
 import { useIsMobile } from '@/shared/hooks/mobile';
+import { useGallerySelectionBridge } from '@/shared/hooks/gallery/useGallerySelectionBridge';
 import { isPositioned, isVideoGeneration } from '@/shared/lib/typeGuards';
 import { usePendingSegmentTasks } from '@/shared/hooks/tasks/usePendingSegmentTasks';
 import { useSegmentOutputsForShot } from '@/shared/hooks/segments';
@@ -236,6 +237,12 @@ function useShotImageManagerSelectionOrderController(
     isMobile,
     generationMode: props.generationMode,
     onSelectionChange: props.onSelectionChange,
+  });
+
+  useGallerySelectionBridge({
+    selectedIds: isMobile ? selection.mobileSelectedIds : selection.selectedIds,
+    images: optimistic.optimisticOrder,
+    clearLocalSelection: selection.clearSelection,
   });
 
   const dragAndDrop = useDragAndDrop({
