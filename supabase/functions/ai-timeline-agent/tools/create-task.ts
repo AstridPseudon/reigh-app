@@ -235,6 +235,15 @@ async function sha256Hex(value: string): Promise<string> {
     .join("");
 }
 
+// Batch timestamp ensures "10 more" creates new tasks instead of deduplicating against previous batches
+let batchTimestamp: string | null = null;
+function getBatchTimestamp(): string {
+  if (!batchTimestamp) {
+    batchTimestamp = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  }
+  return batchTimestamp;
+}
+
 async function buildBatchIdempotencyKey(args: CreateGenerationTaskArgs, batchIndex: number): Promise<string> {
   const payload = JSON.stringify({
     project_id: args.project_id,
@@ -253,6 +262,7 @@ async function buildBatchIdempotencyKey(args: CreateGenerationTaskArgs, batchInd
       timeline_placement: args.timeline_placement,
       params: args.params,
       batch_index: batchIndex,
+      batch_ts: getBatchTimestamp(),
     },
   });
   const digest = await sha256Hex(payload);
@@ -442,6 +452,7 @@ export async function executeCreateTask(
   const taskParamsWithPlacement = withPlacementIntent(taskParams, placementIntent);
 
   // When count > 1 and there's a prompt, expand into varied prompts and create separate tasks
+  batchTimestamp = null; // Reset so each batch gets a unique timestamp
   if (requestedCount > 1 && prompt) {
     const targetCount = Math.min(requestedCount, MAX_BATCH_VARIATIONS);
     const expandedPrompts = ensureDistinctPrompts(
@@ -451,6 +462,7 @@ export async function executeCreateTask(
     );
     let queuedCount = 0;
     let failedCount = 0;
+    let deduplicatedCount = 0;
 
     for (const [index, expandedPrompt] of expandedPrompts.entries()) {
       const generationArgs: CreateGenerationTaskArgs = {
@@ -479,6 +491,8 @@ export async function executeCreateTask(
 
       if (result.result.startsWith("Failed to create task:")) {
         failedCount += 1;
+      } else if (result.result.includes("(deduplicated)")) {
+        deduplicatedCount += 1;
       } else {
         queuedCount += 1;
       }
@@ -487,6 +501,9 @@ export async function executeCreateTask(
     const summaryParts = [`Queued ${queuedCount} ${queuedCount === 1 ? "task" : "tasks"} with varied prompts.`];
     if (failedCount > 0) {
       summaryParts.push(`${failedCount} failed.`);
+    }
+    if (deduplicatedCount > 0) {
+      summaryParts.push(`${deduplicatedCount} were duplicates of existing tasks.`);
     }
     if (requestedCount > MAX_BATCH_VARIATIONS) {
       summaryParts.push(`Requested ${requestedCount}, capped at ${MAX_BATCH_VARIATIONS}.`);
