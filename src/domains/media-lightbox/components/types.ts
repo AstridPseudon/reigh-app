@@ -3,6 +3,8 @@ import type { LoraManagerState } from '@/domains/lora/types/loraManager';
 import type { EditAdvancedSettings as EditAdvancedSettingsType } from '../hooks/useGenerationEditSettings';
 import type { LightboxCoreState, LightboxVariantState } from '../contexts/LightboxStateContext';
 import type { ImageEditState } from '../contexts/ImageEditContext';
+import type { CurrentSegmentImagesData } from '@/shared/components/VariantSelector/variantSourceImages';
+import type { GenerationVariant } from '@/shared/hooks/variants/useVariants';
 
 interface EditModePanelActions {
   handleUnifiedGenerate: () => void;
@@ -30,20 +32,24 @@ interface EditModePanelAdvancedConfig {
   setAdvancedSettings?: (updates: Partial<EditAdvancedSettingsType>) => void;
 }
 
-interface EditModePanelStateOverrides {
-  coreState?: Pick<LightboxCoreState, 'onClose'>;
-  imageEditState?: ImageEditState;
-  variantsState?: Pick<LightboxVariantState,
-    | 'variants'
-    | 'activeVariant'
-    | 'handleVariantSelect'
-    | 'handleMakePrimary'
-    | 'isLoadingVariants'
-    | 'handlePromoteToGeneration'
-    | 'isPromoting'
-    | 'handleDeleteVariant'
-    | 'onLoadVariantSettings'
-  >;
+export type EditModePanelCoreState = Pick<LightboxCoreState, 'onClose'>;
+export type EditModePanelImageEditState = ImageEditState;
+
+export interface EditModePanelVariantsState {
+  variants: GenerationVariant[];
+  activeVariant: GenerationVariant | null;
+  handleVariantSelect: (id: string) => void;
+  handleMakePrimary?: LightboxVariantState['handleMakePrimary'];
+  isLoadingVariants?: boolean;
+  handlePromoteToGeneration?: LightboxVariantState['handlePromoteToGeneration'];
+  isPromoting?: boolean;
+  handleDeleteVariant?: LightboxVariantState['handleDeleteVariant'];
+  onLoadVariantSettings?: LightboxVariantState['onLoadVariantSettings'];
+  pendingTaskCount?: number;
+  unviewedVariantCount?: number;
+  onMarkAllViewed?: () => void;
+  onLoadVariantImages?: (variant: GenerationVariant) => void;
+  currentSegmentImages?: CurrentSegmentImagesData;
 }
 
 export interface EditModePanelProps {
@@ -72,6 +78,7 @@ export interface EditModePanelProps {
   // Whether running in local generation mode (shows steps slider)
   isLocalGeneration?: boolean;
 
-  // Optional state overrides (props-first pattern)
-  stateOverrides?: EditModePanelStateOverrides;
+  coreState: EditModePanelCoreState;
+  imageEditState: EditModePanelImageEditState;
+  variantsState: EditModePanelVariantsState;
 }

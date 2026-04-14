@@ -91,25 +91,6 @@ describe('useDebouncedSettingsSave', () => {
     expect(result.current.hasPendingFor('entity-2')).toBe(false);
   });
 
-  it('incrementEditVersion increments the counter', () => {
-    const { result } = renderHook(
-      () => useDebouncedSettingsSave<TestSettings>(defaultOptions),
-      { wrapper: createWrapper() }
-    );
-
-    expect(result.current.editVersionRef.current).toBe(0);
-
-    act(() => {
-      result.current.incrementEditVersion();
-    });
-    expect(result.current.editVersionRef.current).toBe(1);
-
-    act(() => {
-      result.current.incrementEditVersion();
-    });
-    expect(result.current.editVersionRef.current).toBe(2);
-  });
-
   it('clearPending resets all pending state', () => {
     const { result } = renderHook(
       () => useDebouncedSettingsSave<TestSettings>(defaultOptions),
@@ -118,7 +99,6 @@ describe('useDebouncedSettingsSave', () => {
 
     act(() => {
       result.current.trackPendingUpdate({ prompt: 'test', mode: 'basic' }, 'entity-1');
-      result.current.incrementEditVersion();
     });
 
     act(() => {
@@ -127,7 +107,6 @@ describe('useDebouncedSettingsSave', () => {
 
     expect(result.current.pendingSettingsRef.current).toBeNull();
     expect(result.current.pendingEntityIdRef.current).toBeNull();
-    expect(result.current.editVersionRef.current).toBe(0);
   });
 
   it('scheduleSave does not schedule when status is idle', () => {
@@ -189,6 +168,46 @@ describe('useDebouncedSettingsSave', () => {
     });
 
     expect(mockGetLatestSettings).toHaveBeenCalled();
+  });
+
+  it('preserves newer pending edits when a save resolves with stale settings', async () => {
+    let resolveSave!: () => void;
+    const localSaveImmediate = vi.fn().mockImplementation(
+      () => new Promise<void>((resolve) => {
+        resolveSave = resolve;
+      })
+    );
+    const localGetLatestSettings = vi.fn().mockResolvedValue({ prompt: 'first', mode: 'basic' });
+
+    const { result } = renderHook(
+      () => useDebouncedSettingsSave<TestSettings>({
+        ...defaultOptions,
+        saveImmediateRef: { current: localSaveImmediate },
+        getLatestSettings: localGetLatestSettings,
+      }),
+      { wrapper: createWrapper() }
+    );
+
+    act(() => {
+      result.current.trackPendingUpdate({ prompt: 'first', mode: 'basic' }, 'entity-1');
+      result.current.scheduleSave('entity-1');
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(300);
+    });
+
+    act(() => {
+      result.current.trackPendingUpdate({ prompt: 'second', mode: 'basic' }, 'entity-1');
+    });
+
+    await act(async () => {
+      resolveSave();
+    });
+    await act(async () => {});
+
+    expect(result.current.pendingSettingsRef.current).toEqual({ prompt: 'second', mode: 'basic' });
+    expect(result.current.pendingEntityIdRef.current).toBe('entity-1');
   });
 
   it('cancelPendingSave cancels scheduled save', async () => {

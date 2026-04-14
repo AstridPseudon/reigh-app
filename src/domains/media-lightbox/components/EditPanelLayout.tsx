@@ -8,11 +8,13 @@
 import React, { useRef } from 'react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { SegmentedControl, SegmentedControlItem } from '@/shared/components/ui/segmented-control';
-import { useLightboxVariantsSafe } from '../contexts/LightboxStateContext';
 import { VariantSelector } from '@/shared/components/VariantSelector';
 import type { GenerationVariant } from '@/shared/hooks/variants/useVariants';
 import { useCopyToClipboard } from '@/shared/hooks/clipboard/useCopyToClipboard';
 import { PanelCloseButton, PanelHeaderMeta } from './PanelHeaderControls';
+import type { CurrentSegmentImagesData } from '@/shared/components/VariantSelector/variantSourceImages';
+
+const NOOP = () => {};
 
 interface EditPanelLayoutProps {
   /** Layout variant */
@@ -54,8 +56,14 @@ interface EditPanelLayoutProps {
   onPromoteToGeneration?: (variantId: string) => Promise<void>;
   isPromoting?: boolean;
 
+  pendingTaskCount?: number;
+  unviewedVariantCount?: number;
+  onMarkAllViewed?: () => void;
+
   /** Handler to load a variant's settings into the regenerate form */
   onLoadVariantSettings?: (variantParams: Record<string, unknown>) => void;
+  onLoadVariantImages?: (variant: GenerationVariant) => void;
+  currentSegmentImages?: CurrentSegmentImagesData;
 
   /** Handler to delete a variant */
   onDeleteVariant?: (variantId: string) => Promise<void>;
@@ -78,7 +86,12 @@ export const EditPanelLayout: React.FC<EditPanelLayoutProps> = ({
   isLoadingVariants,
   onPromoteToGeneration,
   isPromoting,
+  pendingTaskCount = 0,
+  unviewedVariantCount = 0,
+  onMarkAllViewed = NOOP,
   onLoadVariantSettings,
+  onLoadVariantImages,
+  currentSegmentImages,
   onDeleteVariant,
 }) => {
   const isMobile = variant === 'mobile';
@@ -87,9 +100,6 @@ export const EditPanelLayout: React.FC<EditPanelLayoutProps> = ({
   const spacing = isMobile ? 'space-y-2' : 'space-y-4';
   const { copied: idCopied, handleCopy: handleCopyId } = useCopyToClipboard(taskId ?? undefined);
   const variantsSectionRef = useRef<HTMLDivElement>(null);
-
-  // Get variant state from context (avoids prop drilling)
-  const { pendingTaskCount, unviewedVariantCount, onMarkAllViewed, onLoadVariantImages, currentSegmentImages } = useLightboxVariantsSafe();
 
   return (
     <div className="h-full flex flex-col">

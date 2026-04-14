@@ -1,3 +1,10 @@
+/*
+ * Keep `<Dialog open={...}>` mounted until `open` flips false.
+ * Base UI releases focus scope and body pointer-events during close, not on unmount.
+ * Returning `null` above an open dialog can strand the page in a blocked state.
+ * If closed-state children are expensive, gate `<DialogContent>` instead.
+ */
+
 import * as React from "react"
 import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
 import { X } from "lucide-react"

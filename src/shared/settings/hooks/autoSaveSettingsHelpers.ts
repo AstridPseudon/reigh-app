@@ -1,5 +1,5 @@
 import { useDebouncedSettingsSave } from '@/shared/settings/hooks/useDebouncedSettingsSave';
-import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
+import type { MutableRefObject } from 'react';
 
 type AutoSaveStatus = 'idle' | 'loading' | 'ready' | 'saving' | 'error';
 
@@ -8,19 +8,19 @@ function cloneSettings<T>(data: T): T {
 }
 
 interface TransitionReadyWithPendingSaveInput<T extends object> {
-  setStatus: (status: AutoSaveStatus) => void;
+  markReady: () => void;
   debouncedSave: ReturnType<typeof useDebouncedSettingsSave<T>>;
   saveImmediateRef: MutableRefObject<(settingsToSave?: T) => Promise<void>>;
   debounceMs: number;
 }
 
 export function transitionReadyWithPendingSave<T extends object>({
-  setStatus,
+  markReady,
   debouncedSave,
   saveImmediateRef,
   debounceMs,
 }: TransitionReadyWithPendingSaveInput<T>): void {
-  setStatus('ready');
+  markReady();
   debouncedSave.cancelPendingSave();
   const toSave = debouncedSave.pendingSettingsRef.current!;
   debouncedSave.saveTimeoutRef.current = setTimeout(async () => {
@@ -36,89 +36,98 @@ interface ApplyLoadedDataInput<T extends object> {
   data: T;
   hadPersistedData: boolean;
   isCustomMode: boolean;
-  setSettings: Dispatch<SetStateAction<T>>;
-  loadedSettingsRef: MutableRefObject<T | null>;
-  setHasPersistedData: Dispatch<SetStateAction<boolean>>;
-  setStatus: (status: AutoSaveStatus) => void;
-  setError: (error: Error | null) => void;
+}
+
+interface ApplyLoadedDataStateResult<T extends object> {
+  settings: T;
+  loadedSettings: T;
+  hasPersistedData: boolean;
+  status: AutoSaveStatus;
+  error: Error | null;
 }
 
 export function applyLoadedDataState<T extends object>({
   data,
   hadPersistedData,
   isCustomMode,
-  setSettings,
-  loadedSettingsRef,
-  setHasPersistedData,
-  setStatus,
-  setError,
-}: ApplyLoadedDataInput<T>): void {
+}: ApplyLoadedDataInput<T>): ApplyLoadedDataStateResult<T> {
   const cloned = cloneSettings(data);
-  setSettings(cloned);
-  loadedSettingsRef.current = cloneSettings(cloned);
-  if (isCustomMode) {
-    setHasPersistedData(hadPersistedData);
-  }
-  setStatus('ready');
-  setError(null);
+  return {
+    settings: cloned,
+    loadedSettings: cloneSettings(cloned),
+    hasPersistedData: isCustomMode ? hadPersistedData : false,
+    status: 'ready',
+    error: null,
+  };
 }
 
 interface ApplyEntityChangeStateInput<T extends object> {
   entityId: string | null;
   previousEntityId: string | null;
-  currentEntityIdRef: MutableRefObject<string | null>;
   defaults: T;
   isCustomMode: boolean;
   rqIsLoading: boolean;
   dbSettings: T | undefined;
-  setSettings: Dispatch<SetStateAction<T>>;
-  setStatus: (status: AutoSaveStatus) => void;
-  setHasPersistedData: Dispatch<SetStateAction<boolean>>;
-  loadedSettingsRef: MutableRefObject<T | null>;
-  setError: (error: Error | null) => void;
 }
 
-export function applyEntityChangeState<T extends object>({
+interface ApplyEntityChangeStateResult<T extends object> {
+  action: {
+    entityId: string | null;
+    settings: T;
+    status: AutoSaveStatus;
+    hasPersistedData: boolean;
+    error: Error | null;
+  };
+  loadedSettings: T | null;
+}
+
+export function resolveEntityChange<T extends object>({
   entityId,
   previousEntityId,
-  currentEntityIdRef,
   defaults,
   isCustomMode,
   rqIsLoading,
   dbSettings,
-  setSettings,
-  setStatus,
-  setHasPersistedData,
-  loadedSettingsRef,
-  setError,
-}: ApplyEntityChangeStateInput<T>): void {
+}: ApplyEntityChangeStateInput<T>): ApplyEntityChangeStateResult<T> | null {
   if (entityId === previousEntityId) {
-    return;
+    return null;
   }
 
-  currentEntityIdRef.current = entityId;
   if (!entityId) {
-    setSettings(defaults);
-    setStatus('idle');
-    setHasPersistedData(false);
-    loadedSettingsRef.current = null;
-    return;
+    return {
+      action: {
+        entityId: null,
+        settings: cloneSettings(defaults),
+        status: 'idle',
+        hasPersistedData: false,
+        error: null,
+      },
+      loadedSettings: null,
+    };
   }
 
-  if (previousEntityId) {
-    setHasPersistedData(false);
-    if (!isCustomMode && !rqIsLoading && dbSettings) {
-      const loaded = { ...defaults, ...(dbSettings as Record<string, unknown>) } as T;
-      const cloned = cloneSettings(loaded);
-      setSettings(cloned);
-      loadedSettingsRef.current = cloneSettings(cloned);
-      setStatus('ready');
-      setError(null);
-      return;
-    }
-
-    setSettings(defaults);
-    setStatus('loading');
-    loadedSettingsRef.current = null;
+  if (!isCustomMode && !rqIsLoading) {
+    const loaded = cloneSettings({ ...defaults, ...(dbSettings as Record<string, unknown> | undefined) } as T);
+    return {
+      action: {
+        entityId,
+        settings: loaded,
+        status: 'ready',
+        hasPersistedData: false,
+        error: null,
+      },
+      loadedSettings: cloneSettings(loaded),
+    };
   }
+
+  return {
+    action: {
+      entityId,
+      settings: cloneSettings(defaults),
+      status: 'loading',
+      hasPersistedData: false,
+      error: null,
+    },
+    loadedSettings: null,
+  };
 }

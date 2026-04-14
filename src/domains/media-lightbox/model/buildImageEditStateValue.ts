@@ -39,6 +39,7 @@ interface BuildImageEditStateParams {
   setQwenEditModel: (model: QwenEditModel) => void;
   advancedSettings: EditAdvancedSettings;
   setAdvancedSettings: (updates: Partial<EditAdvancedSettings>) => void;
+  flushTextFields: () => Promise<void>;
 }
 
 export function buildImageEditStateValue(p: BuildImageEditStateParams): ImageEditState {
@@ -116,6 +117,7 @@ export function buildImageEditStateValue(p: BuildImageEditStateParams): ImageEdi
     setInpaintPrompt: inpainting.setInpaintPrompt,
     inpaintNumGenerations: inpainting.inpaintNumGenerations,
     setInpaintNumGenerations: inpainting.setInpaintNumGenerations,
+    flushTextFields: p.flushTextFields,
 
     // Img2Img form
     img2imgPrompt: img2img.img2imgPrompt,

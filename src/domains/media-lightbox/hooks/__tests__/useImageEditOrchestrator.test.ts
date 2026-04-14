@@ -84,6 +84,7 @@ function createProps(editMode: EditMode) {
       setQwenEditModel: vi.fn(),
       editMode,
       setEditMode: vi.fn(),
+      flushTextFields: vi.fn().mockResolvedValue(undefined),
       isReady: true,
       hasPersistedSettings: true,
     },
@@ -146,4 +147,47 @@ describe('useImageEditOrchestrator', () => {
       expect(result.current.imageEditValue.editMode).toBe(editMode);
     },
   );
+
+  it('flushes pending text fields before generate handlers run', async () => {
+    const handleUnifiedGenerate = vi.fn().mockResolvedValue(undefined);
+    const handleGenerateAnnotatedEdit = vi.fn().mockResolvedValue(undefined);
+    const handleGenerateReposition = vi.fn().mockResolvedValue(undefined);
+    const handleGenerateImg2Img = vi.fn().mockResolvedValue(undefined);
+    const flushTextFields = vi.fn().mockResolvedValue(undefined);
+
+    mockUseInpainting.mockReturnValue({
+      ...mockUseInpainting(),
+      handleGenerateAnnotatedEdit,
+    });
+    mockUseMagicEditMode.mockReturnValue({
+      ...mockUseMagicEditMode(),
+      handleUnifiedGenerate,
+    });
+    mockUseRepositionMode.mockReturnValue({
+      ...mockUseRepositionMode(),
+      handleGenerateReposition,
+      handleSaveAsVariant: vi.fn(),
+    });
+    mockUseImg2ImgMode.mockReturnValue({
+      ...mockUseImg2ImgMode(),
+      handleGenerateImg2Img,
+      loraManager: { selectedLoras: [], setSelectedLoras: vi.fn() },
+    });
+
+    const props = createProps('text');
+    props.settingsContext.flushTextFields = flushTextFields;
+
+    const { result } = renderHook(() => useImageEditOrchestrator(props));
+
+    await result.current.handleUnifiedGenerate();
+    await result.current.handleGenerateAnnotatedEdit();
+    await result.current.handleGenerateReposition();
+    await result.current.handleGenerateImg2Img();
+
+    expect(flushTextFields).toHaveBeenCalledTimes(4);
+    expect(handleUnifiedGenerate).toHaveBeenCalledTimes(1);
+    expect(handleGenerateAnnotatedEdit).toHaveBeenCalledTimes(1);
+    expect(handleGenerateReposition).toHaveBeenCalledTimes(1);
+    expect(handleGenerateImg2Img).toHaveBeenCalledTimes(1);
+  });
 });

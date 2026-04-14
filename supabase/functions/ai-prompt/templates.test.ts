@@ -7,7 +7,7 @@ import {
 } from './templates.ts';
 
 describe('ai-prompt templates', () => {
-  it('builds generate prompts messages with format example when no existing prompts are provided', () => {
+  it('builds generate prompts messages in default linguistic-rewrite mode when no variation intent is provided', () => {
     const { systemMsg, userMsg } = buildGeneratePromptsMessages({
       overallPromptText: 'A train entering a station',
       rulesToRememberText: 'Keep it cinematic',
@@ -15,10 +15,25 @@ describe('ai-prompt templates', () => {
       existingPrompts: [],
     });
 
-    expect(systemMsg).toContain('generates detailed image prompts');
-    expect(userMsg).toContain('Generate exactly 3 distinct image generation prompts');
-    expect(userMsg).toContain('FORMAT EXAMPLE (3 prompts)');
-    expect(userMsg).toContain('A train entering a station');
+    expect(systemMsg).toContain('vary along a specified axis');
+    expect(userMsg).toContain('BASE PROMPT: A train entering a station');
+    expect(userMsg).toContain('DEFAULT MODE — LINGUISTIC REWRITES');
+    expect(userMsg).toContain('Output exactly 3 prompts');
+    expect(userMsg).not.toContain('VARIATION AXIS:');
+  });
+
+  it('switches to axis mode when variationIntent is provided', () => {
+    const { userMsg } = buildGeneratePromptsMessages({
+      overallPromptText: 'a woman drinking coffee',
+      rulesToRememberText: '',
+      numberToGenerate: 4,
+      existingPrompts: [],
+      variationIntent: 'different lighting conditions',
+    });
+
+    expect(userMsg).toContain('VARIATION AXIS: different lighting conditions');
+    expect(userMsg).not.toContain('DEFAULT MODE');
+    expect(userMsg).toContain('Output exactly 4 prompts');
   });
 
   it('builds generate prompts messages with existing prompt context', () => {
@@ -29,7 +44,7 @@ describe('ai-prompt templates', () => {
       existingPrompts: [{ text: 'existing one' }, 'existing two'],
     });
 
-    expect(userMsg).toContain('Existing Prompts for Context');
+    expect(userMsg).toContain('Existing prompts already generated');
     expect(userMsg).toContain('- existing one');
     expect(userMsg).toContain('- existing two');
   });

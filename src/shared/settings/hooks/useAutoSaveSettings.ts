@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useMemo } from 'react';
+import { useReducer, useCallback, useRef, useMemo, useEffect, useLayoutEffect } from 'react';
 import { useToolSettings } from '@/shared/hooks/settings/useToolSettings';
 import { useRenderLogger } from '@/shared/lib/debug/debugRendering';
 import { useDebouncedSettingsSave } from '@/shared/settings/hooks/useDebouncedSettingsSave';
@@ -6,8 +6,8 @@ import { deepEqual } from '@/shared/lib/utils/deepEqual';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { useCustomModeLoad, useReactQueryModeLoad } from '@/shared/settings/hooks/autoSaveSettingsLoaders';
 import {
-  applyEntityChangeState,
   applyLoadedDataState,
+  resolveEntityChange,
   transitionReadyWithPendingSave,
 } from '@/shared/settings/hooks/autoSaveSettingsHelpers';
 
@@ -15,6 +15,82 @@ import {
  * Status states for the auto-save settings lifecycle.
  */
 type AutoSaveStatus = 'idle' | 'loading' | 'ready' | 'saving' | 'error';
+
+interface AutoSaveState<T extends object> {
+  entityId: string | null;
+  settings: T;
+  status: AutoSaveStatus;
+  error: Error | null;
+  hasPersistedData: boolean;
+}
+
+type AutoSaveAction<T extends object> =
+  | {
+      type: 'ENTITY_CHANGED';
+      entityId: string | null;
+      settings: T;
+      status: AutoSaveStatus;
+      error: Error | null;
+      hasPersistedData: boolean;
+    }
+  | { type: 'LOAD_STARTED' }
+  | { type: 'LOAD_RESOLVED'; settings: T; hasPersistedData: boolean }
+  | {
+      type: 'SETTINGS_UPDATED';
+      nextSettings?: T;
+      merge?: Partial<T>;
+      status?: AutoSaveStatus;
+      error?: Error | null;
+      hasPersistedData?: boolean;
+    };
+
+function autoSaveSettingsReducer<T extends object>(
+  state: AutoSaveState<T>,
+  action: AutoSaveAction<T>
+): AutoSaveState<T> {
+  switch (action.type) {
+    case 'ENTITY_CHANGED':
+      return {
+        entityId: action.entityId,
+        settings: action.settings,
+        status: action.status,
+        error: action.error,
+        hasPersistedData: action.hasPersistedData,
+      };
+
+    case 'LOAD_STARTED':
+      return {
+        ...state,
+        status: 'loading',
+        error: null,
+      };
+
+    case 'LOAD_RESOLVED':
+      return {
+        ...state,
+        settings: action.settings,
+        status: 'ready',
+        error: null,
+        hasPersistedData: action.hasPersistedData,
+      };
+
+    case 'SETTINGS_UPDATED': {
+      const settings = action.nextSettings ?? { ...state.settings, ...action.merge };
+      return {
+        ...state,
+        settings,
+        status: action.status ?? state.status,
+        error: Object.prototype.hasOwnProperty.call(action, 'error') ? (action.error ?? null) : state.error,
+        hasPersistedData: Object.prototype.hasOwnProperty.call(action, 'hasPersistedData')
+          ? (action.hasPersistedData ?? state.hasPersistedData)
+          : state.hasPersistedData,
+      };
+    }
+
+    default:
+      return state;
+  }
+}
 
 /**
  * Custom load/save functions for non-React-Query persistence.
@@ -51,6 +127,8 @@ interface UseAutoSaveSettingsReturn<T> {
   hasPersistedData: boolean;
   updateField: <K extends keyof T>(key: K, value: T[K]) => void;
   updateFields: (updates: Partial<T>) => void;
+  updateTextField: <K extends keyof T>(key: K, value: T[K]) => void;
+  updateTextFields: (updates: Partial<T>) => void;
   save: () => Promise<void>;
   saveImmediate: (dataToSave?: T) => Promise<void>;
   revert: () => void;
@@ -129,29 +207,19 @@ export function useAutoSaveSettings<T extends object>(
     : (scope === 'shot' ? shotId : projectId) ?? null;
   const isEntityValid = !!entityId;
 
-  // Local state - single source of truth for UI
-  const [settings, setSettings] = useState<T>(defaults);
-  const [status, setStatusRaw] = useState<AutoSaveStatus>('idle');
-  const [error, setError] = useState<Error | null>(null);
-  const [hasPersistedData, setHasPersistedData] = useState(false);
-
-  // Ref for status — load effects read this instead of depending on `status` directly.
-  // This prevents unnecessary effect re-runs on every status transition (idle→loading→ready→saving).
-  // Updated both at render time and immediately when setStatus is called, so effects
-  // running in the same commit (after entity-change) see the correct value.
-  const statusRef = useRef(status);
-  statusRef.current = status;
-  const setStatus = useCallback((s: AutoSaveStatus) => {
-    setStatusRaw(s);
-    statusRef.current = s;
-  }, []);
-
-  useRenderLogger(`AutoSaveSettings:${toolId}`, { entityId, status });
+  // Reducer-backed state is the single source of truth for entity/status/settings transitions.
+  const [state, dispatch] = useReducer(autoSaveSettingsReducer<T>, {
+    entityId,
+    settings: JSON.parse(JSON.stringify(defaults)),
+    status: entityId ? 'idle' : 'idle',
+    error: null,
+    hasPersistedData: false,
+  });
 
   // Refs for tracking state without triggering re-renders
   const loadedSettingsRef = useRef<T | null>(null);
-  const currentEntityIdRef = useRef<string | null>(null);
   const isLoadingRef = useRef(false);
+  const stateRef = useRef<AutoSaveState<T>>(state);
 
   // Stable refs for custom callbacks to avoid effect dependency churn
   const customLoadRef = useRef(customLoadSave?.load);
@@ -173,41 +241,69 @@ export function useAutoSaveSettings<T extends object>(
     enabled: !isCustomMode && enabled && isEntityValid,
   });
 
-  // Refs for React Query state — read by entity-change effect to detect cache hits
-  // without adding reactive query values to its deps (which would re-run on every refetch).
-  const rqIsLoadingRef = useRef(rqIsLoading);
-  rqIsLoadingRef.current = rqIsLoading;
-  const dbSettingsRef = useRef(dbSettings);
-  dbSettingsRef.current = dbSettings;
+  useLayoutEffect(() => {
+    const entityChange = resolveEntityChange({
+      entityId,
+      previousEntityId: state.entityId,
+      defaults,
+      isCustomMode,
+      rqIsLoading,
+      dbSettings,
+    });
+
+    if (!entityChange) {
+      return;
+    }
+
+    loadedSettingsRef.current = entityChange.loadedSettings;
+    isLoadingRef.current = false;
+    stateRef.current = {
+      ...stateRef.current,
+      ...entityChange.action,
+    };
+    dispatch({
+      type: 'ENTITY_CHANGED',
+      ...entityChange.action,
+    });
+  }, [entityId, state.entityId, defaults, isCustomMode, rqIsLoading, dbSettings]);
+
+  useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
+
+  useRenderLogger(`AutoSaveSettings:${toolId}`, { entityId: state.entityId, status: state.status });
 
   // Dirty flag - has user changed anything since load?
   const isDirty = useMemo(
-    () => (loadedSettingsRef.current ? !deepEqual(settings, loadedSettingsRef.current) : false),
-    [settings]
+    () => (loadedSettingsRef.current ? !deepEqual(state.settings, loadedSettingsRef.current) : false),
+    [state.settings]
   );
 
-  // Ref for current settings — used by saveImmediate to avoid capturing `settings`
-  // in the closure, which would make saveImmediate unstable (recreated on every settings change).
-  const settingsRef = useRef(settings);
-  settingsRef.current = settings;
-
   // Save implementation
-  // Uses currentEntityIdRef instead of entityId to keep this callback stable across entity changes.
-  // This prevents cascading re-renders through the entire settings/context tree on navigation.
   const saveImmediate = useCallback(async (settingsToSave?: T): Promise<void> => {
-    const currentEntityId = currentEntityIdRef.current;
+    const currentEntityId = stateRef.current.entityId;
     if (!currentEntityId) {
       return;
     }
 
-    const toSave = settingsToSave ?? settingsRef.current;
+    const toSave = settingsToSave ?? stateRef.current.settings;
 
     // Don't save if nothing changed
     if (deepEqual(toSave, loadedSettingsRef.current)) {
       return;
     }
 
-    setStatus('saving');
+    stateRef.current = {
+      ...stateRef.current,
+      status: 'saving',
+      error: null,
+    };
+    dispatch({
+      type: 'SETTINGS_UPDATED',
+      nextSettings: toSave,
+      status: 'saving',
+      error: null,
+    });
 
     try {
       if (isCustomMode) {
@@ -219,21 +315,38 @@ export function useAutoSaveSettings<T extends object>(
       // Update our "clean" reference
       loadedSettingsRef.current = JSON.parse(JSON.stringify(toSave));
 
-      if (isCustomMode) {
-        setHasPersistedData(true);
-      }
+      // NOTE: Don't clear pendingSettingsRef here - the scheduling layer only clears it
+      // when the saved payload still matches the latest tracked local edits.
 
-      // NOTE: Don't clear pendingSettingsRef here - it's now handled in the timeout callback
-      // with edit version checking to avoid race conditions when user types fast
-
-      setStatus('ready');
-      setError(null);
+      const latestSettings = stateRef.current.settings;
+      stateRef.current = {
+        ...stateRef.current,
+        settings: latestSettings,
+        status: 'ready',
+        error: null,
+        hasPersistedData: isCustomMode ? true : stateRef.current.hasPersistedData,
+      };
+      dispatch({
+        type: 'SETTINGS_UPDATED',
+        nextSettings: latestSettings,
+        status: 'ready',
+        error: null,
+        hasPersistedData: isCustomMode ? true : undefined,
+      });
 
       onSaveSuccess?.();
     } catch (err) {
       normalizeAndPresentError(err, { context: 'useAutoSaveSettings.save', showToast: false });
-      setStatus('error');
-      setError(err as Error);
+      stateRef.current = {
+        ...stateRef.current,
+        status: 'error',
+        error: err as Error,
+      };
+      dispatch({
+        type: 'SETTINGS_UPDATED',
+        status: 'error',
+        error: err as Error,
+      });
       onSaveError?.(err as Error);
       throw err;
     }
@@ -243,21 +356,15 @@ export function useAutoSaveSettings<T extends object>(
   const saveImmediateRef = useRef(saveImmediate);
   saveImmediateRef.current = saveImmediate;
 
-  // Helper to read the latest settings from React state (via setSettings identity trick)
   const getLatestSettings = useCallback((): Promise<T> => {
-    return new Promise<T>((resolve) => {
-      setSettings(current => {
-        resolve(current);
-        return current; // Don't modify, just read
-      });
-    });
+    return Promise.resolve(stateRef.current.settings);
   }, []);
 
-  // Debounced save sub-hook — manages scheduling, pending tracking, edit versioning, and flush effects
+  // Debounced save sub-hook — manages scheduling, pending tracking, and flush effects
   const debouncedSave = useDebouncedSettingsSave<T>({
     entityId,
     debounceMs,
-    status,
+    status: state.status,
     isCustomMode,
     scope,
     toolId,
@@ -268,46 +375,58 @@ export function useAutoSaveSettings<T extends object>(
     getLatestSettings,
   });
 
-  // Update single field
-  // Uses currentEntityIdRef instead of entityId to keep this callback stable across entity changes.
+  const applyFieldUpdate = useCallback((updates: Partial<T>, shouldScheduleSave: boolean) => {
+    const updated = { ...stateRef.current.settings, ...updates };
+    stateRef.current = {
+      ...stateRef.current,
+      settings: updated,
+    };
+    dispatch({
+      type: 'SETTINGS_UPDATED',
+      nextSettings: updated,
+    });
+
+    // Always track pending settings - this protects user input from being overwritten by DB load.
+    debouncedSave.trackPendingUpdate(updated, stateRef.current.entityId);
+
+    if (shouldScheduleSave) {
+      // Schedule auto-save (no-ops during loading - just keeps pending tracking).
+      debouncedSave.scheduleSave(stateRef.current.entityId);
+    }
+  }, [debouncedSave]);
+
+  // Update single field without capturing entity-specific state in the callback closure.
   const updateField = useCallback(<K extends keyof T>(key: K, value: T[K]) => {
-    debouncedSave.incrementEditVersion();
+    applyFieldUpdate({ [key]: value } as Partial<T>, true);
+  }, [applyFieldUpdate]);
 
-    setSettings(prev => {
-      const updated = { ...prev, [key]: value };
-
-      // Always track pending settings - this protects user input from being overwritten by DB load
-      debouncedSave.trackPendingUpdate(updated, currentEntityIdRef.current);
-
-      // Schedule auto-save (no-ops during loading - just keeps pending tracking)
-      debouncedSave.scheduleSave(currentEntityIdRef.current);
-
-      return updated;
-    });
-  }, [debouncedSave]);
-
-  // Update multiple fields at once
-  // Uses currentEntityIdRef instead of entityId to keep this callback stable across entity changes.
+  // Update multiple fields at once without capturing entity-specific state in the callback closure.
   const updateFields = useCallback((updates: Partial<T>) => {
-    debouncedSave.incrementEditVersion();
+    applyFieldUpdate(updates, true);
+  }, [applyFieldUpdate]);
 
-    setSettings(prev => {
-      const updated = { ...prev, ...updates };
+  // Free-text fields update local state immediately but wait for explicit blur/generate/close flushes.
+  const updateTextField = useCallback(<K extends keyof T>(key: K, value: T[K]) => {
+    applyFieldUpdate({ [key]: value } as Partial<T>, false);
+  }, [applyFieldUpdate]);
 
-      // Always track pending settings - this protects user input from being overwritten by DB load
-      debouncedSave.trackPendingUpdate(updated, currentEntityIdRef.current);
-
-      // Schedule auto-save (no-ops during loading - just keeps pending tracking)
-      debouncedSave.scheduleSave(currentEntityIdRef.current);
-
-      return updated;
-    });
-  }, [debouncedSave]);
+  const updateTextFields = useCallback((updates: Partial<T>) => {
+    applyFieldUpdate(updates, false);
+  }, [applyFieldUpdate]);
 
   // Revert to last saved settings
   const revert = useCallback(() => {
     if (loadedSettingsRef.current) {
-      setSettings(loadedSettingsRef.current);
+      stateRef.current = {
+        ...stateRef.current,
+        settings: loadedSettingsRef.current,
+        error: null,
+      };
+      dispatch({
+        type: 'SETTINGS_UPDATED',
+        nextSettings: loadedSettingsRef.current,
+        error: null,
+      });
       debouncedSave.clearPending();
     }
   }, [debouncedSave]);
@@ -321,10 +440,18 @@ export function useAutoSaveSettings<T extends object>(
 
   // Reset to defaults (or provided settings)
   const reset = useCallback((newDefaults?: T) => {
-    const resetTo = newDefaults || defaults;
-
-    setSettings(resetTo);
+    const resetTo = JSON.parse(JSON.stringify(newDefaults || defaults)) as T;
     loadedSettingsRef.current = JSON.parse(JSON.stringify(resetTo));
+    stateRef.current = {
+      ...stateRef.current,
+      settings: resetTo,
+      error: null,
+    };
+    dispatch({
+      type: 'SETTINGS_UPDATED',
+      nextSettings: resetTo,
+      error: null,
+    });
     debouncedSave.clearPending();
   }, [defaults, debouncedSave]);
 
@@ -332,66 +459,115 @@ export function useAutoSaveSettings<T extends object>(
   const initializeFrom = useCallback((data: Partial<T>) => {
     if (!isCustomMode) return;
     // Only apply if we don't have persisted data and aren't loading
-    if (hasPersistedData || isLoadingRef.current) {
+    if (stateRef.current.hasPersistedData || isLoadingRef.current) {
       return;
     }
 
-    setSettings(prev => ({ ...prev, ...data }));
-  }, [isCustomMode, hasPersistedData]);
+    const updated = { ...stateRef.current.settings, ...data };
+    stateRef.current = {
+      ...stateRef.current,
+      settings: updated,
+    };
+    dispatch({
+      type: 'SETTINGS_UPDATED',
+      nextSettings: updated,
+    });
+  }, [isCustomMode]);
 
   const transitionPendingLoadSave = useCallback(() => {
     transitionReadyWithPendingSave({
-      setStatus,
+      markReady: () => {
+        stateRef.current = {
+          ...stateRef.current,
+          status: 'ready',
+          error: null,
+        };
+        dispatch({
+          type: 'SETTINGS_UPDATED',
+          nextSettings: stateRef.current.settings,
+          status: 'ready',
+          error: null,
+        });
+      },
       debouncedSave,
       saveImmediateRef,
       debounceMs,
     });
-  }, [setStatus, debouncedSave, saveImmediateRef, debounceMs]);
+  }, [debouncedSave, saveImmediateRef, debounceMs]);
 
   const applyLoadedData = useCallback((data: T, hadPersistedData: boolean) => {
-    applyLoadedDataState({
+    const loadedState = applyLoadedDataState({
       data,
       hadPersistedData,
       isCustomMode,
-      setSettings,
-      loadedSettingsRef,
-      setHasPersistedData,
-      setStatus,
-      setError,
     });
-  }, [isCustomMode, setSettings, loadedSettingsRef, setHasPersistedData, setStatus, setError]);
+    loadedSettingsRef.current = loadedState.loadedSettings;
+    isLoadingRef.current = false;
+    stateRef.current = {
+      ...stateRef.current,
+      settings: loadedState.settings,
+      status: loadedState.status,
+      error: loadedState.error,
+      hasPersistedData: loadedState.hasPersistedData,
+    };
+    dispatch({
+      type: 'LOAD_RESOLVED',
+      settings: loadedState.settings,
+      hasPersistedData: loadedState.hasPersistedData,
+    });
+  }, [isCustomMode]);
 
-  const previousEntityId = currentEntityIdRef.current;
-  applyEntityChangeState({
-    entityId,
-    previousEntityId,
-    currentEntityIdRef,
-    defaults,
-    isCustomMode,
-    rqIsLoading: rqIsLoadingRef.current,
-    dbSettings: dbSettingsRef.current,
-    setSettings,
-    setStatus,
-    setHasPersistedData,
-    loadedSettingsRef,
-    setError,
-  });
+  const startLoad = useCallback(() => {
+    stateRef.current = {
+      ...stateRef.current,
+      status: 'loading',
+      error: null,
+    };
+    dispatch({ type: 'LOAD_STARTED' });
+  }, []);
+
+  const setLoadError = useCallback((loadError: Error) => {
+    stateRef.current = {
+      ...stateRef.current,
+      status: 'error',
+      error: loadError,
+    };
+    dispatch({
+      type: 'SETTINGS_UPDATED',
+      status: 'error',
+      error: loadError,
+    });
+  }, []);
+
+  const markReady = useCallback(() => {
+    stateRef.current = {
+      ...stateRef.current,
+      status: 'ready',
+      error: null,
+    };
+    dispatch({
+      type: 'SETTINGS_UPDATED',
+      nextSettings: stateRef.current.settings,
+      status: 'ready',
+      error: null,
+    });
+  }, []);
 
   // Load settings - custom mode (imperative async load)
   useCustomModeLoad({
     isCustomMode,
     entityId,
     enabled,
-    statusRef,
+    status: state.status,
     defaults,
     debouncedSave,
     customLoadRef,
-    currentEntityIdRef,
+    stateRef,
     isLoadingRef,
     transitionReadyWithPendingSave: transitionPendingLoadSave,
     applyLoadedData,
-    setStatus,
-    setError,
+    startLoad,
+    setLoadError,
   });
 
   // Load settings - React Query mode (reactive from useToolSettings)
@@ -399,36 +575,35 @@ export function useAutoSaveSettings<T extends object>(
     isCustomMode,
     entityId,
     enabled,
-    statusRef,
+    status: state.status,
     defaults,
     dbSettings,
     rqIsLoading,
     debouncedSave,
     loadedSettingsRef,
     transitionReadyWithPendingSave: transitionPendingLoadSave,
-    setSettings,
-    setStatus,
-    setError,
+    applyLoadedData,
+    startLoad,
+    markReady,
   });
 
-  // Memoize return value to prevent object recreation on every render
-  // NOTE: entityId uses currentEntityIdRef.current which is a ref value, so it updates
-  // without triggering memo recalculation. Consumers should check status === 'ready'
-  // alongside entityId to ensure settings are actually loaded for that entity.
+  // Memoize return value to prevent object recreation on every render.
   return useMemo(() => ({
-    settings,
-    status,
-    entityId: currentEntityIdRef.current,
+    settings: state.settings,
+    status: state.status,
+    entityId: state.entityId,
     isDirty,
-    error,
-    hasShotSettings: isCustomMode ? hasPersistedData : hasShotSettings,
-    hasPersistedData: isCustomMode ? hasPersistedData : hasShotSettings,
+    error: state.error,
+    hasShotSettings: isCustomMode ? state.hasPersistedData : hasShotSettings,
+    hasPersistedData: isCustomMode ? state.hasPersistedData : hasShotSettings,
     updateField,
     updateFields,
+    updateTextField,
+    updateTextFields,
     save,
     saveImmediate,
     revert,
     reset,
     initializeFrom,
-  }), [settings, status, isDirty, error, isCustomMode, hasPersistedData, hasShotSettings, updateField, updateFields, save, saveImmediate, revert, reset, initializeFrom]);
+  }), [state.settings, state.status, state.entityId, state.error, state.hasPersistedData, isDirty, isCustomMode, hasShotSettings, updateField, updateFields, updateTextField, updateTextFields, save, saveImmediate, revert, reset, initializeFrom]);
 }

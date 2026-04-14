@@ -116,6 +116,19 @@ export async function updateGenerationLocationInProject(
   );
 }
 
+export async function updateGenerationParams(
+  params: { id: string; generationParams: Json },
+): Promise<void> {
+  await requireScopedRows(
+    getSupabaseClient()
+      .from('generations')
+      .update({ params: params.generationParams })
+      .eq('id', params.id)
+      .select('id'),
+    'No rows updated while saving generation params',
+  );
+}
+
 export async function createExternalUploadGeneration(
   params: CreateExternalUploadGenerationInput,
 ): Promise<GenerationRowDto & { params?: Json | null }> {

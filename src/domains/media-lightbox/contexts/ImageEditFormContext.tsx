@@ -28,6 +28,7 @@ export interface ImageEditFormState {
   setInpaintPrompt: (value: string) => void;
   inpaintNumGenerations: number;
   setInpaintNumGenerations: (value: number) => void;
+  flushTextFields: () => Promise<void>;
   img2imgPrompt: string;
   setImg2imgPrompt: (value: string) => void;
   img2imgStrength: number;
@@ -55,6 +56,7 @@ const EMPTY_FORM: ImageEditFormState = {
   setInpaintPrompt: () => {},
   inpaintNumGenerations: 1,
   setInpaintNumGenerations: () => {},
+  flushTextFields: async () => {},
   img2imgPrompt: '',
   setImg2imgPrompt: () => {},
   img2imgStrength: 0.6,
@@ -96,7 +98,18 @@ export const ImageEditFormProvider: React.FC<ImageEditFormProviderProps> = ({
 };
 
 /**
- * Returns form edit state, or safe defaults when used outside provider.
+ * Returns form edit state and fails loudly when the provider is missing.
+ */
+export function useImageEditForm(): ImageEditFormState {
+  const context = useContext(ImageEditFormContext);
+  if (!context) {
+    throw new Error('useImageEditForm must be used within an ImageEditFormProvider');
+  }
+  return context;
+}
+
+/**
+ * Returns form edit state, or safe defaults when missing a provider on purpose.
  */
 export function useImageEditFormSafe(): ImageEditFormState {
   const context = useContext(ImageEditFormContext);

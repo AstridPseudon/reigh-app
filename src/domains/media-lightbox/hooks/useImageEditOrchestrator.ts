@@ -84,6 +84,7 @@ interface UseImageEditOrchestratorProps {
     setQwenEditModel: (model: QwenEditModel) => void;
     editMode: EditMode;
     setEditMode: (mode: EditMode) => void;
+    flushTextFields: () => Promise<void>;
     isReady: boolean;
     hasPersistedSettings: boolean;
   };
@@ -169,6 +170,7 @@ export function useImageEditOrchestrator({
     advancedSettings, setAdvancedSettings,
     qwenEditModel, setQwenEditModel,
     editMode: persistedEditMode, setEditMode: setPersistedEditMode,
+    flushTextFields,
   } = settingsContext;
   const [annotationMode, setAnnotationMode] = useState<AnnotationMode>(null);
 
@@ -315,6 +317,26 @@ export function useImageEditOrchestrator({
 
   const { handleGenerateImg2Img, loraManager: img2imgLoraManager } = img2imgHook;
 
+  const handleUnifiedGenerateWithFlush = useCallback(async () => {
+    await flushTextFields();
+    await handleUnifiedGenerate();
+  }, [flushTextFields, handleUnifiedGenerate]);
+
+  const handleGenerateAnnotatedEditWithFlush = useCallback(async () => {
+    await flushTextFields();
+    await handleGenerateAnnotatedEdit();
+  }, [flushTextFields, handleGenerateAnnotatedEdit]);
+
+  const handleGenerateRepositionWithFlush = useCallback(async () => {
+    await flushTextFields();
+    await handleGenerateReposition();
+  }, [flushTextFields, handleGenerateReposition]);
+
+  const handleGenerateImg2ImgWithFlush = useCallback(async () => {
+    await flushTextFields();
+    await handleGenerateImg2Img();
+  }, [flushTextFields, handleGenerateImg2Img]);
+
   // ========================================
   // BUILD ImageEditContext VALUE
   // ========================================
@@ -334,13 +356,14 @@ export function useImageEditOrchestrator({
       createAsGeneration, setCreateAsGeneration,
       qwenEditModel, setQwenEditModel,
       advancedSettings, setAdvancedSettings,
+      flushTextFields,
     }),
     [
       inpaintingHook, magicEditHook, repositionHook, img2imgHook,
       imageContainerRef, handleExitInpaintMode, persistedEditMode, setPersistedEditMode,
       loraMode, setLoraMode, customLoraUrl, setCustomLoraUrl,
       createAsGeneration, setCreateAsGeneration, qwenEditModel, setQwenEditModel,
-      advancedSettings, setAdvancedSettings,
+      advancedSettings, setAdvancedSettings, flushTextFields,
     ],
   );
 
@@ -352,11 +375,11 @@ export function useImageEditOrchestrator({
     editMode: persistedEditMode,
     handleEnterMagicEditMode,
     handleExitMagicEditMode,
-    handleUnifiedGenerate,
-    handleGenerateAnnotatedEdit,
-    handleGenerateReposition,
+    handleUnifiedGenerate: handleUnifiedGenerateWithFlush,
+    handleGenerateAnnotatedEdit: handleGenerateAnnotatedEditWithFlush,
+    handleGenerateReposition: handleGenerateRepositionWithFlush,
     handleSaveAsVariant,
-    handleGenerateImg2Img,
+    handleGenerateImg2Img: handleGenerateImg2ImgWithFlush,
     img2imgLoraManager,
   };
 }

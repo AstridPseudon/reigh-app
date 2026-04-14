@@ -156,6 +156,10 @@ export function usePollSync({
       return;
     }
 
+    if (configVersionRef.current === nextVersion) {
+      return;
+    }
+
     console.log(TIMELINE_SYNC_LOG_TAG, 'configVersionRef updated', {
       source,
       from: configVersionRef.current,
@@ -231,10 +235,12 @@ export function usePollSync({
         return;
       }
 
-      logTimelineSync('poll accepted', {
-        fromConfigVersion: configVersionRef.current,
-        toConfigVersion: polledData.configVersion,
-      });
+      if (configVersionRef.current !== polledData.configVersion) {
+        logTimelineSync('poll accepted', {
+          fromConfigVersion: configVersionRef.current,
+          toConfigVersion: polledData.configVersion,
+        });
+      }
       logConfigVersionUpdate('poll', polledData.configVersion);
       configVersionRef.current = polledData.configVersion;
       commitDataRef.current(

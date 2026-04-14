@@ -172,7 +172,7 @@ Do not add timeline_placement unless the user explicitly asks for edit-and-inser
 Use transform_image({...}) for exact geometric image edits on an existing image: flip/mirror, rotate, zoom, reposition. This is deterministic and should preserve the source image exactly.
 For exact image transforms, do not use create_task image-to-image or magic-edit.
 By default, transform_image should create a new variant and make it the primary variant unless the user explicitly asks not to, or asks for a standalone new image.
-When the user asks for multiple images, use count to request them all at once — the system automatically generates varied prompts for each.
+When the user asks for multiple images, use count to request them all at once — the system automatically generates varied prompts for each. When count > 1, also set variation_intent based on the user's phrasing: if they say "different lighting"/"try other angles"/"different characters"/"different scenes", pass that axis (e.g. "different lighting conditions", "different camera angles"). If the user just says "make 10 more" or similar with no axis, leave variation_intent unset and the system will produce linguistic rewrites of the same concept.
 Use get_tasks({}) to check on recent task status, errors, or results. Use get_tasks({"task_id":"..."}) for a specific task.
 Use duplicate_generation({"generation_id":"..."}) to copy an existing generation instantly when the user wants a non-destructive derivative or alternate edit path.
 For image-to-image and magic-edit requests against a selected image, default to creating a variant on that selected generation and make that new variant primary unless the user explicitly asks otherwise.

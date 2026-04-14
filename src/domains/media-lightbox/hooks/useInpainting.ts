@@ -71,9 +71,6 @@ export const useInpainting = ({
   const [showTextModeHint, setShowTextModeHint] = useState(false);
   const [isImageLoaded] = useState(false);
   const [imageLoadError] = useState<string | null>(null);
-  const [fallbackAnnotationMode, setFallbackAnnotationMode] = useState<AnnotationMode>(null);
-  const [fallbackInpaintPrompt, setFallbackInpaintPrompt] = useState('');
-  const [fallbackInpaintNumGenerations, setFallbackInpaintNumGenerations] = useState(4);
 
   // Selection state (owned here, synced via onSelectionChange callback from StrokeOverlay)
   const [selectedShapeId, setSelectedShapeId] = useState<string | null>(null);
@@ -98,49 +95,25 @@ export const useInpainting = ({
   });
 
   const editMode = incomingEditMode;
-  const annotationMode = incomingAnnotationMode ?? fallbackAnnotationMode;
-  const inpaintPrompt = incomingInpaintPrompt ?? fallbackInpaintPrompt;
-  const inpaintNumGenerations = incomingInpaintNumGenerations ?? fallbackInpaintNumGenerations;
+  const annotationMode = incomingAnnotationMode;
+  const inpaintPrompt = incomingInpaintPrompt;
+  const inpaintNumGenerations = incomingInpaintNumGenerations;
 
   const setEditMode = useCallback((value: EditMode) => {
     incomingSetEditMode(value);
   }, [incomingSetEditMode]);
 
   const setAnnotationMode = useCallback((value: AnnotationMode | ((prev: AnnotationMode) => AnnotationMode)) => {
-    if (incomingSetAnnotationMode) {
-      incomingSetAnnotationMode(value);
-      return;
-    }
-    setFallbackAnnotationMode(value);
+    incomingSetAnnotationMode(value);
   }, [incomingSetAnnotationMode]);
 
   const setInpaintPrompt = useCallback((prompt: string) => {
-    if (incomingSetInpaintPrompt) {
-      incomingSetInpaintPrompt(prompt);
-      return;
-    }
-    setFallbackInpaintPrompt(prompt);
+    incomingSetInpaintPrompt(prompt);
   }, [incomingSetInpaintPrompt]);
 
   const setInpaintNumGenerations = useCallback((num: number) => {
-    if (incomingSetInpaintNumGenerations) {
-      incomingSetInpaintNumGenerations(num);
-      return;
-    }
-    setFallbackInpaintNumGenerations(num);
+    incomingSetInpaintNumGenerations(num);
   }, [incomingSetInpaintNumGenerations]);
-
-  useEffect(() => {
-    if (incomingAnnotationMode === undefined) {
-      setFallbackAnnotationMode(null);
-    }
-    if (incomingInpaintPrompt === undefined) {
-      setFallbackInpaintPrompt('');
-    }
-    if (incomingInpaintNumGenerations === undefined) {
-      setFallbackInpaintNumGenerations(4);
-    }
-  }, [media.id, incomingAnnotationMode, incomingInpaintPrompt, incomingInpaintNumGenerations]);
 
   // Computed values
   const isAnnotateMode = editMode === 'annotate';

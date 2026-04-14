@@ -26,18 +26,18 @@ describe('autoSaveSettingsLoaders', () => {
       isCustomMode: true,
       entityId: 'entity-1',
       enabled: true,
-      statusRef: { current: 'idle' },
+      status: 'idle',
       defaults: { prompt: 'default' },
       debouncedSave: {
         hasPendingFor: vi.fn().mockReturnValue(true),
       } as never,
       customLoadRef: { current: customLoad },
-      currentEntityIdRef: { current: 'entity-1' },
+      stateRef: { current: { entityId: 'entity-1', settings: { prompt: 'default' }, hasPersistedData: false } },
       isLoadingRef: { current: false },
       transitionReadyWithPendingSave,
       applyLoadedData: vi.fn(),
-      setStatus: vi.fn(),
-      setError: vi.fn(),
+      startLoad: vi.fn(),
+      setLoadError: vi.fn(),
     }));
 
     expect(transitionReadyWithPendingSave).toHaveBeenCalledTimes(1);
@@ -46,7 +46,7 @@ describe('autoSaveSettingsLoaders', () => {
 
   it('loads custom-mode settings, merges defaults, and applies them when the entity is still current', async () => {
     const applyLoadedData = vi.fn();
-    const setStatus = vi.fn();
+    const startLoad = vi.fn();
     const setError = vi.fn();
     const currentEntityIdRef = { current: 'entity-1' };
     const isLoadingRef = { current: false };
@@ -56,25 +56,25 @@ describe('autoSaveSettingsLoaders', () => {
       isCustomMode: true,
       entityId: 'entity-1',
       enabled: true,
-      statusRef: { current: 'idle' },
+      status: 'idle',
       defaults: { prompt: 'default', mode: 'basic' },
       debouncedSave: {
         hasPendingFor: vi.fn().mockReturnValue(false),
       } as never,
       customLoadRef: { current: customLoad },
-      currentEntityIdRef,
+      stateRef: { current: { entityId: currentEntityIdRef.current, settings: { prompt: 'default', mode: 'basic' }, hasPersistedData: false } },
       isLoadingRef,
       transitionReadyWithPendingSave: vi.fn(),
       applyLoadedData,
-      setStatus,
-      setError,
+      startLoad,
+      setLoadError: setError,
     }));
 
     await act(async () => {
       await Promise.resolve();
     });
 
-    expect(setStatus).toHaveBeenCalledWith('loading');
+    expect(startLoad).toHaveBeenCalledTimes(1);
     expect(customLoad).toHaveBeenCalledWith('entity-1');
     expect(applyLoadedData).toHaveBeenCalledWith(
       { prompt: 'default', mode: 'advanced' },
@@ -86,7 +86,6 @@ describe('autoSaveSettingsLoaders', () => {
 
   it('reports custom-mode load failures and transitions into error state', async () => {
     const error = new Error('load failed');
-    const setStatus = vi.fn();
     const setError = vi.fn();
     const isLoadingRef = { current: false };
 
@@ -94,18 +93,18 @@ describe('autoSaveSettingsLoaders', () => {
       isCustomMode: true,
       entityId: 'entity-1',
       enabled: true,
-      statusRef: { current: 'idle' },
+      status: 'idle',
       defaults: { prompt: 'default' },
       debouncedSave: {
         hasPendingFor: vi.fn().mockReturnValue(false),
       } as never,
       customLoadRef: { current: vi.fn().mockRejectedValue(error) },
-      currentEntityIdRef: { current: 'entity-1' },
+      stateRef: { current: { entityId: 'entity-1', settings: { prompt: 'default' }, hasPersistedData: false } },
       isLoadingRef,
       transitionReadyWithPendingSave: vi.fn(),
       applyLoadedData: vi.fn(),
-      setStatus,
-      setError,
+      startLoad: vi.fn(),
+      setLoadError: setError,
     }));
 
     await act(async () => {
@@ -116,7 +115,6 @@ describe('autoSaveSettingsLoaders', () => {
       context: 'useAutoSaveSettings.load',
       showToast: false,
     });
-    expect(setStatus).toHaveBeenCalledWith('error');
     expect(setError).toHaveBeenCalledWith(error);
     expect(isLoadingRef.current).toBe(false);
   });
@@ -133,7 +131,7 @@ describe('autoSaveSettingsLoaders', () => {
       isCustomMode: false,
       entityId: 'entity-1',
       enabled: true,
-      statusRef: { current: 'idle' },
+      status: 'idle',
       defaults: { prompt: 'default', mode: 'basic' },
       dbSettings,
       rqIsLoading: false,
@@ -142,9 +140,13 @@ describe('autoSaveSettingsLoaders', () => {
       } as never,
       loadedSettingsRef,
       transitionReadyWithPendingSave: vi.fn(),
-      setSettings,
-      setStatus,
-      setError,
+      applyLoadedData: (data) => {
+        setSettings(data);
+        loadedSettingsRef.current = JSON.parse(JSON.stringify(data));
+        setError(null);
+      },
+      startLoad: vi.fn(),
+      markReady: () => setStatus('ready'),
     }), {
       initialProps: { mode: 'advanced' },
     });

@@ -21,6 +21,7 @@ interface Img2ImgControlsProps {
   // Form state
   img2imgPrompt: string;
   setImg2imgPrompt: (value: string) => void;
+  flushTextFields: () => Promise<void>;
   img2imgStrength: number;
   setImg2imgStrength: (value: number) => void;
   // Generation status
@@ -38,6 +39,7 @@ export const Img2ImgControls: React.FC<Img2ImgControlsProps> = ({
   isMobile,
   img2imgPrompt,
   setImg2imgPrompt,
+  flushTextFields,
   img2imgStrength,
   setImg2imgStrength,
   isGeneratingImg2Img,
@@ -68,6 +70,9 @@ export const Img2ImgControls: React.FC<Img2ImgControlsProps> = ({
           <Textarea
             value={img2imgPrompt}
             onChange={(e) => setImg2imgPrompt(e.target.value)}
+            onBlur={() => {
+              void flushTextFields();
+            }}
             placeholder={isMobile ? "Describe image..." : "Optional: describe what the transformed image should look like..."}
             className={`w-full ${textareaMinHeight} ${textareaPadding} ${textareaTextSize} resize-none`}
             rows={textareaRows}

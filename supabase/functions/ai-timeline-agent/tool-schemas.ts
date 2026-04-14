@@ -145,6 +145,11 @@ export const TIMELINE_AGENT_TOOLS: TimelineAgentToolDefinition[] = [
             description:
               "Number of outputs to request for text-to-image, style-transfer, subject-transfer, style-character-transfer, scene-transfer, image-to-image, or magic-edit tasks.",
           },
+          variation_intent: {
+            type: "string",
+            description:
+              "Optional. When count > 1, describes the axis the user wants varied across the N prompts. Derive from the user's chat phrasing: 'different lighting' -> 'different lighting conditions', 'try other angles' -> 'different camera angles', 'different characters' -> 'different characters'. Leave empty when the user just wants more of the same — the system will produce N linguistic rewrites of the same concept by default.",
+          },
           based_on: {
             type: "string",
             description: "Generation ID this task derives from. Overrides auto-detected value from selected clips.",

@@ -148,6 +148,47 @@ describe('useInpainting', () => {
     expect(setInpaintNumGenerations).toHaveBeenCalledWith(5);
   });
 
+  it('reflects caller-owned inpaint state across rerenders instead of keeping fallback copies', () => {
+    const setAnnotationMode = vi.fn();
+    const setInpaintPrompt = vi.fn();
+    const setInpaintNumGenerations = vi.fn();
+
+    const { result, rerender } = renderHook(
+      (props: ReturnType<typeof createProps>) => useInpainting(props),
+      {
+        initialProps: createProps({
+          media: { ...baseMedia, id: 'gen-1' },
+          editMode: 'annotate',
+          annotationMode: 'rectangle',
+          inpaintPrompt: 'first prompt',
+          inpaintNumGenerations: 2,
+          setAnnotationMode,
+          setInpaintPrompt,
+          setInpaintNumGenerations,
+        }),
+      },
+    );
+
+    expect(result.current.annotationMode).toBe('rectangle');
+    expect(result.current.inpaintPrompt).toBe('first prompt');
+    expect(result.current.inpaintNumGenerations).toBe(2);
+
+    rerender(createProps({
+      media: { ...baseMedia, id: 'gen-2' },
+      editMode: 'annotate',
+      annotationMode: null,
+      inpaintPrompt: 'second prompt',
+      inpaintNumGenerations: 6,
+      setAnnotationMode,
+      setInpaintPrompt,
+      setInpaintNumGenerations,
+    }));
+
+    expect(result.current.annotationMode).toBeNull();
+    expect(result.current.inpaintPrompt).toBe('second prompt');
+    expect(result.current.inpaintNumGenerations).toBe(6);
+  });
+
   it.each(['reposition', 'img2img', 'upscale'] as const)(
     'passes through %s mode without exposing brush strokes',
     (editMode) => {

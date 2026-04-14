@@ -54,6 +54,18 @@ export function useTimelineEditorOps(): TimelineEditorOpsContextValue {
   return context;
 }
 
+// Safe variants: used by the Media Lightbox's "Add to Video Editor" button,
+// which renders app-wide (gallery, shot pages, etc.) and can only perform an
+// in-process drop when the video editor is actually mounted. Outside that
+// context the handler falls back to navigating with a query param.
+export function useTimelineEditorOpsSafe(): TimelineEditorOpsContextValue | null {
+  return useContext(TimelineEditorOpsContext);
+}
+
+export function useTimelineEditorDataSafe(): TimelineEditorDataContextValue | null {
+  return useContext(TimelineEditorDataContext);
+}
+
 /**
  * @deprecated Prefer `useTimelineEditorData()` and `useTimelineEditorOps()`.
  */

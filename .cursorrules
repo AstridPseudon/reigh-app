@@ -38,6 +38,11 @@
 - Flag briefly (don't derail): duplication, giant components (>300 LOC), prop drilling (3+ levels), mixed concerns, inconsistent patterns, missing error handling.
 - Anti-patterns and quality standards: see `docs/code_quality_audit.md`. Core principle: every change should make the codebase smaller or more explicit.
 
+## Context hooks
+- Required-provider hooks must throw when their context is missing. Do not hide missing providers behind default objects with no-op setters.
+- Only add a `Safe` hook variant for genuinely optional consumers, and justify that callsite inline.
+- Motivating incident: the media-lightbox edit textarea dropped typing because `EMPTY_FORM` setters were no-ops, so missing context failed silently instead of crashing where the provider was absent.
+
 ## Thoroughness over speed
 - **Don't half-measure.** When reviewing/fixing a batch of items, read every one. Don't blanket-categorize based on metadata alone.
 - **Wontfix requires justification.** Every wontfix must include a specific reason for THIS item — not a generic category label. If you can't explain why it's fine, you haven't read it.

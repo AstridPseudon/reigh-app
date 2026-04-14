@@ -10,7 +10,7 @@
  * types in a prompt field, and form components don't re-render on brush strokes.
  *
  * ImageEditState still exists as a composed type. Components should use the
- * specific sub-context hooks (useImageEditCanvasSafe, useImageEditFormSafe,
+ * specific sub-context hooks (useImageEditCanvasSafe, useImageEditForm,
  * useImageEditStatusSafe) for optimal performance.
  */
 
@@ -24,6 +24,7 @@ import {
 } from './ImageEditCanvasContext';
 import {
   ImageEditFormProvider,
+  useImageEditForm,
   useImageEditFormSafe,
   type ImageEditFormState,
 } from './ImageEditFormContext';
@@ -35,7 +36,7 @@ import {
 
 // Re-export sub-context types and hooks for direct consumption
 export type { ImageEditCanvasState, ImageEditFormState, ImageEditStatusState };
-export { useImageEditCanvasSafe, useImageEditFormSafe, useImageEditStatusSafe };
+export { useImageEditCanvasSafe, useImageEditForm, useImageEditFormSafe, useImageEditStatusSafe };
 
 // ============================================================================
 // Composed Type (backward-compatible)
@@ -150,6 +151,7 @@ export const ImageEditProvider: React.FC<ImageEditProviderProps> = ({
     setInpaintPrompt: value.setInpaintPrompt,
     inpaintNumGenerations: value.inpaintNumGenerations,
     setInpaintNumGenerations: value.setInpaintNumGenerations,
+    flushTextFields: value.flushTextFields,
     img2imgPrompt: value.img2imgPrompt,
     setImg2imgPrompt: value.setImg2imgPrompt,
     img2imgStrength: value.img2imgStrength,
@@ -169,6 +171,7 @@ export const ImageEditProvider: React.FC<ImageEditProviderProps> = ({
   }), [
     value.inpaintPrompt, value.setInpaintPrompt,
     value.inpaintNumGenerations, value.setInpaintNumGenerations,
+    value.flushTextFields,
     value.img2imgPrompt, value.setImg2imgPrompt,
     value.img2imgStrength, value.setImg2imgStrength,
     value.enablePromptExpansion, value.setEnablePromptExpansion,

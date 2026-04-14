@@ -133,14 +133,62 @@ export async function loadGenerationForLightbox(generationId: string): Promise<G
       )
     `)
     .eq('id', generationId)
-    .single();
+    .maybeSingle();
 
   if (error) {
-    if (error.code === 'PGRST116') {
+    throw error;
+  }
+
+  if (!data) {
+    const variantResult = await getSupabaseClient()
+      .from('generation_variants')
+      .select(`
+        id,
+        generation_id,
+        location,
+        thumbnail_url,
+        generations!generation_variants_generation_id_fkey (
+          id,
+          location,
+          thumbnail_url,
+          type,
+          created_at,
+          starred,
+          name,
+          based_on,
+          params,
+          primary_variant_id
+        )
+      `)
+      .eq('id', generationId)
+      .maybeSingle();
+
+    if (variantResult.error) {
+      throw variantResult.error;
+    }
+    const variantRow = variantResult.data;
+    const parent = variantRow?.generations;
+    if (!variantRow || !parent) {
       return null;
     }
-
-    throw error;
+    const location = variantRow.location || parent.location;
+    if (!location) {
+      return null;
+    }
+    return {
+      id: parent.id,
+      generation_id: parent.id,
+      location,
+      imageUrl: location,
+      thumbUrl: variantRow.thumbnail_url || parent.thumbnail_url || location,
+      type: parent.type || 'image',
+      createdAt: parent.created_at,
+      starred: parent.starred || false,
+      name: parent.name,
+      based_on: parent.based_on,
+      params: toRecord(parent.params),
+      primary_variant_id: parent.primary_variant_id || null,
+    };
   }
 
   const location = data.primary_variant?.location || data.location;

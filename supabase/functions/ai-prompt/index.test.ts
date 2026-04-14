@@ -183,4 +183,51 @@ describe('ai-prompt edge entrypoint', () => {
       }),
     );
   });
+
+  it('retries with fallback model when primary returns duplicates', async () => {
+    mocks.bootstrapEdgeHandler.mockResolvedValue({
+      ok: true,
+      value: {
+        supabaseAdmin: {},
+        logger: { info: vi.fn() },
+        auth: { userId: 'user-1' },
+        body: {
+          task: 'generate_prompts',
+          overallPromptText: 'main prompt',
+          rulesToRememberText: '',
+          numberToGenerate: 3,
+          existingPrompts: [],
+        },
+      },
+    });
+
+    mocks.groqChatCreate
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'same\nsame\nsame' } }],
+        usage: { total_tokens: 10 },
+        model: 'moonshotai/kimi-k2-instruct-0905',
+      })
+      .mockResolvedValueOnce({
+        choices: [{ message: { content: 'one\ntwo\nthree' } }],
+        usage: { total_tokens: 50 },
+        model: 'llama-3.3-70b-versatile',
+      });
+
+    const handler = await loadHandler();
+    const response = await handler(new Request('https://edge.test/ai-prompt', { method: 'POST' }));
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      prompts: ['one', 'two', 'three'],
+      usage: { total_tokens: 50 },
+    });
+    expect(mocks.groqChatCreate).toHaveBeenCalledTimes(2);
+    expect(mocks.groqChatCreate).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({
+        model: 'llama-3.3-70b-versatile',
+        temperature: 1.0,
+      }),
+    );
+  });
 });

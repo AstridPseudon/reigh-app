@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
+import { toast } from '@/shared/components/ui/runtime/sonner';
 import { MediaLightbox } from '@/domains/media-lightbox/MediaLightbox';
 import { useShots } from '@/shared/contexts/ShotsContext';
 import type { GenerationRow } from '@/domains/generation/types';
@@ -34,6 +36,12 @@ import type {
 import { useVideoEditorLightboxNavigation } from '@/tools/video-editor/hooks/useVideoEditorLightboxNavigation';
 import { isOpenableAssetType } from '@/tools/video-editor/lib/editor-utils';
 import { loadGenerationForLightbox } from '@/tools/video-editor/lib/generation-utils';
+import { getClipTimelineDuration } from '@/tools/video-editor/lib/config-utils';
+import {
+  ADD_GENERATION_QUERY_PARAM,
+  readPendingAdds,
+  writePendingAdds,
+} from '@/domains/media-lightbox/hooks/addToVideoEditorConstants';
 import { useRenderDiagnostic } from '@/tools/video-editor/hooks/usePerfDiagnostics';
 import type { ResolvedAssetRegistryEntry } from '@/tools/video-editor/types';
 
@@ -126,6 +134,84 @@ function InnerProvider({
   );
   const { editor, chrome, playback } = useTimelineState();
   const { shots } = useShots();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const pendingAddGenerationId = searchParams.get(ADD_GENERATION_QUERY_PARAM);
+  const consumedAddGenerationRef = useRef<string | null>(null);
+
+  const drainedStagedRef = useRef(false);
+  const drainInFlightRef = useRef(false);
+  const editorRef = useRef(editor);
+  editorRef.current = editor;
+
+  useEffect(() => {
+    if (editor.isLoading) return;
+    if (drainInFlightRef.current) return;
+
+    const queue: string[] = [];
+    if (pendingAddGenerationId && consumedAddGenerationRef.current !== pendingAddGenerationId) {
+      consumedAddGenerationRef.current = pendingAddGenerationId;
+      queue.push(pendingAddGenerationId);
+    }
+    if (!drainedStagedRef.current) {
+      drainedStagedRef.current = true;
+      for (const id of readPendingAdds()) {
+        if (!queue.includes(id)) queue.push(id);
+      }
+    }
+    if (queue.length === 0) return;
+
+    drainInFlightRef.current = true;
+
+    void (async () => {
+      const processed: string[] = [];
+      try {
+        for (const generationId of queue) {
+          const generation = await loadGenerationForLightbox(generationId);
+          if (!generation) {
+            toast.error('Could not load asset');
+            processed.push(generationId);
+            continue;
+          }
+          const currentEditor = editorRef.current;
+          const assetKey = currentEditor.registerGenerationAsset({
+            generationId: generation.id,
+            variantType: generation.type === 'video' ? 'video' : 'image',
+            imageUrl: generation.location ?? generation.imageUrl ?? '',
+            thumbUrl: generation.thumbUrl ?? generation.imageUrl ?? generation.location ?? '',
+          });
+          if (!assetKey) {
+            toast.error('Could not register asset');
+            processed.push(generationId);
+            continue;
+          }
+          // Let registry patch settle before reading resolvedConfig.
+          await new Promise<void>((resolve) => setTimeout(resolve, 0));
+          const editorForDrop = editorRef.current;
+          const clips = editorForDrop.resolvedConfig?.clips ?? [];
+          const timelineEnd = clips.reduce(
+            (max, clip) => Math.max(max, clip.at + getClipTimelineDuration(clip)),
+            0,
+          );
+          editorForDrop.handleAssetDrop(assetKey, undefined, timelineEnd, false, false);
+          processed.push(generationId);
+          // Allow React to commit the clip before the next iteration reads clips.
+          await new Promise<void>((resolve) => setTimeout(resolve, 50));
+        }
+      } finally {
+        const remaining = readPendingAdds().filter((id) => !processed.includes(id));
+        writePendingAdds(remaining);
+        if (pendingAddGenerationId && processed.includes(pendingAddGenerationId)) {
+          setSearchParams((current) => {
+            const next = new URLSearchParams(current);
+            next.delete(ADD_GENERATION_QUERY_PARAM);
+            return next;
+          }, { replace: true });
+        }
+        drainInFlightRef.current = false;
+      }
+    })();
+  }, [pendingAddGenerationId, editor.isLoading, setSearchParams]);
+
   const [lightboxAssetKey, setLightboxAssetKey] = useState<string | null>(null);
   const [lightboxClipId, setLightboxClipId] = useState<string | null>(null);
   const lightboxAsset = lightboxAssetKey ? editor.resolvedConfig?.registry[lightboxAssetKey] : undefined;

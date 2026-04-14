@@ -9,6 +9,7 @@ import type {
 } from './useVideoLightboxController';
 import type { VideoLightboxEnvironment, VideoLightboxModeModel } from './useVideoLightboxEnvironment';
 import { useVideoLightboxActions } from './useVideoLightboxActions';
+import { useAddToVideoEditor } from '../useAddToVideoEditor';
 import { buildVideoLightboxLayoutState } from '../../model/buildVideoLightboxLayoutState';
 import { InfoPanel } from '../../components/InfoPanel';
 import { VideoEditPanel } from '../../components/VideoEditPanel';
@@ -47,6 +48,7 @@ export function useVideoLightboxRenderModel(
 
   const navigation = props.navigation;
   const features = props.features;
+  const addToVideoEditor = useAddToVideoEditor(media);
 
   const showNavigation = navigation?.showNavigation ?? true;
   const showTaskDetails = features?.showTaskDetails ?? false;
@@ -285,6 +287,8 @@ export function useVideoLightboxRenderModel(
     core: {
       onDelete: actions?.onDelete,
       onApplySettings: actions?.onApplySettings,
+      onAddToVideoEditor: actions?.onAddToVideoEditor ?? addToVideoEditor.onClick,
+      addToVideoEditorPhase: actions?.onAddToVideoEditor ? 'idle' : addToVideoEditor.phase,
       isSpecialEditMode: false,
       isVideo: true,
       handleApplySettings,
@@ -321,6 +325,8 @@ export function useVideoLightboxRenderModel(
   }), [
     actions?.onApplySettings,
     actions?.onDelete,
+    actions?.onAddToVideoEditor,
+    addToVideoEditor,
     env.actualGenerationId,
     env.contentRef,
     handleApplySettings,

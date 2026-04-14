@@ -153,17 +153,18 @@ async function expandPrompts(
   basePrompt: string,
   count: number,
   logger?: ExpandPromptsLogger,
+  variationIntent?: string,
 ): Promise<string[]> {
   const logError = (message: string, context?: Record<string, unknown>) => {
     if (logger?.error) logger.error(message, context);
     else console.error(message, context ?? "");
   };
-  const logWarn = (message: string, context?: Record<string, unknown>) => {
-    if (logger?.warn) logger.warn(message, context);
-    else console.warn(message, context ?? "");
-  };
   if (logger?.info) {
-    logger.info("[agent] expandPrompts: called", { count, loggerPresent: true });
+    logger.info("[agent] expandPrompts: called", {
+      count,
+      loggerPresent: true,
+      hasVariationIntent: Boolean(variationIntent && variationIntent.trim()),
+    });
   } else {
     console.log("[agent] expandPrompts: called (no logger)", { count });
   }
@@ -172,8 +173,8 @@ async function expandPrompts(
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !serviceRoleKey) {
-      logError("[agent] expandPrompts: missing SUPABASE_URL or SERVICE_ROLE_KEY, using fallback");
-      return numberedFallback(basePrompt, count);
+      logError("[agent] expandPrompts: missing SUPABASE_URL or SERVICE_ROLE_KEY, returning base prompt only");
+      return [basePrompt];
     }
 
     const response = await fetch(`${supabaseUrl}/functions/v1/ai-prompt`, {
@@ -189,17 +190,18 @@ async function expandPrompts(
         numberToGenerate: count,
         existingPrompts: [],
         temperature: 0.9,
+        ...(variationIntent && variationIntent.trim() ? { variationIntent: variationIntent.trim() } : {}),
       }),
     });
     if (!response.ok) {
       const body = await response.text().catch(() => "<unreadable>");
-      logError("[agent] expandPrompts: ai-prompt HTTP error, using fallback", {
+      logError("[agent] expandPrompts: ai-prompt HTTP error, returning base prompt only", {
         status: response.status,
         statusText: response.statusText,
         body: body.slice(0, 500),
         count,
       });
-      return numberedFallback(basePrompt, count);
+      return [basePrompt];
     }
     const data = await response.json() as { prompts?: string[] };
     if (Array.isArray(data.prompts) && data.prompts.length > 0) {
@@ -215,37 +217,24 @@ async function expandPrompts(
           firstTwoHeads: prompts.slice(0, 2).map((p) => p.slice(0, 120)),
         });
       }
-      if (prompts.length < count) {
-        logWarn("[agent] expandPrompts: ai-prompt returned partial result, padding with basePrompt", {
-          returned: prompts.length,
-          requested: count,
-        });
-      }
-      while (prompts.length < count) prompts.push(basePrompt);
       return prompts;
     }
-    logError("[agent] expandPrompts: ai-prompt returned no prompts, using fallback", {
+    logError("[agent] expandPrompts: ai-prompt returned no prompts, returning base prompt only", {
       responseKeys: Object.keys(data ?? {}),
       count,
     });
   } catch (err) {
     const message = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
-    logError("[agent] expandPrompts: threw, using fallback", { error: message, count });
+    logError("[agent] expandPrompts: threw, returning base prompt only", { error: message, count });
   }
-  return numberedFallback(basePrompt, count);
-}
-
-function numberedFallback(basePrompt: string, count: number): string[] {
-  return Array.from({ length: count }, (_, i) =>
-    i === 0 ? basePrompt : `${basePrompt} (variation ${i + 1})`
-  );
+  return [basePrompt];
 }
 
 function normalizePromptKey(prompt: string): string {
   return prompt.replace(/\s+/g, " ").trim().toLowerCase();
 }
 
-function ensureDistinctPrompts(basePrompt: string, prompts: string[], count: number): string[] {
+function ensureDistinctPrompts(prompts: string[], count: number): string[] {
   const uniquePrompts: string[] = [];
   const seen = new Set<string>();
 
@@ -266,20 +255,6 @@ function ensureDistinctPrompts(basePrompt: string, prompts: string[], count: num
     if (uniquePrompts.length >= count) {
       return uniquePrompts;
     }
-  }
-
-  let fallbackIndex = 1;
-  while (uniquePrompts.length < count) {
-    const fallbackPrompt = numberedFallback(basePrompt, count + fallbackIndex)[count + fallbackIndex - 1];
-    fallbackIndex += 1;
-
-    const key = normalizePromptKey(fallbackPrompt);
-    if (seen.has(key)) {
-      continue;
-    }
-
-    seen.add(key);
-    uniquePrompts.push(fallbackPrompt);
   }
 
   return uniquePrompts;
@@ -499,6 +474,7 @@ export async function executeCreateTask(
     : undefined;
 
   const requestedCount = asPositiveNumber(args.count) ?? 1;
+  const variationIntent = asTrimmedString(args.variation_intent);
   const taskParams = taskType === "image-to-video"
     ? (filteredTravelParams && Object.keys(filteredTravelParams).length > 0 ? filteredTravelParams : undefined)
     : (() => {
@@ -515,8 +491,7 @@ export async function executeCreateTask(
   if (requestedCount > 1 && prompt) {
     const targetCount = Math.min(requestedCount, MAX_BATCH_VARIATIONS);
     const expandedPrompts = ensureDistinctPrompts(
-      prompt,
-      await expandPrompts(prompt, targetCount, logger),
+      await expandPrompts(prompt, targetCount, logger, variationIntent ?? undefined),
       targetCount,
     );
     let queuedCount = 0;
@@ -558,6 +533,9 @@ export async function executeCreateTask(
     }
 
     const summaryParts = [`Queued ${queuedCount} ${queuedCount === 1 ? "task" : "tasks"} with varied prompts.`];
+    if (expandedPrompts.length < targetCount) {
+      summaryParts.push(`Only ${expandedPrompts.length} of ${targetCount} distinct prompt variations were available from the prompt generator.`);
+    }
     if (failedCount > 0) {
       summaryParts.push(`${failedCount} failed.`);
     }

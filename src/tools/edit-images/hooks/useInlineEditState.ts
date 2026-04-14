@@ -272,6 +272,26 @@ export function useInlineEditState(
     await downloadMedia(effectiveImageUrl, media.id, isVideo, media.contentType);
   };
 
+  const handleUnifiedGenerate = async () => {
+    await editSettings.flushTextFields();
+    await magic.handleUnifiedGenerate();
+  };
+
+  const handleGenerateAnnotatedEdit = async () => {
+    await editSettings.flushTextFields();
+    await inpainting.handleGenerateAnnotatedEdit();
+  };
+
+  const handleGenerateReposition = async () => {
+    await editSettings.flushTextFields();
+    await reposition.handleGenerateReposition();
+  };
+
+  const handleGenerateImg2Img = async () => {
+    await editSettings.flushTextFields();
+    await img2img.handleGenerateImg2Img();
+  };
+
   // --- Build imageEditValue ---
   const imageEditValue = buildImageEditStateValue({
     inpainting,
@@ -292,6 +312,7 @@ export function useInlineEditState(
     setQwenEditModel: editSettings.setQwenEditModel,
     advancedSettings: editSettings.advancedSettings,
     setAdvancedSettings: editSettings.setAdvancedSettings,
+    flushTextFields: editSettings.flushTextFields,
   });
 
   return {
@@ -327,11 +348,11 @@ export function useInlineEditState(
       toggleStarMutation: starToggle.toggleStarMutation,
       handleToggleStar: starToggle.handleToggleStar,
       handleDownload,
-      handleUnifiedGenerate: magic.handleUnifiedGenerate,
-      handleGenerateAnnotatedEdit: inpainting.handleGenerateAnnotatedEdit,
-      handleGenerateReposition: reposition.handleGenerateReposition,
+      handleUnifiedGenerate,
+      handleGenerateAnnotatedEdit,
+      handleGenerateReposition,
       handleSaveAsVariant: reposition.handleSaveAsVariant,
-      handleGenerateImg2Img: img2img.handleGenerateImg2Img,
+      handleGenerateImg2Img,
       img2imgLoraManager: img2img.loraManager,
     },
     variants: {

@@ -4,6 +4,7 @@ import { useRenderLogger } from '@/shared/lib/debug/debugRendering';
 import { updateToolSettingsSupabase } from '@/shared/hooks/settings/useToolSettings';
 import { queryKeys } from '@/shared/lib/queryKeys';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { deepEqual } from '@/shared/lib/utils/deepEqual';
 
 type AutoSaveStatus = 'idle' | 'loading' | 'ready' | 'saving' | 'error';
 
@@ -48,11 +49,6 @@ interface UseDebouncedSettingsSaveReturn<T> {
    */
   trackPendingUpdate: (settings: T, entityId: string | null) => void;
   /**
-   * Increment the edit version and return the version at this point.
-   * Used to detect if newer edits happened during an async save.
-   */
-  incrementEditVersion: () => number;
-  /**
    * Check if there are pending edits for a given entity.
    * Used by load effects to avoid overwriting user input.
    */
@@ -61,14 +57,12 @@ interface UseDebouncedSettingsSaveReturn<T> {
   pendingSettingsRef: React.MutableRefObject<T | null>;
   /** The pending entity ID ref (read-only access for load effects) */
   pendingEntityIdRef: React.MutableRefObject<string | null>;
-  /** The edit version ref */
-  editVersionRef: React.MutableRefObject<number>;
   /** The save timeout ref */
   saveTimeoutRef: React.MutableRefObject<NodeJS.Timeout | null>;
 }
 
 /**
- * Sub-hook that manages debounced save scheduling, edit version tracking,
+ * Sub-hook that manages debounced save scheduling,
  * pending state tracking, and flush-on-unmount/entity-change/beforeunload.
  *
  * Extracted from useAutoSaveSettings to eliminate duplication between
@@ -101,7 +95,6 @@ export function useDebouncedSettingsSave<T extends object>(
   const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const pendingSettingsRef = useRef<T | null>(null);
   const pendingEntityIdRef = useRef<string | null>(null);
-  const editVersionRef = useRef<number>(0);
 
   // Ref for status so scheduleSave can read it at call time without depending on it.
   // This is critical for reference stability: without it, scheduleSave changes on every
@@ -113,12 +106,6 @@ export function useDebouncedSettingsSave<T extends object>(
   const trackPendingUpdate = useCallback((settings: T, forEntityId: string | null) => {
     pendingSettingsRef.current = settings;
     pendingEntityIdRef.current = forEntityId;
-  }, []);
-
-  // Increment edit version and return current
-  const incrementEditVersion = useCallback((): number => {
-    editVersionRef.current += 1;
-    return editVersionRef.current;
   }, []);
 
   // Check if there are pending edits for a given entity
@@ -138,7 +125,6 @@ export function useDebouncedSettingsSave<T extends object>(
   const clearPending = useCallback(() => {
     pendingSettingsRef.current = null;
     pendingEntityIdRef.current = null;
-    editVersionRef.current = 0;
     cancelPendingSave();
   }, [cancelPendingSave]);
 
@@ -155,17 +141,20 @@ export function useDebouncedSettingsSave<T extends object>(
 
     cancelPendingSave();
 
-    const editVersionAtStart = editVersionRef.current;
-
     const timeoutId = setTimeout(async () => {
       try {
         // Get the LATEST settings at save time (not a captured value which could be stale)
         const latestSettings = await getLatestSettings();
         await saveImmediateRef.current(latestSettings);
 
-        // CRITICAL: Only clear pending if no newer edits happened during the save
-        // This prevents race conditions when user types fast
-        if (editVersionRef.current === editVersionAtStart) {
+        // Only clear pending when the saved payload still matches the latest tracked input.
+        // If the user typed again during the async save, pendingSettingsRef now points to
+        // newer data and must be preserved for the next explicit flush.
+        if (
+          pendingEntityIdRef.current === _forEntityId &&
+          pendingSettingsRef.current &&
+          deepEqual(pendingSettingsRef.current, latestSettings)
+        ) {
           pendingSettingsRef.current = null;
           pendingEntityIdRef.current = null;
         }
@@ -277,11 +266,9 @@ export function useDebouncedSettingsSave<T extends object>(
     cancelPendingSave,
     clearPending,
     trackPendingUpdate,
-    incrementEditVersion,
     hasPendingFor,
     pendingSettingsRef,
     pendingEntityIdRef,
-    editVersionRef,
     saveTimeoutRef,
-  }), [scheduleSave, cancelPendingSave, clearPending, trackPendingUpdate, incrementEditVersion, hasPendingFor]);
+  }), [scheduleSave, cancelPendingSave, clearPending, trackPendingUpdate, hasPendingFor]);
 }

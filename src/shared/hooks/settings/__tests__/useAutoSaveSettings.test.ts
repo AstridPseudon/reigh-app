@@ -114,6 +114,43 @@ describe('useAutoSaveSettings', () => {
       expect(result.current.hasShotSettings).toBe(true);
     });
 
+    it('switches entity state through the reducer when the shot changes', async () => {
+      const mockUpdate = vi.fn().mockResolvedValue(undefined);
+      let shotId: string | null = 'shot-1';
+
+      (useToolSettings as unknown as ReturnType<typeof vi.fn>).mockImplementation((_toolId, options) => ({
+        settings: options.shotId === 'shot-1'
+          ? { prompt: 'first prompt', mode: 'basic' }
+          : { prompt: 'second prompt', mode: 'advanced' },
+        isLoading: false,
+        update: mockUpdate,
+        hasShotSettings: true,
+      }));
+
+      const { result, rerender } = renderHook(
+        () => useAutoSaveSettings({ toolId: 'test', defaults, shotId }),
+        { wrapper: createWrapper() }
+      );
+
+      await act(async () => {
+        vi.advanceTimersByTime(10);
+      });
+
+      expect(result.current.entityId).toBe('shot-1');
+      expect(result.current.settings.prompt).toBe('first prompt');
+
+      shotId = 'shot-2';
+      rerender();
+
+      await act(async () => {
+        vi.advanceTimersByTime(10);
+      });
+
+      expect(result.current.entityId).toBe('shot-2');
+      expect(result.current.settings.prompt).toBe('second prompt');
+      expect(result.current.status).toBe('ready');
+    });
+
     it('stays idle when no entity ID', () => {
       const { result } = renderHook(
         () => useAutoSaveSettings({ toolId: 'test', defaults, shotId: null }),
@@ -203,6 +240,50 @@ describe('useAutoSaveSettings', () => {
       expect(result.current.status).toBe('error');
       expect(result.current.error).toBeTruthy();
     });
+
+    it('resets to loading defaults before loading the next custom entity', async () => {
+      const mockLoad = vi
+        .fn()
+        .mockResolvedValueOnce({ prompt: 'entity one', mode: 'basic' })
+        .mockResolvedValueOnce({ prompt: 'entity two', mode: 'advanced' });
+      const mockSave = vi.fn().mockResolvedValue(undefined);
+      let entityId = 'custom-entity-1';
+
+      const { result, rerender } = renderHook(
+        () => useAutoSaveSettings({
+          defaults,
+          customLoadSave: {
+            entityId,
+            load: mockLoad,
+            save: mockSave,
+          },
+        }),
+        { wrapper: createWrapper() }
+      );
+
+      await act(async () => {
+        vi.advanceTimersByTime(10);
+      });
+      await act(async () => {});
+
+      expect(result.current.settings.prompt).toBe('entity one');
+      expect(result.current.status).toBe('ready');
+
+      entityId = 'custom-entity-2';
+      rerender();
+
+      expect(result.current.entityId).toBe('custom-entity-2');
+      expect(result.current.settings).toEqual(defaults);
+      expect(result.current.status).toBe('loading');
+
+      await act(async () => {
+        vi.advanceTimersByTime(10);
+      });
+      await act(async () => {});
+
+      expect(result.current.settings.prompt).toBe('entity two');
+      expect(result.current.status).toBe('ready');
+    });
   });
 
   describe('field updates', () => {
@@ -245,6 +326,33 @@ describe('useAutoSaveSettings', () => {
 
       expect(result.current.settings.prompt).toBe('updated');
       expect(result.current.settings.mode).toBe('expert');
+    });
+
+    it('updateTextField updates local state without scheduling a debounced save', async () => {
+      const mockUpdate = vi.fn().mockResolvedValue(undefined);
+      (useToolSettings as unknown as ReturnType<typeof vi.fn>).mockReturnValue({
+        settings: defaults,
+        isLoading: false,
+        update: mockUpdate,
+        hasShotSettings: false,
+      });
+
+      const { result } = renderHook(
+        () => useAutoSaveSettings({ toolId: 'test', defaults, shotId: 'shot-1', debounceMs: 100 }),
+        { wrapper: createWrapper() }
+      );
+
+      act(() => {
+        result.current.updateTextField('prompt', 'typed locally');
+      });
+
+      expect(result.current.settings.prompt).toBe('typed locally');
+
+      await act(async () => {
+        vi.advanceTimersByTime(150);
+      });
+
+      expect(mockUpdate).not.toHaveBeenCalled();
     });
   });
 

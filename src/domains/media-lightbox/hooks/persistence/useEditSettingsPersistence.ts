@@ -55,6 +55,7 @@ interface UseEditSettingsPersistenceReturn extends EditSettingsSetterMethods {
 
   // Computed LoRAs for task creation
   editModeLoras: Array<{ url: string; strength: number }> | undefined;
+  flushTextFields: () => Promise<void>;
 
   // State
   isLoading: boolean;
@@ -96,22 +97,24 @@ export function useEditSettingsPersistence({
 
   // Track initialization state
   const hasInitializedRef = useRef(false);
-  const lastGenerationIdRef = useRef<string | null>(null);
+  const lastGenerationIdRef = useRef<string | null>(generationId);
   const [isReady, setIsReady] = useState(false);
 
   // Extract stable references
   const { isLoading: genIsLoading, hasPersistedSettings, initializeFromLastUsed } = generationSettings;
   const { lastUsed } = lastUsedSettings;
 
-  // Render-time reset: sanctioned React pattern for "adjust state during render based on
-  // changed props". Safe because it only mutates refs + calls own setState (which React
-  // batches). This must NOT be an effect — an effect would leave a render with stale
-  // hasInitializedRef causing a flash of wrong settings.
-  if (generationId !== lastGenerationIdRef.current) {
+  // Reset the coordinator when the generation changes so last-used initialization reruns
+  // against the next generation after the reducer-driven entity transition settles.
+  useEffect(() => {
+    if (generationId === lastGenerationIdRef.current) {
+      return;
+    }
+
     hasInitializedRef.current = false;
     lastGenerationIdRef.current = generationId;
-    if (isReady) setIsReady(false);
-  }
+    setIsReady(false);
+  }, [generationId]);
 
   // Effect-based init: must be an effect (not render-time) because initializeFromLastUsed
   // calls setState on another hook (useGenerationEditSettings), which React forbids during
@@ -200,6 +203,7 @@ export function useEditSettingsPersistence({
     setAdvancedSettings: genSetAdvancedSettings,
     setEnhanceSettings: genSetEnhanceSettings,
     setCreateAsGeneration: genSetCreateAsGeneration,
+    flushTextFields: flushGenerationTextFields,
   } = generationSettings;
 
   // Wrapper setters that also update "last used" (except prompt)
@@ -216,8 +220,7 @@ export function useEditSettingsPersistence({
 
   const setCustomLoraUrl = useCallback((url: string) => {
     genSetCustomLoraUrl(url);
-    updateLastUsed({ customLoraUrl: url });
-  }, [genSetCustomLoraUrl, updateLastUsed]);
+  }, [genSetCustomLoraUrl]);
 
   const setNumGenerations = useCallback((num: number) => {
     genSetNumGenerations(num);
@@ -238,6 +241,11 @@ export function useEditSettingsPersistence({
   const setImg2imgPrompt = useCallback((prompt: string) => {
     genSetImg2imgPrompt(prompt);
   }, [genSetImg2imgPrompt]);
+
+  const flushTextFields = useCallback(async () => {
+    await flushGenerationTextFields();
+    updateLastUsed({ customLoraUrl: generationSettings.settings.customLoraUrl });
+  }, [flushGenerationTextFields, updateLastUsed, generationSettings.settings.customLoraUrl]);
 
   // Img2Img setters (save to both generation and "last used")
   const setImg2imgStrength = useCallback((strength: number) => {
@@ -333,6 +341,7 @@ export function useEditSettingsPersistence({
 
     // Computed
     editModeLoras,
+    flushTextFields,
 
     // State
     isLoading: generationSettings.isLoading,

@@ -5,6 +5,7 @@ import type {
 } from '../types';
 import { EditModePanel } from './EditModePanel';
 import { InfoPanel } from './InfoPanel';
+import { useLightboxCoreSafe, useLightboxVariantsSafe } from '../contexts/LightboxStateContext';
 import type { ImageLightboxEnvironment } from '../hooks/useImageLightboxEnvironment';
 import type { ImageLightboxEditModel } from '../hooks/useImageLightboxEditing';
 
@@ -27,6 +28,9 @@ export const ImageLightboxControlsPanel = React.memo(function ImageLightboxContr
   panelVariant,
   panelTaskId,
 }: ImageLightboxControlsPanelProps) {
+  const coreState = useLightboxCoreSafe();
+  const variantsState = useLightboxVariantsSafe();
+
   if (!showPanel) {
     return null;
   }
@@ -65,6 +69,9 @@ export const ImageLightboxControlsPanel = React.memo(function ImageLightboxContr
           setAdvancedSettings: env.editSettingsPersistence.setAdvancedSettings,
         }}
         isLocalGeneration={env.isLocalGeneration}
+        coreState={{ onClose: coreState.onClose }}
+        imageEditState={editOrchestrator.imageEditValue}
+        variantsState={variantsState}
       />
     );
   }

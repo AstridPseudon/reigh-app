@@ -1,3 +1,4 @@
+import { useCallback } from 'react';
 import { GenerationRow } from '@/domains/generation/types';
 
 import { MediaDisplayWithCanvas } from '@/domains/media-lightbox/components/MediaDisplayWithCanvas';
@@ -10,15 +11,17 @@ import { EditModePanel } from '@/domains/media-lightbox/components/EditModePanel
 import { FloatingToolControls } from '@/domains/media-lightbox/components/FloatingToolControls';
 import { AnnotationFloatingControls } from '@/domains/media-lightbox/components/AnnotationFloatingControls';
 import { ImageEditProvider } from '@/domains/media-lightbox/contexts/ImageEditContext';
+import type { EditModePanelVariantsState } from '@/domains/media-lightbox/components/types';
 import { Button } from '@/shared/components/ui/button';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { TooltipProvider } from '@/shared/components/ui/tooltip';
-import { VariantSelector } from '@/shared/components/VariantSelector';
 
 import {
   useInlineEditState,
   type InlineEditStateResult,
 } from '../hooks/useInlineEditState';
+
+const NOOP = () => {};
 
 // ============================================================================
 // Types
@@ -169,14 +172,7 @@ interface InlineEditSidebarModel {
   };
   availableLoras: InlineEditStateResult['availableLoras'];
   imageEditValue: InlineEditStateResult['imageEditValue'];
-  variants: {
-    list: InlineEditStateResult['variants']['variants'];
-    activeVariantId: string | null;
-    isLoading: boolean;
-    setActiveVariantId: InlineEditStateResult['variants']['setActiveVariantId'];
-    setPrimaryVariant: InlineEditStateResult['variants']['setPrimaryVariant'];
-    deleteVariant: InlineEditStateResult['variants']['deleteVariant'];
-  };
+  variantsState: EditModePanelVariantsState;
   actions: {
     enterInpaintMode: () => void;
     enterMagicEditMode: () => void;
@@ -198,13 +194,16 @@ function buildInlineEditSidebarModel(state: InlineEditStateResult): InlineEditSi
     },
     availableLoras: state.availableLoras,
     imageEditValue: state.imageEditValue,
-    variants: {
-      list: state.variants.variants,
-      activeVariantId: state.variants.activeVariant?.id || null,
-      isLoading: state.variants.isLoading,
-      setActiveVariantId: state.variants.setActiveVariantId,
-      setPrimaryVariant: state.variants.setPrimaryVariant,
-      deleteVariant: state.variants.deleteVariant,
+    variantsState: {
+      variants: state.variants.variants,
+      activeVariant: state.variants.activeVariant,
+      handleVariantSelect: state.variants.setActiveVariantId,
+      handleMakePrimary: state.variants.setPrimaryVariant,
+      isLoadingVariants: state.variants.isLoading,
+      handleDeleteVariant: state.variants.deleteVariant,
+      pendingTaskCount: 0,
+      unviewedVariantCount: 0,
+      onMarkAllViewed: NOOP,
     },
     actions: {
       enterInpaintMode: () => {
@@ -235,10 +234,9 @@ function InlineEditSidebar({ variant, model, onClose }: InlineEditSidebarProps) 
         availableLoras: model.availableLoras,
       }}
       upscale={{ isCloudMode: model.isCloudMode }}
-      stateOverrides={{
-        coreState: { onClose },
-        imageEditState: model.imageEditValue,
-      }}
+      coreState={{ onClose }}
+      imageEditState={model.imageEditValue}
+      variantsState={model.variantsState}
     />
   ) : (
     <div className="w-full h-full flex flex-col items-center justify-center p-6 text-center gap-y-4">
@@ -261,24 +259,7 @@ function InlineEditSidebar({ variant, model, onClose }: InlineEditSidebarProps) 
 
   return (
     <div className="w-full h-full flex flex-col min-h-0">
-      <div className="flex-1 min-h-0 overflow-y-auto">
-        {sidebarContent}
-      </div>
-      <div
-        className={cn(
-          'border-t border-border bg-background/95 backdrop-blur-sm px-3 pt-3 pb-6',
-          variant === 'mobile' ? 'pb-8' : 'pb-6'
-        )}
-      >
-        <VariantSelector
-          variants={model.variants.list}
-          activeVariantId={model.variants.activeVariantId}
-          onVariantSelect={(variantId) => model.variants.setActiveVariantId(variantId)}
-          onMakePrimary={model.variants.setPrimaryVariant}
-          isLoading={model.variants.isLoading}
-          onDeleteVariant={model.variants.deleteVariant}
-        />
-      </div>
+      <div className="flex-1 min-h-0 overflow-y-auto">{sidebarContent}</div>
     </div>
   );
 }
@@ -289,6 +270,10 @@ function InlineEditSidebar({ variant, model, onClose }: InlineEditSidebarProps) 
 
 export function InlineEditView({ media, onClose, onNavigateToGeneration }: InlineEditViewProps) {
   const state = useInlineEditState(media, onNavigateToGeneration);
+  const handleClose = useCallback(() => {
+    void state.imageEditValue.flushTextFields();
+    onClose();
+  }, [state.imageEditValue, onClose]);
   const canvasModel = buildInlineEditCanvasModel(state);
   const sidebarModel = buildInlineEditSidebarModel(state);
   const isMobile = state.canvasEnvironment.isMobile;
@@ -313,7 +298,7 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
               <InlineEditSidebar
                 variant="mobile"
                 model={sidebarModel}
-                onClose={onClose}
+                onClose={handleClose}
                 onNavigateToGeneration={onNavigateToGeneration}
               />
             </div>
@@ -341,7 +326,7 @@ export function InlineEditView({ media, onClose, onNavigateToGeneration }: Inlin
             <InlineEditSidebar
               variant="desktop"
               model={sidebarModel}
-              onClose={onClose}
+              onClose={handleClose}
               onNavigateToGeneration={onNavigateToGeneration}
             />
           </div>

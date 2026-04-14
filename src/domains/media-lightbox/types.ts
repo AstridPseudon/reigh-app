@@ -59,6 +59,7 @@ export interface LightboxActionHandlers {
   onApplySettings?: (metadata: GenerationRow['metadata']) => void;
   onToggleStar?: (id: string, starred: boolean) => void;
   starred?: boolean;
+  onAddToVideoEditor?: () => void;
 }
 
 /**

@@ -60,13 +60,13 @@ export interface UseInpaintingProps {
   imageUrl?: string;
   thumbnailUrl?: string;
   editMode: EditMode;
-  annotationMode?: AnnotationMode;
-  inpaintPrompt?: string;
-  inpaintNumGenerations?: number;
+  annotationMode: AnnotationMode;
+  inpaintPrompt: string;
+  inpaintNumGenerations: number;
   setEditMode: (mode: EditMode) => void;
-  setAnnotationMode?: (mode: AnnotationMode | ((prev: AnnotationMode) => AnnotationMode)) => void;
-  setInpaintPrompt?: (prompt: string) => void;
-  setInpaintNumGenerations?: (num: number) => void;
+  setAnnotationMode: (mode: AnnotationMode | ((prev: AnnotationMode) => AnnotationMode)) => void;
+  setInpaintPrompt: (prompt: string) => void;
+  setInpaintNumGenerations: (num: number) => void;
   /** Start with isInpaintMode=true (skips the "select an option" step) */
   initialActive?: boolean;
 }

@@ -3,6 +3,7 @@ import globals from "globals";
 import reactHooks from "eslint-plugin-react-hooks";
 import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
+import { dialogEarlyReturnRestrictedSyntax } from "./eslint-rules/dialogEarlyReturnRule.js";
 import { strictLintDebtFiles } from "./eslint.strict-debt.js";
 import { supabaseFacadeAllowlist } from "./eslint.supabase-facade-allowlist.js";
 import { sharedLayerAllowlist } from "./eslint.shared-layer-allowlist.js";
@@ -20,7 +21,7 @@ const strictRefreshFiles = [
 ];
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  { ignores: ["dist", "eslint-rules/__fixtures__/**"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -44,6 +45,7 @@ export default tseslint.config(
         varsIgnorePattern: "^_",
         ignoreRestSiblings: true,
       }],
+      "no-restricted-syntax": ["error", dialogEarlyReturnRestrictedSyntax],
     },
   },
   {

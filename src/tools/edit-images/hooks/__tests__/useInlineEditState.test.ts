@@ -40,17 +40,21 @@ const mockUseUpscale = vi.fn().mockReturnValue({
   setActiveVariant: vi.fn(),
 });
 
-const mockUseInpainting = vi.fn().mockReturnValue({
+const mockUseInpainting = vi.fn().mockImplementation((args?: {
+  editMode?: string | null;
+  inpaintPrompt?: string;
+  inpaintNumGenerations?: number;
+}) => ({
   isInpaintMode: false,
   brushStrokes: [],
   isEraseMode: false,
-  inpaintPrompt: '',
-  inpaintNumGenerations: 1,
+  inpaintPrompt: args?.inpaintPrompt ?? '',
+  inpaintNumGenerations: args?.inpaintNumGenerations ?? 1,
   brushSize: 20,
   isGeneratingInpaint: false,
   inpaintGenerateSuccess: false,
   isAnnotateMode: false,
-  editMode: null,
+  editMode: args?.editMode ?? null,
   annotationMode: null,
   selectedShapeId: null,
   isDrawing: false,
@@ -80,7 +84,7 @@ const mockUseInpainting = vi.fn().mockReturnValue({
   onStrokesChange: vi.fn(),
   onSelectionChange: vi.fn(),
   onTextModeHint: vi.fn(),
-});
+}));
 
 const mockUseMagicEditMode = vi.fn().mockReturnValue({
   isCreatingMagicEditTasks: false,
@@ -112,18 +116,27 @@ const mockUseRepositionMode = vi.fn().mockReturnValue({
   dragHandlers: null,
 });
 
-const mockUseImg2ImgMode = vi.fn().mockReturnValue({
-  img2imgPrompt: '',
-  img2imgStrength: 0.6,
-  enablePromptExpansion: false,
+const mockUseImg2ImgMode = vi.fn().mockImplementation((args?: {
+  state?: {
+    prompt?: string;
+    strength?: number;
+    enablePromptExpansion?: boolean;
+    setPrompt?: () => void;
+    setStrength?: () => void;
+    setEnablePromptExpansion?: () => void;
+  };
+}) => ({
+  img2imgPrompt: args?.state?.prompt ?? '',
+  img2imgStrength: args?.state?.strength ?? 0.6,
+  enablePromptExpansion: args?.state?.enablePromptExpansion ?? false,
   isGeneratingImg2Img: false,
   img2imgGenerateSuccess: false,
-  setImg2imgPrompt: vi.fn(),
-  setImg2imgStrength: vi.fn(),
-  setEnablePromptExpansion: vi.fn(),
+  setImg2imgPrompt: args?.state?.setPrompt ?? vi.fn(),
+  setImg2imgStrength: args?.state?.setStrength ?? vi.fn(),
+  setEnablePromptExpansion: args?.state?.setEnablePromptExpansion ?? vi.fn(),
   handleGenerateImg2Img: vi.fn(),
   loraManager: { selectedLoras: [], setSelectedLoras: vi.fn() },
-});
+}));
 
 const mockEditSettingsPersistence = {
   editMode: 'text',
@@ -150,6 +163,7 @@ const mockEditSettingsPersistence = {
   setQwenEditModel: vi.fn(),
   createAsGeneration: false,
   setCreateAsGeneration: vi.fn(),
+  flushTextFields: vi.fn().mockResolvedValue(undefined),
   isReady: true,
   hasPersistedSettings: false,
 };
@@ -249,6 +263,101 @@ describe('useInlineEditState', () => {
     vi.clearAllMocks();
     mockEditSettingsPersistence.editMode = 'text';
     mockEditSettingsPersistence.setEditMode = vi.fn();
+    mockEditSettingsPersistence.flushTextFields = vi.fn().mockResolvedValue(undefined);
+    mockUseMagicEditMode.mockReturnValue({
+      isCreatingMagicEditTasks: false,
+      magicEditTasksCreated: false,
+      toolPanelPosition: 'right',
+      setToolPanelPosition: vi.fn(),
+      handleEnterMagicEditMode: vi.fn(),
+      handleExitMagicEditMode: vi.fn(),
+      handleUnifiedGenerate: vi.fn(),
+      isSpecialEditMode: false,
+    });
+    mockUseInpainting.mockImplementation((args?: {
+      editMode?: string | null;
+      inpaintPrompt?: string;
+      inpaintNumGenerations?: number;
+    }) => ({
+      isInpaintMode: false,
+      brushStrokes: [],
+      isEraseMode: false,
+      inpaintPrompt: args?.inpaintPrompt ?? '',
+      inpaintNumGenerations: args?.inpaintNumGenerations ?? 1,
+      brushSize: 20,
+      isGeneratingInpaint: false,
+      inpaintGenerateSuccess: false,
+      isAnnotateMode: false,
+      editMode: args?.editMode ?? null,
+      annotationMode: null,
+      selectedShapeId: null,
+      isDrawing: false,
+      currentStroke: null,
+      setIsInpaintMode: vi.fn(),
+      setIsEraseMode: vi.fn(),
+      setInpaintPrompt: vi.fn(),
+      setInpaintNumGenerations: vi.fn(),
+      setBrushSize: vi.fn(),
+      setIsAnnotateMode: vi.fn(),
+      setEditMode: vi.fn(),
+      setAnnotationMode: vi.fn(),
+      handleKonvaPointerDown: vi.fn(),
+      handleKonvaPointerMove: vi.fn(),
+      handleKonvaPointerUp: vi.fn(),
+      handleShapeClick: vi.fn(),
+      handleUndo: vi.fn(),
+      handleClearMask: vi.fn(),
+      handleEnterInpaintMode: vi.fn(),
+      handleGenerateInpaint: vi.fn(),
+      handleGenerateAnnotatedEdit: vi.fn(),
+      handleDeleteSelected: vi.fn(),
+      handleToggleFreeForm: vi.fn(),
+      getDeleteButtonPosition: vi.fn(),
+      strokeOverlayRef: { current: null },
+      onStrokeComplete: vi.fn(),
+      onStrokesChange: vi.fn(),
+      onSelectionChange: vi.fn(),
+      onTextModeHint: vi.fn(),
+    }));
+    mockUseRepositionMode.mockReturnValue({
+      transform: null,
+      hasTransformChanges: false,
+      isGeneratingReposition: false,
+      repositionGenerateSuccess: false,
+      isSavingAsVariant: false,
+      saveAsVariantSuccess: false,
+      setScale: vi.fn(),
+      setRotation: vi.fn(),
+      toggleFlipH: vi.fn(),
+      toggleFlipV: vi.fn(),
+      resetTransform: vi.fn(),
+      handleGenerateReposition: vi.fn(),
+      handleSaveAsVariant: vi.fn(),
+      getTransformStyle: vi.fn().mockReturnValue(''),
+      isDragging: false,
+      dragHandlers: null,
+    });
+    mockUseImg2ImgMode.mockImplementation((args?: {
+      state?: {
+        prompt?: string;
+        strength?: number;
+        enablePromptExpansion?: boolean;
+        setPrompt?: () => void;
+        setStrength?: () => void;
+        setEnablePromptExpansion?: () => void;
+      };
+    }) => ({
+      img2imgPrompt: args?.state?.prompt ?? '',
+      img2imgStrength: args?.state?.strength ?? 0.6,
+      enablePromptExpansion: args?.state?.enablePromptExpansion ?? false,
+      isGeneratingImg2Img: false,
+      img2imgGenerateSuccess: false,
+      setImg2imgPrompt: args?.state?.setPrompt ?? vi.fn(),
+      setImg2imgStrength: args?.state?.setStrength ?? vi.fn(),
+      setEnablePromptExpansion: args?.state?.setEnablePromptExpansion ?? vi.fn(),
+      handleGenerateImg2Img: vi.fn(),
+      loraManager: { selectedLoras: [], setSelectedLoras: vi.fn() },
+    }));
   });
 
   it('returns all expected sections of state', () => {
@@ -342,6 +451,47 @@ describe('useInlineEditState', () => {
         editMode: 'reposition',
       }),
     );
+  });
+
+  it('flushes text fields before generate handlers run', async () => {
+    const handleUnifiedGenerate = vi.fn().mockResolvedValue(undefined);
+    const handleGenerateAnnotatedEdit = vi.fn().mockResolvedValue(undefined);
+    const handleGenerateReposition = vi.fn().mockResolvedValue(undefined);
+    const handleGenerateImg2Img = vi.fn().mockResolvedValue(undefined);
+
+    mockUseMagicEditMode.mockReturnValue({
+      ...mockUseMagicEditMode(),
+      handleUnifiedGenerate,
+    });
+    mockUseInpainting.mockReturnValue({
+      ...mockUseInpainting(),
+      handleGenerateAnnotatedEdit,
+    });
+    mockUseRepositionMode.mockReturnValue({
+      ...mockUseRepositionMode(),
+      handleGenerateReposition,
+    });
+    mockUseImg2ImgMode.mockReturnValue({
+      ...mockUseImg2ImgMode(),
+      handleGenerateImg2Img,
+      loraManager: { selectedLoras: [], setSelectedLoras: vi.fn() },
+    });
+
+    const { result } = renderHook(
+      () => useInlineEditState(mockMedia),
+      { wrapper: createWrapper() },
+    );
+
+    await result.current.generationState.handleUnifiedGenerate();
+    await result.current.generationState.handleGenerateAnnotatedEdit();
+    await result.current.generationState.handleGenerateReposition();
+    await result.current.generationState.handleGenerateImg2Img();
+
+    expect(mockEditSettingsPersistence.flushTextFields).toHaveBeenCalledTimes(4);
+    expect(handleUnifiedGenerate).toHaveBeenCalledTimes(1);
+    expect(handleGenerateAnnotatedEdit).toHaveBeenCalledTimes(1);
+    expect(handleGenerateReposition).toHaveBeenCalledTimes(1);
+    expect(handleGenerateImg2Img).toHaveBeenCalledTimes(1);
   });
 
   it('sets imageDimensions via setImageDimensions', () => {
@@ -449,5 +599,43 @@ describe('useInlineEditState', () => {
     });
 
     expect(setEditMode).toHaveBeenCalledWith('img2img');
+  });
+
+  it('preserves prompt-backed state across edit mode switches', () => {
+    mockEditSettingsPersistence.prompt = 'persistent main prompt';
+    mockEditSettingsPersistence.img2imgPrompt = 'persistent img2img prompt';
+    mockEditSettingsPersistence.editMode = 'text';
+
+    const { result, rerender } = renderHook(
+      () => useInlineEditState(mockMedia),
+      { wrapper: createWrapper() },
+    );
+
+    expect(result.current.imageEditValue.inpaintPrompt).toBe('persistent main prompt');
+    expect(result.current.imageEditValue.img2imgPrompt).toBe('persistent img2img prompt');
+    expect(mockUseInpainting).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        editMode: 'text',
+        inpaintPrompt: 'persistent main prompt',
+      }),
+    );
+
+    mockEditSettingsPersistence.editMode = 'reposition';
+    rerender();
+
+    expect(result.current.imageEditValue.inpaintPrompt).toBe('persistent main prompt');
+    expect(result.current.imageEditValue.img2imgPrompt).toBe('persistent img2img prompt');
+    expect(mockUseInpainting).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        editMode: 'reposition',
+        inpaintPrompt: 'persistent main prompt',
+      }),
+    );
+
+    mockEditSettingsPersistence.editMode = 'img2img';
+    rerender();
+
+    expect(result.current.imageEditValue.inpaintPrompt).toBe('persistent main prompt');
+    expect(result.current.imageEditValue.img2imgPrompt).toBe('persistent img2img prompt');
   });
 });

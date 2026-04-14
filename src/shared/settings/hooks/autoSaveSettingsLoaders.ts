@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import type { Dispatch, MutableRefObject, SetStateAction } from 'react';
+import type { MutableRefObject } from 'react';
 import { deepEqual } from '@/shared/lib/utils/deepEqual';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import { useDebouncedSettingsSave } from '@/shared/settings/hooks/useDebouncedSettingsSave';
@@ -10,32 +10,32 @@ interface CustomModeLoadContext<T extends object> {
   isCustomMode: boolean;
   entityId: string | null;
   enabled: boolean;
-  statusRef: MutableRefObject<AutoSaveStatus>;
+  status: AutoSaveStatus;
   defaults: T;
   debouncedSave: ReturnType<typeof useDebouncedSettingsSave<T>>;
   customLoadRef: MutableRefObject<((entityId: string) => Promise<T | null>) | undefined>;
-  currentEntityIdRef: MutableRefObject<string | null>;
+  stateRef: MutableRefObject<{ entityId: string | null; settings: T; hasPersistedData: boolean }>;
   isLoadingRef: MutableRefObject<boolean>;
   transitionReadyWithPendingSave: () => void;
   applyLoadedData: (data: T, hadPersistedData: boolean) => void;
-  setStatus: (s: AutoSaveStatus) => void;
-  setError: (e: Error | null) => void;
+  startLoad: () => void;
+  setLoadError: (e: Error) => void;
 }
 
 interface ReactQueryModeLoadContext<T extends object> {
   isCustomMode: boolean;
   entityId: string | null;
   enabled: boolean;
-  statusRef: MutableRefObject<AutoSaveStatus>;
+  status: AutoSaveStatus;
   defaults: T;
   dbSettings: T | undefined;
   rqIsLoading: boolean;
   debouncedSave: ReturnType<typeof useDebouncedSettingsSave<T>>;
   loadedSettingsRef: MutableRefObject<T | null>;
   transitionReadyWithPendingSave: () => void;
-  setSettings: Dispatch<SetStateAction<T>>;
-  setStatus: (s: AutoSaveStatus) => void;
-  setError: (e: Error | null) => void;
+  applyLoadedData: (data: T, hadPersistedData: boolean) => void;
+  startLoad: () => void;
+  markReady: () => void;
 }
 
 export function useCustomModeLoad<T extends object>(ctx: CustomModeLoadContext<T>) {
@@ -43,40 +43,45 @@ export function useCustomModeLoad<T extends object>(ctx: CustomModeLoadContext<T
     isCustomMode,
     entityId,
     enabled,
-    statusRef,
+    status,
     defaults,
     debouncedSave,
     customLoadRef,
-    currentEntityIdRef,
+    stateRef,
     isLoadingRef,
     transitionReadyWithPendingSave,
     applyLoadedData,
-    setStatus,
-    setError,
+    startLoad,
+    setLoadError,
   } = ctx;
 
   useEffect(() => {
     if (!isCustomMode || !entityId || !enabled) {
       return;
     }
-    if (statusRef.current !== 'idle' && statusRef.current !== 'loading') {
+    if (status !== 'idle' && status !== 'loading') {
+      return;
+    }
+    if (isLoadingRef.current) {
       return;
     }
 
+    // Keep this guard: pending refs still protect typed-but-unflushed text edits from async loads.
     if (debouncedSave.hasPendingFor(entityId)) {
       transitionReadyWithPendingSave();
       return;
     }
 
-    setStatus('loading');
+    startLoad();
     isLoadingRef.current = true;
 
     customLoadRef.current!(entityId)
       .then((loaded) => {
-        if (currentEntityIdRef.current !== entityId) {
+        if (stateRef.current.entityId !== entityId) {
           return;
         }
 
+        // Keep this guard: a load that resolves after local typing must not overwrite pending text state.
         if (debouncedSave.hasPendingFor(entityId)) {
           isLoadingRef.current = false;
           transitionReadyWithPendingSave();
@@ -88,11 +93,24 @@ export function useCustomModeLoad<T extends object>(ctx: CustomModeLoadContext<T
       })
       .catch((err) => {
         normalizeAndPresentError(err, { context: 'useAutoSaveSettings.load', showToast: false });
-        setStatus('error');
         isLoadingRef.current = false;
-        setError(err as Error);
+        setLoadError(err as Error);
       });
-  }, [isCustomMode, entityId, enabled, defaults, debouncedSave]);
+  }, [
+    isCustomMode,
+    entityId,
+    enabled,
+    status,
+    defaults,
+    debouncedSave,
+    customLoadRef,
+    stateRef,
+    isLoadingRef,
+    transitionReadyWithPendingSave,
+    applyLoadedData,
+    startLoad,
+    setLoadError,
+  ]);
 }
 
 export function useReactQueryModeLoad<T extends object>(ctx: ReactQueryModeLoadContext<T>) {
@@ -100,16 +118,16 @@ export function useReactQueryModeLoad<T extends object>(ctx: ReactQueryModeLoadC
     isCustomMode,
     entityId,
     enabled,
-    statusRef,
+    status,
     defaults,
     dbSettings,
     rqIsLoading,
     debouncedSave,
     loadedSettingsRef,
     transitionReadyWithPendingSave,
-    setSettings,
-    setStatus,
-    setError,
+    applyLoadedData,
+    startLoad,
+    markReady,
   } = ctx;
 
   useEffect(() => {
@@ -117,20 +135,20 @@ export function useReactQueryModeLoad<T extends object>(ctx: ReactQueryModeLoadC
       return;
     }
 
-    const currentStatus = statusRef.current;
     if (rqIsLoading) {
-      if (currentStatus === 'idle') {
-        setStatus('loading');
+      if (status === 'idle') {
+        startLoad();
       }
       return;
     }
 
-    if (currentStatus === 'saving') {
+    if (status === 'saving') {
       return;
     }
 
+    // Keep this guard: React Query cache refreshes must not stomp pending text edits for the same entity.
     if (debouncedSave.hasPendingFor(entityId)) {
-      if (currentStatus !== 'ready') {
+      if (status !== 'ready') {
         transitionReadyWithPendingSave();
       }
       return;
@@ -140,15 +158,26 @@ export function useReactQueryModeLoad<T extends object>(ctx: ReactQueryModeLoadC
     const clonedSettings = JSON.parse(JSON.stringify(loadedSettings));
 
     if (loadedSettingsRef.current && deepEqual(clonedSettings, loadedSettingsRef.current)) {
-      if (currentStatus !== 'ready') {
-        setStatus('ready');
+      if (status !== 'ready') {
+        markReady();
       }
       return;
     }
 
-    setSettings(clonedSettings);
-    loadedSettingsRef.current = JSON.parse(JSON.stringify(clonedSettings));
-    setStatus('ready');
-    setError(null);
-  }, [isCustomMode, entityId, rqIsLoading, dbSettings, defaults, enabled, debouncedSave]);
+    applyLoadedData(clonedSettings, !!dbSettings);
+  }, [
+    isCustomMode,
+    entityId,
+    enabled,
+    status,
+    defaults,
+    dbSettings,
+    rqIsLoading,
+    debouncedSave,
+    loadedSettingsRef,
+    transitionReadyWithPendingSave,
+    applyLoadedData,
+    startLoad,
+    markReady,
+  ]);
 }

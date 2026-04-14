@@ -3,70 +3,74 @@ const OUTPUT_ONLY_PROMPT_POLICY = `CRITICAL FORMATTING REQUIREMENTS:
 - NO additional commentary, explanations, or formatting
 - NO quotation marks around the output`;
 
-const SIMPLE_SUBJECT_REMINDER = `CRITICAL REMINDER: If the user asks for simple subjects (like "a man", "a woman", "a train"), styles, or scenes without asking for details or variety, keep them simple in the prompt. Only add descriptive details when specifically requested.`;
-
 export function buildGeneratePromptsMessages(input: {
   overallPromptText: string;
   rulesToRememberText: string;
   numberToGenerate: number;
   existingPrompts: unknown[];
+  variationIntent?: string;
 }): { systemMsg: string; userMsg: string } {
   const {
     overallPromptText,
     rulesToRememberText,
     numberToGenerate,
     existingPrompts,
+    variationIntent,
   } = input;
 
   const resolvedRequest = overallPromptText || "Please generate general image prompts based on the overall goal and rules.";
+  const trimmedIntent = typeof variationIntent === "string" ? variationIntent.trim() : "";
+  const hasIntent = trimmedIntent.length > 0;
 
-  const systemMsg = `You are a helpful assistant that generates detailed image prompts optimized for AI image generation. Focus on visual elements like composition, lighting, colors, and atmosphere while following the user's specific instructions and formatting requirements.`;
+  const systemMsg = `You generate image generation prompts that vary along a specified axis while holding everything else fixed. Output only the prompts, one per line, with no numbering, bullets, or quotes.`;
 
-  let instructions = `Generate exactly ${numberToGenerate} distinct image generation prompts based on the following:
+  const axisBlock = hasIntent
+    ? `VARIATION AXIS: ${trimmedIntent}
+Vary each prompt along this axis. Keep every other element from BASE PROMPT identical across all ${numberToGenerate} outputs — same subject, same characters, same mood, same composition — only the specified axis changes.
 
-USER REQUEST: ${resolvedRequest}
+EXAMPLE — BASE PROMPT: "a red fox sitting in a forest clearing at dusk" with axis "different camera angles":
+a red fox sitting in a forest clearing at dusk, shot from a low ground-level angle
+an overhead aerial view of a red fox sitting in a forest clearing at dusk
+a red fox sitting in a forest clearing at dusk, tight over-the-shoulder framing from behind the fox
 
-ADDITIONAL RULES TO REMEMBER: ${rulesToRememberText}
+EXAMPLE — BASE PROMPT: "a woman drinking coffee in a sunny kitchen" with axis "different lighting conditions":
+a woman drinking coffee in a sunny kitchen under bright midday sun streaming through the windows
+a woman drinking coffee in a sunny kitchen lit by soft early-morning golden hour light
+a woman drinking coffee in a sunny kitchen with overcast grey daylight filtering through sheer curtains`
+    : `DEFAULT MODE — LINGUISTIC REWRITES:
+Express the exact same concept ${numberToGenerate} different ways. Every prompt describes the identical subject, scene, mood, characters, details, and composition. Only vary sentence structure, word order, synonyms, clause ordering, and phrasing. Do not introduce new elements, details, styles, or scenarios. Do not change the setting, time of day, weather, or any visual content. This is paraphrase, not variation.
 
-IMPORTANT GUIDELINES:
-- Each prompt should be specifically designed for AI image generation
-- Keep the user's descriptions as stated - only add detail when they specifically request it
-- Focus on visual elements like composition, lighting, colors, and atmosphere
-- SUBJECT GUIDANCE: If the user asks for simple subjects like "a man", "a woman", or "a train" without requesting additional details or variety, mention them simply without embellishment. Only add descriptive details when specifically requested.
-- CHARACTER GUIDANCE: Only mention specific character details if requested - if the user asks for them. If they provide a character description use it consistently across prompts. If they ask you to generate characters, give them unique character names and descriptions for each prompt.
-- STYLE GUIDANCE: Only mention specific artistic styles (photography, anime, oil painting, digital art) if specifically requested. Keep styles simple unless the user asks for detailed styling.
-- SCENE GUIDANCE: Only provide detailed scene and environment descriptions when specifically requested. If the user mentions a simple scene, keep it simple.
+EXAMPLE — BASE PROMPT: "a red fox sitting in a forest clearing at dusk":
+a red fox sitting in a forest clearing at dusk
+at dusk, a red fox is sitting in a clearing in the forest
+in a forest clearing, a red fox sits as dusk settles
 
-CRITICAL FORMATTING REQUIREMENTS:
-- Output EXACTLY ${numberToGenerate} prompts
-- Each prompt must be on its own line
-- NO numbering, bullet points, quotation marks, empty lines, formatting, markdown or special characters`;
+EXAMPLE — BASE PROMPT: "a woman drinking coffee in a sunny kitchen":
+a woman drinking coffee in a sunny kitchen
+in a sunny kitchen, a woman is drinking coffee
+a woman sips coffee inside a kitchen filled with sunlight`;
+
+  let instructions = `BASE PROMPT: ${resolvedRequest}
+
+ADDITIONAL RULES: ${rulesToRememberText || "(none)"}
+
+${axisBlock}
+
+FORMAT:
+- Output exactly ${numberToGenerate} prompts
+- One prompt per line
+- No numbering, no bullets, no quotes, no blank lines, no markdown`;
 
   if (existingPrompts.length) {
     const ctx = existingPrompts
       .map((prompt) => `- ${typeof prompt === "string" ? prompt : (prompt as Record<string, unknown>)?.text ?? ""}`)
       .join("\n");
-    instructions += `\n\nExisting Prompts for Context (do NOT repeat or return these, but use them as inspiration for new, distinct image generation ideas):\n${ctx}`;
-  } else {
-    instructions += `
-
-FORMAT EXAMPLE (${numberToGenerate} prompts):
-[if the user tells you to refer to a dragon] The dragon is soaring through storm clouds with lightning illuminating its scales, below massive skyscrapers are visible through the clouds
-[if the user asks you to come up with a female German character] A woman named Gracie Marr, she's tall, blonde, and has delicate mousey features. She's standing on sand dunes under a starry night sky, the nights sky is clear and the moon is visible behind them.
-[if the user asks you to come up with a playful style] A picture of a dog in a mix of crayons and marker, reminiscent of a modern childlike version of a work of Klimt.
-[if the user asks you to refer to an old man doing chores] The old man is doing chores in his garden, he's wearing a red shirt and blue pants. He's watering the plants with a watering can. He's wearing a red hat and a red jacket.
-[if the user asks you to come up with a futuristic style] An angular modernist painting in the style of Akira Kurosawa's The Hidden Fortress.`;
+    instructions += `\n\nExisting prompts already generated (do not repeat these verbatim):\n${ctx}`;
   }
 
   instructions += `
 
-YOUR OUTPUT (${numberToGenerate} prompts):
-
-Reminder: here's the user request: "${resolvedRequest}" - make sure to respect that precisely.
-
-${SIMPLE_SUBJECT_REMINDER}
-
-IMPORTANT: Only respond with the ${numberToGenerate} prompts, nothing else. Do not include any commentary, explanations, or additional text.`;
+Output the ${numberToGenerate} prompts now.`;
 
   return {
     systemMsg,

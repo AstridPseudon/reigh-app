@@ -1,10 +1,11 @@
 import { useCallback } from 'react';
-import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { useQueryClient } from '@tanstack/react-query';
 import { generationQueryKeys } from '@/shared/lib/queryKeys/generations';
 import { useAutoSaveSettings } from '@/shared/settings/hooks/useAutoSaveSettings';
 import type { Json } from '@/integrations/supabase/jsonTypes';
 import { toJson } from '@/shared/lib/supabaseTypeHelpers';
+import { fetchGenerationRecordById } from '@/integrations/supabase/repositories/generationRepository';
+import { updateGenerationParams } from '@/integrations/supabase/repositories/generationMutationsRepository';
 
 // Import canonical types from single source of truth
 import {
@@ -71,6 +72,7 @@ interface UseGenerationEditSettingsReturn extends EditSettingsSetterMethods {
 
   // Bulk update
   updateSettings: (updates: Partial<GenerationEditSettings>) => void;
+  flushTextFields: () => Promise<void>;
 
   // State
   isLoading: boolean;
@@ -89,20 +91,12 @@ interface UseGenerationEditSettingsProps {
  * Load settings from generations.params.ui.editSettings
  */
 async function loadGenerationSettings(generationId: string): Promise<AutoSaveGenerationEditSettings | null> {
-  const { data, error } = await supabase().from('generations')
-    .select('params')
-    .eq('id', generationId)
-    .maybeSingle();
-
-  if (error) {
+  const generation = await fetchGenerationRecordById(generationId);
+  if (!generation) {
     return null;
   }
 
-  if (!data) {
-    return null;
-  }
-
-  const savedSettings = (data?.params as Record<string, unknown>)?.ui as Record<string, unknown> | undefined;
+  const savedSettings = (generation.params as Record<string, unknown> | null | undefined)?.ui as Record<string, unknown> | undefined;
   const editSettings = savedSettings?.editSettings as Partial<GenerationEditSettings> | undefined;
 
   if (editSettings) {
@@ -120,14 +114,7 @@ async function loadGenerationSettings(generationId: string): Promise<AutoSaveGen
  */
 async function saveGenerationSettings(generationId: string, settings: AutoSaveGenerationEditSettings): Promise<void> {
   // Fetch current params to merge
-  const { data: current, error: fetchError } = await supabase().from('generations')
-    .select('params')
-    .eq('id', generationId)
-    .maybeSingle();
-
-  if (fetchError) {
-    throw new Error(`Failed to fetch current params: ${fetchError.message}`);
-  }
+  const current = await fetchGenerationRecordById(generationId);
 
   if (!current) {
     // Generation was deleted, skip save
@@ -147,13 +134,10 @@ async function saveGenerationSettings(generationId: string, settings: AutoSaveGe
     }
   };
 
-  const { error: updateError } = await supabase().from('generations')
-    .update({ params: updatedParams })
-    .eq('id', generationId);
-
-  if (updateError) {
-    throw new Error(`Failed to save settings: ${updateError.message}`);
-  }
+  await updateGenerationParams({
+    id: generationId,
+    generationParams: toJson(updatedParams),
+  });
 }
 
 /**
@@ -180,6 +164,9 @@ export function useGenerationEditSettings({
     hasPersistedData: hasPersistedSettings,
     updateField,
     updateFields,
+    updateTextField,
+    updateTextFields,
+    save,
     initializeFrom,
   } = useAutoSaveSettings<AutoSaveGenerationEditSettings>({
     defaults: DEFAULT_EDIT_SETTINGS as AutoSaveGenerationEditSettings,
@@ -216,24 +203,24 @@ export function useGenerationEditSettings({
   }, [updateField]);
 
   const setCustomLoraUrl = useCallback((url: string) => {
-    updateField('customLoraUrl', url);
-  }, [updateField]);
+    updateTextField('customLoraUrl', url);
+  }, [updateTextField]);
 
   const setNumGenerations = useCallback((num: number) => {
     updateField('numGenerations', num);
   }, [updateField]);
 
   const setPrompt = useCallback((prompt: string) => {
-    updateField('prompt', prompt);
-  }, [updateField]);
+    updateTextField('prompt', prompt);
+  }, [updateTextField]);
 
   const setQwenEditModel = useCallback((model: QwenEditModel) => {
     updateField('qwenEditModel', model);
   }, [updateField]);
 
   const setImg2imgPrompt = useCallback((prompt: string) => {
-    updateFields({ img2imgPrompt: prompt, img2imgPromptHasBeenSet: true });
-  }, [updateFields]);
+    updateTextFields({ img2imgPrompt: prompt, img2imgPromptHasBeenSet: true });
+  }, [updateTextFields]);
 
   const setImg2imgStrength = useCallback((strength: number) => {
     updateField('img2imgStrength', strength);
@@ -266,6 +253,10 @@ export function useGenerationEditSettings({
     updateFields(updates);
   }, [updateFields]);
 
+  const flushTextFields = useCallback(async () => {
+    await save();
+  }, [save]);
+
   // Initialize from "last used" - wraps initializeFrom with prompt exclusion
   const initializeFromLastUsed = useCallback((lastUsed: SyncedEditSettings & { editMode: EditMode }) => {
     // Apply last used but never inherit prompts
@@ -292,6 +283,7 @@ export function useGenerationEditSettings({
     setEnhanceSettings,
     setCreateAsGeneration,
     updateSettings,
+    flushTextFields,
     isLoading: status === 'loading' || status === 'idle',
     hasPersistedSettings,
     initializeFromLastUsed,

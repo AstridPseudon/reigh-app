@@ -49,6 +49,7 @@ import type { LightboxLayoutProps } from './components/layouts/types';
 
 import { handleLightboxDownload } from './utils/lightboxDownload';
 import { invokeLightboxDelete } from './utils/lightboxDelete';
+import { useAddToVideoEditor } from './hooks/useAddToVideoEditor';
 
 // Re-export grouped sub-interfaces for consumers that import from ImageLightbox
 export type {
@@ -113,6 +114,8 @@ function useImageLightboxRenderModel(
     showTickForImageId,
     showTickForSecondaryImageId,
   } = props;
+  const actionHandlers = props.actions;
+  const addToVideoEditor = useAddToVideoEditor(props.media);
 
   const navigation = props.navigation;
   const shotWorkflow = props.shotWorkflow;
@@ -156,13 +159,13 @@ function useImageLightboxRenderModel(
   }, [sharedState.intendedActiveVariantIdRef, sharedState.variants.list, sharedState.effectiveMedia.mediaUrl, media, env.setIsDownloading]);
 
   const handleDelete = useCallback(async (): Promise<void> => {
-    if (!props.actions?.onDelete) return;
-    await invokeLightboxDelete(props.actions.onDelete, media.id, 'ImageLightbox.delete');
-  }, [props.actions?.onDelete, media.id]);
+    if (!actionHandlers?.onDelete) return;
+    await invokeLightboxDelete(actionHandlers.onDelete, media.id, 'ImageLightbox.delete');
+  }, [actionHandlers, media.id]);
 
   const handleApplySettings = useCallback(() => {
-    props.actions?.onApplySettings?.(media.metadata);
-  }, [props.actions?.onApplySettings, media.metadata]);
+    actionHandlers?.onApplySettings?.(media.metadata);
+  }, [actionHandlers, media.metadata]);
 
   // --- Workflow bar ---
   const handleNavigateToShotFromSelector = useCallback((shot: { id: string; name: string }) => {
@@ -176,8 +179,10 @@ function useImageLightboxRenderModel(
 
   const workflowBar = useMemo(() => ({
     core: {
-      onDelete: props.actions?.onDelete,
-      onApplySettings: props.actions?.onApplySettings,
+      onDelete: actionHandlers?.onDelete,
+      onApplySettings: actionHandlers?.onApplySettings,
+      onAddToVideoEditor: actionHandlers?.onAddToVideoEditor ?? addToVideoEditor.onClick,
+      addToVideoEditorPhase: actionHandlers?.onAddToVideoEditor ? 'idle' : addToVideoEditor.phase,
       isSpecialEditMode: editOrchestrator.isSpecialEditMode,
       isVideo: false,
       handleApplySettings,
@@ -209,7 +214,8 @@ function useImageLightboxRenderModel(
         }
       : undefined,
   } satisfies WorkflowControlsBarProps), [
-    props.actions?.onDelete, props.actions?.onApplySettings,
+    actionHandlers,
+    addToVideoEditor,
     editOrchestrator.isSpecialEditMode, handleApplySettings,
     shotWorkflow, env.actualGenerationId, env.contentRef,
     media.id, media.thumbUrl, media.timeline_frame,
@@ -313,10 +319,19 @@ function useImageLightboxRenderModel(
 }
 
 export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
+  const { onClose: onRequestClose } = props;
   const env = useImageLightboxEnvironment(props);
-  const sharedModel = useImageLightboxSharedState(props, env);
-  const editModel = useImageLightboxEditing(props, env, sharedModel);
-  const renderModel = useImageLightboxRenderModel(props, env, sharedModel, editModel);
+  const handleClose = useCallback(() => {
+    void env.editSettingsPersistence.flushTextFields();
+    onRequestClose();
+  }, [env.editSettingsPersistence, onRequestClose]);
+  const propsWithFlushOnClose = {
+    ...props,
+    onClose: handleClose,
+  };
+  const sharedModel = useImageLightboxSharedState(propsWithFlushOnClose, env);
+  const editModel = useImageLightboxEditing(propsWithFlushOnClose, env, sharedModel);
+  const renderModel = useImageLightboxRenderModel(propsWithFlushOnClose, env, sharedModel, editModel);
   const overlayViewport: OverlayViewportConstraints = {
     tasksPaneOpen: env.effectiveTasksPaneOpen,
     tasksPaneWidth: env.effectiveTasksPaneWidth,
@@ -330,7 +345,7 @@ export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
     <LightboxProviders stateValue={renderModel.lightboxStateValue}>
       <ImageEditProvider value={editModel.editOrchestrator.imageEditValue}>
         <LightboxShell
-          onClose={props.onClose}
+          onClose={handleClose}
           hasCanvasOverlay={editModel.editOrchestrator.isInpaintMode}
           isRepositionMode={editModel.editOrchestrator.isInpaintMode && editModel.editOrchestrator.editMode === 'reposition'}
           isMobile={env.isMobile}

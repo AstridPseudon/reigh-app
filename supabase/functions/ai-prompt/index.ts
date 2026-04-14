@@ -120,15 +120,33 @@ serve(async (req) => {
         const numberToGenerate = Number(body.numberToGenerate ?? 3);
         const existingPrompts = Array.isArray(body.existingPrompts) ? body.existingPrompts as unknown[] : [];
         const temperature = Number(body.temperature ?? 0.8);
+        const variationIntent = typeof body.variationIntent === "string" ? body.variationIntent : undefined;
 
         const { systemMsg, userMsg } = buildGeneratePromptsMessages({
           overallPromptText,
           rulesToRememberText,
           numberToGenerate,
           existingPrompts,
+          variationIntent,
         });
 
-        logger.info(`[AI-PROMPT] generate_prompts: starting Groq call, model=${GROQ_MODEL}, numberToGenerate=${numberToGenerate}`);
+        const normalizeKey = (s: string) => s.replace(/\s+/g, " ").trim().toLowerCase();
+        const dedupe = (lines: string[]): string[] => {
+          const seen = new Set<string>();
+          const out: string[] = [];
+          for (const line of lines) {
+            const trimmed = line.trim();
+            if (!trimmed) continue;
+            const key = normalizeKey(trimmed);
+            if (seen.has(key)) continue;
+            seen.add(key);
+            out.push(trimmed);
+            if (out.length >= numberToGenerate) break;
+          }
+          return out;
+        };
+
+        logger.info(`[AI-PROMPT] generate_prompts: starting Groq call, model=${GROQ_MODEL}, numberToGenerate=${numberToGenerate}, hasVariationIntent=${Boolean(variationIntent && variationIntent.trim())}`);
         const groqStart = Date.now();
         const resp = await groqWithFallback(groq, {
           model: GROQ_MODEL,
@@ -142,18 +160,41 @@ serve(async (req) => {
         }, logger);
         logger.info(`[AI-PROMPT] generate_prompts: Groq call completed in ${Date.now() - groqStart}ms, model=${resp.model}`);
         const outputText = resp.choices[0]?.message?.content?.trim() || "";
-        const prompts = outputText.split("\n").map((s) => s.trim()).filter(Boolean);
-        
-        // Validate we got the expected number of prompts
-        if (prompts.length !== numberToGenerate) {
-          // If we got too many, take the first N
-          if (prompts.length > numberToGenerate) {
-            prompts.splice(numberToGenerate);
+        const rawLines = outputText.split("\n").map((s) => s.trim()).filter(Boolean);
+        let prompts = dedupe(rawLines);
+        let usage = resp.usage;
+
+        logger.info(`[AI-PROMPT] generate_prompts: primary attempt, rawCount=${rawLines.length}, uniqueCount=${prompts.length}, requested=${numberToGenerate}`);
+
+        if (prompts.length < numberToGenerate) {
+          logger.info(`[AI-PROMPT] generate_prompts: unique count below target, retrying with same model at temperature 1.0`);
+          const retryStart = Date.now();
+          try {
+            const retryResp = await groq.chat.completions.create({
+              model: GROQ_MODEL,
+              messages: [
+                { role: "system", content: systemMsg },
+                { role: "user", content: userMsg },
+              ],
+              temperature: 1.0,
+              max_tokens: 4096,
+              top_p: 1,
+            } as Parameters<typeof groq.chat.completions.create>[0]);
+            const retryText = retryResp.choices[0]?.message?.content?.trim() || "";
+            const retryLines = retryText.split("\n").map((s) => s.trim()).filter(Boolean);
+            const retryPrompts = dedupe(retryLines);
+            logger.info(`[AI-PROMPT] generate_prompts: retry attempt completed in ${Date.now() - retryStart}ms, rawCount=${retryLines.length}, uniqueCount=${retryPrompts.length}`);
+            if (retryPrompts.length > prompts.length) {
+              prompts = retryPrompts;
+              usage = retryResp.usage;
+            }
+          } catch (retryErr) {
+            const msg = retryErr instanceof Error ? retryErr.message : String(retryErr);
+            logger.info(`[AI-PROMPT] generate_prompts: retry failed (${msg}), returning primary result`);
           }
-          // If we got too few, we'll just return what we have rather than failing
         }
-        
-        return jsonResponse({ prompts, usage: resp.usage });
+
+        return jsonResponse({ prompts, usage });
       }
       case "edit_prompt": {
         const groq = getGroqClient();

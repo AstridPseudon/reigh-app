@@ -214,7 +214,11 @@ export default function VideoEditorPage() {
     }
 
     void update('project', { lastTimelineId: undefined });
-    setSearchParams({}, { replace: true });
+    setSearchParams((current) => {
+      const next = new URLSearchParams(current);
+      next.delete('timeline');
+      return next;
+    }, { replace: true });
   }, [selectedProjectId, setSearchParams, timelineId, timelines.data, update]);
 
   useEffect(() => {
@@ -223,7 +227,11 @@ export default function VideoEditorPage() {
     }
 
     if (settings?.lastTimelineId) {
-      setSearchParams({ timeline: settings.lastTimelineId }, { replace: true });
+      setSearchParams((current) => {
+        const next = new URLSearchParams(current);
+        next.set('timeline', settings.lastTimelineId!);
+        return next;
+      }, { replace: true });
       return;
     }
 
@@ -237,7 +245,11 @@ export default function VideoEditorPage() {
     const nextTimelineId = timelines.data[0]?.id;
     if (nextTimelineId) {
       void update('project', { lastTimelineId: nextTimelineId });
-      setSearchParams({ timeline: nextTimelineId }, { replace: true });
+      setSearchParams((current) => {
+        const next = new URLSearchParams(current);
+        next.set('timeline', nextTimelineId);
+        return next;
+      }, { replace: true });
       return;
     }
 
@@ -250,7 +262,11 @@ export default function VideoEditorPage() {
       .mutateAsync('Main timeline')
       .then(async (created) => {
         await update('project', { lastTimelineId: created.id });
-        setSearchParams({ timeline: created.id }, { replace: true });
+        setSearchParams((current) => {
+          const next = new URLSearchParams(current);
+          next.set('timeline', created.id);
+          return next;
+        }, { replace: true });
       })
       .catch((error) => {
         creatingRef.current = false;

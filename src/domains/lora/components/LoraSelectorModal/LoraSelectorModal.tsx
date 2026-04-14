@@ -64,96 +64,94 @@ export const LoraSelectorModal: React.FC<LoraSelectorModalProps> = ({
   const modalHeaderPaddingClass = modal.isMobile ? 'px-2 pt-1 pb-2' : 'px-6 pt-2 pb-2';
   const modalTabRowPaddingClass = `${modal.isMobile ? 'px-2' : 'px-6'} py-2 flex-shrink-0`;
 
-  if (!isOpen) {
-    return null;
-  }
-
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent
-        className={modal.className}
-        style={modal.style}
-      >
-        <div className={modal.headerClass}>
-          <DialogHeader className={`${modalHeaderPaddingClass} flex-shrink-0`}>
-            <DialogTitle>LoRA Library</DialogTitle>
-          </DialogHeader>
-        </div>
-        <div
-          ref={scrollRef}
-          className={modal.scrollClass}
+      {isOpen && (
+        <DialogContent
+          className={modal.className}
+          style={modal.style}
         >
-          <div className={modalTabRowPaddingClass}>
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col flex-1 overflow-hidden">
-              <TabsList className="grid w-full grid-cols-2 mb-2">
-                <TabsTrigger value="browse" className="w-full">Browse LoRAs</TabsTrigger>
-                <TabsTrigger value="add-new" className="w-full">Add LoRA</TabsTrigger>
-              </TabsList>
-            </Tabs>
+          <div className={modal.headerClass}>
+            <DialogHeader className={`${modalHeaderPaddingClass} flex-shrink-0`}>
+              <DialogTitle>LoRA Library</DialogTitle>
+            </DialogHeader>
+          </div>
+          <div
+            ref={scrollRef}
+            className={modal.scrollClass}
+          >
+            <div className={modalTabRowPaddingClass}>
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col flex-1 overflow-hidden">
+                <TabsList className="grid w-full grid-cols-2 mb-2">
+                  <TabsTrigger value="browse" className="w-full">Browse LoRAs</TabsTrigger>
+                  <TabsTrigger value="add-new" className="w-full">Add LoRA</TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+
+            {/* Tab Content */}
+            <div className="flex-1 flex flex-col min-h-0">
+              <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col flex-1 overflow-hidden">
+                <TabsContent value="browse" className="flex-1 flex flex-col min-h-0">
+                  <CommunityLorasTab
+                    loras={loras}
+                    onAddLora={onAddLora}
+                    onRemoveLora={onRemoveLora}
+                    onUpdateLoraStrength={onUpdateLoraStrength}
+                    selectedLoras={selectedLoras}
+                    myLorasResource={myLorasResource}
+                    createResource={createResource}
+                    updateResource={updateResource}
+                    deleteResource={deleteResource}
+                    onClose={onClose}
+                    onEdit={handleEdit}
+                    showMyLorasOnly={showMyLorasOnly}
+                    setShowMyLorasOnly={setShowMyLorasOnly}
+                    showAddedLorasOnly={showAddedLorasOnly}
+                    setShowAddedLorasOnly={setShowAddedLorasOnly}
+                    onProcessedLorasLengthChange={setFilteredLoraCount}
+                    onPageChange={handlePageChange}
+                    selectedModelFilter={selectedModelFilter}
+                    setSelectedModelFilter={setSelectedModelFilter}
+                    selectedSubFilter={selectedSubFilter}
+                    setSelectedSubFilter={setSelectedSubFilter}
+                  />
+                </TabsContent>
+                <TabsContent value="add-new" className="flex-1 min-h-0 overflow-auto">
+                  <MyLorasTab
+                    myLorasResource={myLorasResource}
+                    deleteResource={deleteResource}
+                    createResource={createResource}
+                    updateResource={updateResource}
+                    onSwitchToBrowse={switchToBrowse}
+                    editingLora={editingLora}
+                    onClearEdit={clearEdit}
+                    defaultIsPublic={privacyDefaults.resourcesPublic}
+                  />
+                </TabsContent>
+              </Tabs>
+            </div>
           </div>
 
-          {/* Tab Content */}
-          <div className="flex-1 flex flex-col min-h-0">
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full flex flex-col flex-1 overflow-hidden">
-              <TabsContent value="browse" className="flex-1 flex flex-col min-h-0">
-                <CommunityLorasTab
-                  loras={loras}
-                  onAddLora={onAddLora}
-                  onRemoveLora={onRemoveLora}
-                  onUpdateLoraStrength={onUpdateLoraStrength}
-                  selectedLoras={selectedLoras}
-                  myLorasResource={myLorasResource}
-                  createResource={createResource}
-                  updateResource={updateResource}
-                  deleteResource={deleteResource}
-                  onClose={onClose}
-                  onEdit={handleEdit}
-                  showMyLorasOnly={showMyLorasOnly}
-                  setShowMyLorasOnly={setShowMyLorasOnly}
-                  showAddedLorasOnly={showAddedLorasOnly}
-                  setShowAddedLorasOnly={setShowAddedLorasOnly}
-                  onProcessedLorasLengthChange={setFilteredLoraCount}
-                  onPageChange={handlePageChange}
-                  selectedModelFilter={selectedModelFilter}
-                  setSelectedModelFilter={setSelectedModelFilter}
-                  selectedSubFilter={selectedSubFilter}
-                  setSelectedSubFilter={setSelectedSubFilter}
-                />
-              </TabsContent>
-              <TabsContent value="add-new" className="flex-1 min-h-0 overflow-auto">
-                <MyLorasTab
-                  myLorasResource={myLorasResource}
-                  deleteResource={deleteResource}
-                  createResource={createResource}
-                  updateResource={updateResource}
-                  onSwitchToBrowse={switchToBrowse}
-                  editingLora={editingLora}
-                  onClearEdit={clearEdit}
-                  defaultIsPublic={privacyDefaults.resourcesPublic}
-                />
-              </TabsContent>
-            </Tabs>
-          </div>
-        </div>
-
-        {/* Control Panel Footer - Always sticks to bottom like PromptEditorModal */}
-        {activeTab === 'browse' && (
-          <LoraSelectorFooter
-            footerClass={modal.footerClass}
-            isMobile={modal.isMobile}
-            showFade={showFade}
-            showAddedLorasOnly={showAddedLorasOnly}
-            setShowAddedLorasOnly={setShowAddedLorasOnly}
-            showMyLorasOnly={showMyLorasOnly}
-            setShowMyLorasOnly={setShowMyLorasOnly}
-            filteredLoraCount={filteredLoraCount}
-            currentPage={currentPage}
-            totalPages={totalPages}
-            onPageChange={onPageChange}
-            onClose={onClose}
-          />
-        )}
-      </DialogContent>
+          {/* Control Panel Footer - Always sticks to bottom like PromptEditorModal */}
+          {activeTab === 'browse' && (
+            <LoraSelectorFooter
+              footerClass={modal.footerClass}
+              isMobile={modal.isMobile}
+              showFade={showFade}
+              showAddedLorasOnly={showAddedLorasOnly}
+              setShowAddedLorasOnly={setShowAddedLorasOnly}
+              showMyLorasOnly={showMyLorasOnly}
+              setShowMyLorasOnly={setShowMyLorasOnly}
+              filteredLoraCount={filteredLoraCount}
+              currentPage={currentPage}
+              totalPages={totalPages}
+              onPageChange={onPageChange}
+              onClose={onClose}
+            />
+          )}
+        </DialogContent>
+      )}
     </Dialog>
   );
 };

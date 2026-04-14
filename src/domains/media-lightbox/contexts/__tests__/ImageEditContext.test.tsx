@@ -10,6 +10,7 @@ import { render, screen } from '@testing-library/react';
 import {
   ImageEditProvider,
   useImageEditCanvasSafe,
+  useImageEditForm,
   useImageEditFormSafe,
   useImageEditStatusSafe,
 } from '../ImageEditContext';
@@ -38,6 +39,7 @@ describe('ImageEditContext', () => {
 
     it('useImageEditFormSafe returns defaults', () => {
       function Consumer() {
+        // This test intentionally omits the provider to verify the explicit Safe fallback.
         const form = useImageEditFormSafe();
         return (
           <div>
@@ -51,6 +53,19 @@ describe('ImageEditContext', () => {
       render(<Consumer />);
 
       expect(screen.getByTestId('inpaintPrompt')).toHaveTextContent('empty');
+    });
+
+    it('useImageEditForm throws outside provider', () => {
+      function Consumer() {
+        useImageEditForm();
+        return null;
+      }
+
+      const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+      expect(() => render(<Consumer />)).toThrow(
+        'useImageEditForm must be used within an ImageEditFormProvider'
+      );
+      consoleError.mockRestore();
     });
 
     it('useImageEditStatusSafe returns defaults', () => {
@@ -128,6 +143,7 @@ describe('ImageEditContext', () => {
       setInpaintPrompt: vi.fn(),
       inpaintNumGenerations: 2,
       setInpaintNumGenerations: vi.fn(),
+      flushTextFields: vi.fn(),
       img2imgPrompt: '',
       setImg2imgPrompt: vi.fn(),
       img2imgStrength: 0.7,
@@ -192,7 +208,7 @@ describe('ImageEditContext', () => {
 
     it('provides form state via sub-context', () => {
       function Consumer() {
-        const form = useImageEditFormSafe();
+        const form = useImageEditForm();
         return (
           <div>
             <span data-testid="prompt">{form.inpaintPrompt}</span>

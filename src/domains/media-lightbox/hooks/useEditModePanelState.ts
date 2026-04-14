@@ -3,12 +3,11 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Paintbrush, Pencil, Type, Move, Wand2, ArrowUp } from 'lucide-react';
 import React from 'react';
-import type { ImageEditState } from '../contexts/ImageEditContext';
-import type { LightboxCoreState, LightboxVariantState } from '../contexts/LightboxStateContext';
-import { useLightboxCoreSafe, useLightboxVariantsSafe } from '../contexts/LightboxStateContext';
-import { useImageEditCanvasSafe } from '../contexts/ImageEditCanvasContext';
-import { useImageEditFormSafe } from '../contexts/ImageEditFormContext';
-import { useImageEditStatusSafe } from '../contexts/ImageEditStatusContext';
+import type {
+  EditModePanelCoreState,
+  EditModePanelImageEditState,
+  EditModePanelVariantsState,
+} from '../components/types';
 
 interface UseEditModePanelStateParams {
   variant: 'desktop' | 'mobile';
@@ -17,19 +16,9 @@ interface UseEditModePanelStateParams {
   isCloudMode?: boolean;
   handleUpscale?: () => Promise<void>;
 
-  coreState?: Pick<LightboxCoreState, 'onClose'>;
-  imageEditState?: ImageEditState;
-  variantsState?: Pick<LightboxVariantState,
-    | 'variants'
-    | 'activeVariant'
-    | 'handleVariantSelect'
-    | 'handleMakePrimary'
-    | 'isLoadingVariants'
-    | 'handlePromoteToGeneration'
-    | 'isPromoting'
-    | 'handleDeleteVariant'
-    | 'onLoadVariantSettings'
-  >;
+  coreState: EditModePanelCoreState;
+  imageEditState: EditModePanelImageEditState;
+  variantsState: EditModePanelVariantsState;
 }
 
 export interface ModeSelectorItem {
@@ -49,13 +38,7 @@ export function useEditModePanelState({
   variantsState,
 }: UseEditModePanelStateParams) {
   const isMobile = variant === 'mobile';
-  const contextCore = useLightboxCoreSafe();
-  const contextCanvas = useImageEditCanvasSafe();
-  const contextForm = useImageEditFormSafe();
-  const contextStatus = useImageEditStatusSafe();
-  const contextVariants = useLightboxVariantsSafe();
-
-  const { onClose } = coreState ?? contextCore;
+  const { onClose } = coreState;
 
   const {
     editMode,
@@ -64,13 +47,14 @@ export function useEditModePanelState({
     brushStrokes,
     handleExitMagicEditMode,
     hasTransformChanges,
-  } = imageEditState ?? contextCanvas;
+  } = imageEditState;
 
   const {
     inpaintPrompt,
     setInpaintPrompt,
     inpaintNumGenerations,
     setInpaintNumGenerations,
+    flushTextFields,
     loraMode,
     setLoraMode,
     customLoraUrl,
@@ -84,7 +68,7 @@ export function useEditModePanelState({
     setEnablePromptExpansion,
     qwenEditModel,
     setQwenEditModel,
-  } = imageEditState ?? contextForm;
+  } = imageEditState;
 
   const {
     isGeneratingReposition,
@@ -97,19 +81,24 @@ export function useEditModePanelState({
     magicEditTasksCreated,
     isGeneratingImg2Img,
     img2imgGenerateSuccess,
-  } = imageEditState ?? contextStatus;
+  } = imageEditState;
 
   const {
     variants,
     activeVariant,
     handleVariantSelect: onVariantSelect,
     handleMakePrimary: onMakePrimary,
-    isLoadingVariants,
+    isLoadingVariants = false,
     handlePromoteToGeneration: onPromoteToGeneration,
-    isPromoting,
+    isPromoting = false,
     handleDeleteVariant: onDeleteVariant,
     onLoadVariantSettings,
-  } = variantsState ?? contextVariants;
+    pendingTaskCount = 0,
+    unviewedVariantCount = 0,
+    onMarkAllViewed,
+    onLoadVariantImages,
+    currentSegmentImages,
+  } = variantsState;
 
   const activeVariantId = activeVariant?.id || null;
   const prevEditModeRef = useRef(editMode);
@@ -200,6 +189,7 @@ export function useEditModePanelState({
     setInpaintPrompt,
     inpaintNumGenerations,
     setInpaintNumGenerations,
+    flushTextFields,
     loraMode,
     setLoraMode,
     customLoraUrl,
@@ -232,6 +222,11 @@ export function useEditModePanelState({
     isPromoting,
     onDeleteVariant,
     onLoadVariantSettings,
+    pendingTaskCount,
+    unviewedVariantCount,
+    onMarkAllViewed,
+    onLoadVariantImages,
+    currentSegmentImages,
     hasUserEditedPrompt,
     setHasUserEditedPrompt,
     handleClearLora,
@@ -244,3 +239,5 @@ export function useEditModePanelState({
     generationsSpacing,
   };
 }
+
+export type EditModePanelState = ReturnType<typeof useEditModePanelState>;

@@ -61,7 +61,7 @@ describe("executeCreateTask", () => {
     }
   });
 
-  it("creates all requested variants up to 16 even when prompt generation returns duplicates", async () => {
+  it("queues only the unique prompts when ai-prompt returns duplicates, reporting the shortfall", async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({
       ok: true,
       json: async () => ({
@@ -83,11 +83,64 @@ describe("executeCreateTask", () => {
       "timeline-1",
     );
 
-    expect(result.result).toContain("Queued 16 tasks with varied prompts.");
-    expect(mocks.createGenerationTask).toHaveBeenCalledTimes(16);
+    expect(result.result).toContain("Queued 1 task with varied prompts.");
+    expect(result.result).toContain("Only 1 of 16 distinct prompt variations were available");
+    expect(mocks.createGenerationTask).toHaveBeenCalledTimes(1);
+  });
 
+  it("queues all unique prompts when ai-prompt returns a varied set", async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        prompts: ["alpha", "beta", "gamma", "delta"],
+      }),
+    }) as typeof fetch;
+
+    const result = await executeCreateTask(
+      {
+        task_type: "text-to-image",
+        prompt: "base",
+        count: 4,
+        model: "qwen-image",
+      },
+      timelineState,
+      undefined,
+      {} as never,
+      generationContext,
+      "timeline-1",
+    );
+
+    expect(result.result).toContain("Queued 4 tasks with varied prompts.");
+    expect(mocks.createGenerationTask).toHaveBeenCalledTimes(4);
     const idempotencyKeys = mocks.createGenerationTask.mock.calls.map(([args]) => (args as { idempotency_key?: string }).idempotency_key);
-    expect(new Set(idempotencyKeys).size).toBe(16);
+    expect(new Set(idempotencyKeys).size).toBe(4);
+  });
+
+  it("forwards variation_intent to the ai-prompt request body", async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({ prompts: ["one", "two"] }),
+    }) as unknown as typeof fetch;
+    globalThis.fetch = fetchMock;
+
+    await executeCreateTask(
+      {
+        task_type: "text-to-image",
+        prompt: "a fox in a forest",
+        count: 2,
+        variation_intent: "different lighting conditions",
+        model: "qwen-image",
+      },
+      timelineState,
+      undefined,
+      {} as never,
+      generationContext,
+      "timeline-1",
+    );
+
+    const [, init] = (fetchMock as unknown as { mock: { calls: Array<[string, { body: string }]> } }).mock.calls[0];
+    const parsed = JSON.parse(init.body);
+    expect(parsed.variationIntent).toBe("different lighting conditions");
   });
 
   it("reports the real queued count instead of the requested count when some creates fail", async () => {

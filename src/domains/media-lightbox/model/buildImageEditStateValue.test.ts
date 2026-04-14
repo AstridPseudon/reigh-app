@@ -11,6 +11,7 @@ function buildParams() {
   const setCreateAsGeneration = vi.fn();
   const setQwenEditModel = vi.fn();
   const setAdvancedSettings = vi.fn();
+  const flushTextFields = vi.fn();
 
   return {
     params: {
@@ -97,6 +98,7 @@ function buildParams() {
       setQwenEditModel,
       advancedSettings: { cfgScale: 7 },
       setAdvancedSettings,
+      flushTextFields,
     },
     handlers: {
       setEditMode,
@@ -106,6 +108,7 @@ function buildParams() {
       setCreateAsGeneration,
       setQwenEditModel,
       setAdvancedSettings,
+      flushTextFields,
     },
   };
 }
@@ -133,6 +136,7 @@ describe('buildImageEditStateValue', () => {
     expect(state.createAsGeneration).toBe(true);
     expect(state.qwenEditModel).toBe('qwen-image-edit');
     expect(state.advancedSettings).toEqual({ cfgScale: 7 });
+    expect(state.flushTextFields).toBe(handlers.flushTextFields);
     expect(state.isGeneratingImg2Img).toBe(true);
     expect(state.magicEditTasksCreated).toBe(true);
   });
