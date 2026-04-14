@@ -26,6 +26,7 @@ import { useTimelinePlaybackContext } from '@/tools/video-editor/contexts/Timeli
 import { useKeyboardShortcuts } from '@/tools/video-editor/hooks/useKeyboardShortcuts';
 import { useTimelineRealtime } from '@/tools/video-editor/hooks/useTimelineRealtime';
 import { getTimelineDurationInFrames, parseResolution } from '@/tools/video-editor/lib/config-utils';
+import { buildKeyboardDeleteMutation } from '@/tools/video-editor/lib/keyboard-delete';
 import {
   areTimelineInteractionTargetsEqual,
   type TimelineInteractionMode,
@@ -122,6 +123,16 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
     return MemoryPressureDetector.stop;
   }, []);
 
+  const handleKeyboardDelete = useCallback(() => {
+    const mutation = buildKeyboardDeleteMutation(editorData.dataRef.current, editorData.selectedClipIds);
+    if (mutation) {
+      editorOps.applyEdit(mutation, { semantic: true });
+      return;
+    }
+
+    editorOps.handleDeleteClips([...editorData.selectedClipIds]);
+  }, [editorData.dataRef, editorData.selectedClipIds, editorOps]);
+
   useKeyboardShortcuts({
     hasSelectedClip: editorData.selectedClipIds.size > 0,
     canMoveSelectedClipToTrack: editorData.selectedClipIds.size >= 1,
@@ -136,7 +147,7 @@ function FullEditorLayout({ timelineId, forceCondensed = false }: { timelineId: 
     seekRelative: (deltaSeconds) => playback.previewRef.current?.seek(Math.max(0, playback.currentTime + deltaSeconds)),
     toggleMute: () => editorOps.handleToggleMuteClips([...editorData.selectedClipIds]),
     splitSelectedClip: editorOps.handleSplitSelectedClip,
-    deleteSelectedClip: () => editorOps.handleDeleteClips([...editorData.selectedClipIds]),
+    deleteSelectedClip: handleKeyboardDelete,
     clearSelection: editorOps.clearSelection,
   });
 
