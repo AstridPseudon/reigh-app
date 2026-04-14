@@ -24,6 +24,14 @@ function readPositiveNumber(value: unknown): number | null {
   return null;
 }
 
+function readPositiveNumberFromFirstArrayItem(value: unknown): number | null {
+  if (!Array.isArray(value) || value.length === 0) {
+    return null;
+  }
+
+  return readPositiveNumber(value[0]);
+}
+
 function readDurationFromRecord(record: Record<string, unknown> | null | undefined): number | null {
   if (!record) {
     return null;
@@ -38,8 +46,13 @@ function readDurationFromRecord(record: Record<string, unknown> | null | undefin
     return directDuration;
   }
 
-  const totalFrames = readPositiveNumber(record.total_frames);
-  const frameRate = readPositiveNumber(record.frame_rate) ?? readPositiveNumber(record.fps);
+  const totalFrames = readPositiveNumber(record.total_frames)
+    ?? readPositiveNumber(record.num_frames)
+    ?? readPositiveNumber(record.segment_frames_target)
+    ?? readPositiveNumberFromFirstArrayItem(record.segment_frames_expanded);
+  const frameRate = readPositiveNumber(record.frame_rate)
+    ?? readPositiveNumber(record.fps)
+    ?? readPositiveNumber(record.fps_helpers);
   if (totalFrames !== null && frameRate !== null) {
     return totalFrames / frameRate;
   }

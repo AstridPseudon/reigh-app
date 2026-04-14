@@ -34,6 +34,20 @@ describe('getDurationSecondsFromFinalVideoParams', () => {
     })).toBe(4);
   });
 
+  it('derives seconds from num_frames and fps_helpers for single-segment travel videos', () => {
+    expect(getDurationSecondsFromFinalVideoParams({
+      num_frames: 49,
+      fps_helpers: 16,
+    })).toBe(49 / 16);
+  });
+
+  it('derives seconds from segment_frames_expanded and fps_helpers when frame count is stored in arrays', () => {
+    expect(getDurationSecondsFromFinalVideoParams({
+      segment_frames_expanded: [50],
+      fps_helpers: 20,
+    })).toBe(2.5);
+  });
+
   it('supports numeric strings from persisted JSON', () => {
     expect(getDurationSecondsFromFinalVideoParams({
       metadata: {
