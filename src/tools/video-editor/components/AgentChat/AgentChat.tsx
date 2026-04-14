@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from 'react';
-import { Loader2, MessageSquareText, Mic, Send, Square, X } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2, MessageSquareText, Mic, Send, Square, X } from 'lucide-react';
 import { createPortal } from 'react-dom';
 import { useLocation } from 'react-router-dom';
 import type { GenerationRow } from '@/domains/generation/types';
@@ -17,7 +17,7 @@ import {
 import { useAgentVoice } from '@/tools/video-editor/hooks/useAgentVoice';
 import { useRenderDiagnostic } from '@/tools/video-editor/hooks/usePerfDiagnostics';
 import { loadGenerationForLightbox } from '@/tools/video-editor/lib/generation-utils';
-import type { AgentTurn } from '@/tools/video-editor/types/agent-session';
+import type { AgentTurn, AgentTurnAttachment } from '@/tools/video-editor/types/agent-session';
 import { AgentChatAttachmentStrip, AgentChatMessage, AgentChatToolGroup, type AgentChatAttachmentPreviewItem } from './AgentChatMessage';
 
 export type ToolCallPair = {
@@ -28,6 +28,17 @@ export type ToolCallPair = {
 export type RenderedTurn =
   | { kind: 'message'; key: string; turn: AgentTurn }
   | { kind: 'tool_group'; key: string; pairs: ToolCallPair[] };
+
+type QueuedMessage = {
+  id: string;
+  text: string;
+  attachments: AgentTurnAttachment[];
+};
+
+type OptimisticMessage = QueuedMessage & {
+  sentAtMs: number;
+  priorTurnCount: number;
+};
 
 function mergeSelectedClips(
   timelineClips: SelectedMediaClip[],
@@ -121,6 +132,15 @@ function buildRenderedTurns(turns: AgentTurn[]): RenderedTurn[] {
   return items;
 }
 
+function createMessageId() {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+}
+
+function getTurnTimestampMs(turn: AgentTurn) {
+  const timestampMs = Date.parse(turn.timestamp);
+  return Number.isNaN(timestampMs) ? 0 : timestampMs;
+}
+
 export function AgentChat() {
   useRenderDiagnostic('AgentChat');
   const location = useLocation();
@@ -137,8 +157,11 @@ export function AgentChat() {
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [draft, setDraft] = useState('');
-  const [optimisticMessage, setOptimisticMessage] = useState<string | null>(null);
+  const [queue, setQueue] = useState<QueuedMessage[]>([]);
+  const [pausedQueueHeadId, setPausedQueueHeadId] = useState<string | null>(null);
+  const [optimisticMessage, setOptimisticMessage] = useState<OptimisticMessage | null>(null);
   const [attachmentLightboxMedia, setAttachmentLightboxMedia] = useState<GenerationRow | null>(null);
+  const [lastSeenAssistantTurnCount, setLastSeenAssistantTurnCount] = useState(0);
   const hasAutoCreatedSessionRef = useRef(false);
   const lightboxRequestIdRef = useRef(0);
   const bottomAnchorRef = useRef<HTMLDivElement | null>(null);
@@ -184,6 +207,14 @@ export function AgentChat() {
   const isProcessing = activeStatus === 'processing' || activeStatus === 'continue';
   const showKillSwitch = activeStatus === 'processing' || activeStatus === 'continue';
   const showNoTimelineState = !hasTimeline && sessionOptions.length === 0;
+  const hasQueuedMessages = queue.length > 0;
+  const inputPlaceholder = showNoTimelineState
+    ? 'Create a timeline to start chatting...'
+    : voice.isRecording
+      ? 'Recording...'
+      : (isProcessing || sendMessage.isPending || hasQueuedMessages)
+        ? 'Type to queue next message...'
+        : 'Type or press Cmd+Shift+R to talk...';
 
   const handleAttachmentPreviewClick = useCallback(async (attachment: AgentChatAttachmentPreviewItem) => {
     if (!attachment.generationId) {
@@ -270,6 +301,41 @@ export function AgentChat() {
       || (clip.generationId ? removedGenerationIds.has(clip.generationId) : false)
     ));
   }, [deselectGalleryMatches, replaceSelectedTimelineClips, timelineClips]);
+
+  const moveQueuedMessageUp = useCallback((index: number) => {
+    if (index <= 0) {
+      return;
+    }
+
+    setQueue((prev) => {
+      if (index >= prev.length) {
+        return prev;
+      }
+
+      const next = [...prev];
+      [next[index - 1], next[index]] = [next[index], next[index - 1]];
+      return next;
+    });
+  }, []);
+
+  const moveQueuedMessageDown = useCallback((index: number) => {
+    setQueue((prev) => {
+      if (index < 0 || index >= prev.length - 1) {
+        return prev;
+      }
+
+      const next = [...prev];
+      [next[index], next[index + 1]] = [next[index + 1], next[index]];
+      return next;
+    });
+  }, []);
+
+  const removeQueuedMessage = useCallback((id: string) => {
+    if (pausedQueueHeadId === id) {
+      setPausedQueueHeadId(null);
+    }
+    setQueue((prev) => prev.filter((item) => item.id !== id));
+  }, [pausedQueueHeadId]);
 
   // Auto-select or create session
   useEffect(() => {
@@ -372,23 +438,73 @@ export function AgentChat() {
     }
   }, [isOpen]);
 
+  useEffect(() => {
+    setQueue([]);
+    setPausedQueueHeadId(null);
+    setOptimisticMessage(null);
+  }, [activeSessionId]);
+
+  useEffect(() => {
+    if (pausedQueueHeadId && !queue.some((item) => item.id === pausedQueueHeadId)) {
+      setPausedQueueHeadId(null);
+    }
+  }, [pausedQueueHeadId, queue]);
+
   // Clear optimistic message only when the matching turn appears in real data
   useEffect(() => {
     if (!optimisticMessage || !activeSession.data?.turns) return;
-    const hasRealTurn = activeSession.data.turns.some(
-      (t) => t.role === 'user' && t.content === optimisticMessage,
-    );
+    if (activeSession.data.turns.length <= optimisticMessage.priorTurnCount) return;
+
+    const hasRealTurn = activeSession.data.turns.some((turn, index) => (
+      index >= optimisticMessage.priorTurnCount
+      && turn.role === 'user'
+      && turn.content === optimisticMessage.text
+      && getTurnTimestampMs(turn) >= optimisticMessage.sentAtMs - 1000
+    ));
+
     if (hasRealTurn) {
       setOptimisticMessage(null);
     }
   }, [activeSession.data?.turns, optimisticMessage]);
 
   const sendingRef = useRef(false);
+  const sendNow = useCallback(async (item: QueuedMessage) => {
+    if (!activeSessionId || !timelineId) {
+      return;
+    }
+
+    const priorTurnCount = activeSession.data?.turns.length ?? 0;
+    const sentAtMs = Date.now();
+
+    sendingRef.current = true;
+    setOptimisticMessage({
+      id: item.id,
+      text: item.text,
+      attachments: item.attachments,
+      sentAtMs,
+      priorTurnCount,
+    });
+
+    try {
+      await sendMessage.mutateAsync({
+        message: item.text,
+        attachments: item.attachments,
+      });
+      clearGallerySelection();
+    } catch (error) {
+      setPausedQueueHeadId(item.id);
+      setOptimisticMessage((prev) => (prev && prev.id === item.id ? null : prev));
+      throw error;
+    } finally {
+      sendingRef.current = false;
+    }
+  }, [activeSession.data?.turns.length, activeSessionId, clearGallerySelection, sendMessage, timelineId]);
+
   const handleSend = useCallback(async (rawText?: string) => {
     const text = (rawText ?? draft).trim();
-    if (!text || !activeSessionId || !timelineId || sendingRef.current) return;
+    if (!text || !activeSessionId || !timelineId) return;
 
-    const attachments = clips.map((clip) => ({
+    const attachments: AgentTurnAttachment[] = clips.map((clip) => ({
       clipId: clip.clipId,
       url: clip.url,
       mediaType: clip.mediaType,
@@ -404,28 +520,81 @@ export function AgentChat() {
     }));
 
     if (rawText === undefined) setDraft('');
-    setOptimisticMessage(text);
-    sendingRef.current = true;
-    try {
-      await sendMessage.mutateAsync({ message: text, attachments });
-      clearGallerySelection();
-    } finally {
-      sendingRef.current = false;
-      // Don't clear optimisticMessage here — let the effect clear it
-      // when the real turn arrives, avoiding a flash.
+    const item: QueuedMessage = {
+      id: createMessageId(),
+      text,
+      attachments,
+    };
+
+    if (
+      sendingRef.current
+      || isProcessing
+      || sendMessage.isPending
+      || optimisticMessage
+      || queue.length > 0
+    ) {
+      setQueue((prev) => [...prev, item]);
+      return;
     }
-  }, [activeSessionId, clearGallerySelection, clips, draft, sendMessage, timelineId]);
+
+    await sendNow(item);
+  }, [activeSessionId, clips, draft, isProcessing, optimisticMessage, queue.length, sendMessage.isPending, sendNow, timelineId]);
+
+  useEffect(() => {
+    if (
+      sendingRef.current
+      || isProcessing
+      || sendMessage.isPending
+      || optimisticMessage
+      || queue.length === 0
+      || !activeSessionId
+      || !timelineId
+    ) {
+      return;
+    }
+
+    const next = queue[0];
+    if (!next || next.id === pausedQueueHeadId) {
+      return;
+    }
+
+    void (async () => {
+      setQueue((prev) => (prev[0]?.id === next.id ? prev.slice(1) : prev));
+      try {
+        await sendNow(next);
+      } catch {
+        setQueue((prev) => (prev[0]?.id === next.id ? prev : [next, ...prev]));
+      }
+    })();
+  }, [queue, pausedQueueHeadId, isProcessing, sendMessage.isPending, optimisticMessage, activeSessionId, timelineId, sendNow]);
 
   const handleNewSession = useCallback(async () => {
     if (!hasTimeline) {
       return;
     }
+    setQueue([]);
+    setPausedQueueHeadId(null);
+    setOptimisticMessage(null);
     const session = await createSession.mutateAsync();
     setActiveSessionId(session.id);
     setDraft('');
   }, [createSession, hasTimeline]);
 
-  const hasUnseenActivity = isProcessing && !isOpen;
+  const assistantTurnCount = useMemo(
+    () => (activeSession.data?.turns ?? []).filter((t) => t.role === 'assistant' && t.content.trim().length > 0).length,
+    [activeSession.data?.turns],
+  );
+  useEffect(() => {
+    if (isOpen) setLastSeenAssistantTurnCount(assistantTurnCount);
+  }, [isOpen, assistantTurnCount]);
+  useEffect(() => {
+    setLastSeenAssistantTurnCount(0);
+  }, [activeSessionId]);
+
+  const isPending = isProcessing || sendMessage.isPending || optimisticMessage !== null || queue.length > 0;
+  const hasUnseenMessages = !isOpen && assistantTurnCount > lastSeenAssistantTurnCount;
+  const showPendingIndicator = !isOpen && isPending;
+  const showUnseenIndicator = hasUnseenMessages && !showPendingIndicator;
   if (!isToolPage) {
     return null;
   }
@@ -493,7 +662,12 @@ export function AgentChat() {
           title="Timeline Agent"
         >
           <MessageSquareText className="h-6 w-6" />
-          {hasUnseenActivity && (
+          {showPendingIndicator && (
+            <span className="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-sky-500 shadow">
+              <Loader2 className="h-2.5 w-2.5 animate-spin text-white" />
+            </span>
+          )}
+          {showUnseenIndicator && (
             <span className="absolute -right-0.5 -top-0.5 flex h-3 w-3">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sky-400 opacity-75" />
               <span className="relative inline-flex h-3 w-3 rounded-full bg-sky-500" />
@@ -519,7 +693,12 @@ export function AgentChat() {
                 size="icon"
                 variant="destructive"
                 className="h-7 w-7"
-                onClick={() => cancelSession.mutate()}
+                onClick={() => {
+                  setQueue([]);
+                  setPausedQueueHeadId(null);
+                  setOptimisticMessage(null);
+                  cancelSession.mutate();
+                }}
                 disabled={cancelSession.isPending}
                 title="Stop agent"
               >
@@ -588,12 +767,18 @@ export function AgentChat() {
             {optimisticMessage && (
               <div className="flex w-full justify-end">
                 <div className="max-w-[85%] rounded-2xl bg-primary px-4 py-2.5 text-sm leading-relaxed text-primary-foreground shadow-sm">
-                  {optimisticMessage}
+                  <div>{optimisticMessage.text}</div>
+                  {optimisticMessage.attachments.length > 0 && (
+                    <AgentChatAttachmentStrip
+                      attachments={optimisticMessage.attachments}
+                      isUser
+                    />
+                  )}
                 </div>
               </div>
             )}
 
-            {(isProcessing || sendMessage.isPending || optimisticMessage) && (
+            {(isProcessing || sendMessage.isPending || optimisticMessage || hasQueuedMessages) && (
               <div className="flex items-center gap-2 py-1 text-xs text-muted-foreground">
                 <Loader2 className="h-3.5 w-3.5 animate-spin" />
                 Thinking...
@@ -606,6 +791,58 @@ export function AgentChat() {
 
         {/* Input bar */}
         <div className="border-t border-border/70 px-3 py-3">
+          {queue.length > 0 && (
+            <div className="mb-2 flex flex-col gap-2">
+              {queue.map((item, index) => (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-2 rounded-lg bg-muted/50 px-3 py-2 text-xs"
+                >
+                  <div className="flex-1 text-foreground">
+                    <div className="line-clamp-2 break-words leading-relaxed">{item.text}</div>
+                  </div>
+                  {item.attachments.length > 0 && (
+                    <span className="shrink-0 rounded-full bg-background/80 px-2 py-0.5 text-[11px] text-muted-foreground">
+                      {`📎 ${item.attachments.length}`}
+                    </span>
+                  )}
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 shrink-0"
+                    disabled={index === 0}
+                    onClick={() => moveQueuedMessageUp(index)}
+                    title="Move queued message up"
+                  >
+                    <ChevronUp className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 shrink-0"
+                    disabled={index === queue.length - 1}
+                    onClick={() => moveQueuedMessageDown(index)}
+                    title="Move queued message down"
+                  >
+                    <ChevronDown className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="ghost"
+                    className="h-6 w-6 shrink-0"
+                    onClick={() => removeQueuedMessage(item.id)}
+                    title="Remove queued message"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {clips.length > 0 && (
             <div className="mb-2 rounded-lg bg-muted/50 px-3 py-2 text-xs text-muted-foreground">
               <AgentChatAttachmentStrip
@@ -664,9 +901,9 @@ export function AgentChat() {
               type="text"
               value={draft}
               onChange={(event) => setDraft(event.target.value)}
-              placeholder={showNoTimelineState ? 'Create a timeline to start chatting...' : (voice.isRecording ? 'Recording...' : 'Type or press Cmd+Shift+R to talk...')}
+              placeholder={inputPlaceholder}
               className="h-10 flex-1 rounded-xl border border-border/70 bg-card px-3 text-sm outline-none transition-colors placeholder:text-muted-foreground/70 focus:border-primary/50"
-              disabled={!hasTimeline || !activeSessionId || isCancelled || isProcessing || voice.isRecording || voice.isProcessing}
+              disabled={!hasTimeline || !activeSessionId || isCancelled || voice.isRecording || voice.isProcessing}
               onKeyDown={(event) => {
                 if (event.key === 'Enter' && !event.shiftKey) {
                   event.preventDefault();
@@ -706,7 +943,7 @@ export function AgentChat() {
               size="icon"
               className="h-10 w-10 shrink-0 rounded-xl"
               onClick={() => void handleSend()}
-              disabled={!hasTimeline || !draft.trim() || !activeSessionId || isCancelled || isProcessing || sendMessage.isPending}
+              disabled={!hasTimeline || !draft.trim() || !activeSessionId || isCancelled}
               title="Send"
             >
               <Send className="h-4 w-4" />

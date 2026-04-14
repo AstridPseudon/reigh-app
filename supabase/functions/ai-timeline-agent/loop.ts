@@ -56,7 +56,7 @@ import type {
   ToolResult,
 } from "./types.ts";
 
-type LoopLogger = Pick<EdgeRuntime["logger"], "error" | "info">;
+type LoopLogger = Pick<EdgeRuntime["logger"], "error" | "info" | "warn">;
 
 const APPEND_SHOT_POSITION = 2_147_483_647;
 
@@ -431,6 +431,7 @@ export async function executeToolCall(
   selectedClips?: SelectedClipPayload[],
   generationContext?: GenerationContext,
   userId?: string,
+  logger?: LoopLogger,
 ): Promise<ToolResult> {
   const toolArgs = toolCall.args;
 
@@ -450,7 +451,7 @@ export async function executeToolCall(
   }
 
   if (toolCall.name === "create_task") {
-    return await executeCreateTask(toolArgs, timelineState, selectedClips, supabaseAdmin, generationContext, timelineId);
+    return await executeCreateTask(toolArgs, timelineState, selectedClips, supabaseAdmin, generationContext, timelineId, logger);
   }
 
   if (toolCall.name === "transform_image") {
@@ -496,6 +497,7 @@ async function processToolCalls({
   timelineId,
   userId,
   setActiveToolCallId,
+  logger,
 }: {
   toolCalls: ExtractedToolCall[];
   assistantText: string;
@@ -508,6 +510,7 @@ async function processToolCalls({
   timelineId: string;
   userId?: string;
   setActiveToolCallId: (toolCallId: string | null) => void;
+  logger?: LoopLogger;
 }): Promise<{ hasError: boolean }> {
   let hasError = false;
 
@@ -537,6 +540,7 @@ async function processToolCalls({
       selectedClips,
       generationContext,
       userId,
+      logger,
     );
     setActiveToolCallId(null);
 
@@ -739,6 +743,7 @@ export async function runAgentLoop(
         timelineId: session.timeline_id,
         userId: session.user_id,
         setActiveToolCallId: (toolCallId) => { activeToolCallId = toolCallId; },
+        logger,
       });
 
       if (hasError) {

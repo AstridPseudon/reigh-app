@@ -12,6 +12,12 @@ import { resolveSelectionContext } from "../selectedClips.ts";
 import { createShotWithGenerations, resolveClipGenerationIds, resolveSelectedClipShot } from "./clips.ts";
 import { createGenerationTask, type CreateGenerationTaskArgs } from "./generation.ts";
 
+type ExpandPromptsLogger = {
+  info?: (message: string, context?: Record<string, unknown>) => void;
+  warn?: (message: string, context?: Record<string, unknown>) => void;
+  error?: (message: string, context?: Record<string, unknown>) => void;
+};
+
 const APPEND_SHOT_POSITION = 2_147_483_647;
 const MAX_BATCH_VARIATIONS = 16;
 const SUPPORTED_CREATE_TASK_TYPES = new Set([
@@ -143,11 +149,32 @@ const REFERENCE_MODE_DEFAULTS: Record<string, Record<string, unknown>> = {
   scene: { style_reference_strength: 0.4, in_this_scene: true, in_this_scene_strength: 1.0 },
 };
 
-async function expandPrompts(basePrompt: string, count: number): Promise<string[]> {
+async function expandPrompts(
+  basePrompt: string,
+  count: number,
+  logger?: ExpandPromptsLogger,
+): Promise<string[]> {
+  const logError = (message: string, context?: Record<string, unknown>) => {
+    if (logger?.error) logger.error(message, context);
+    else console.error(message, context ?? "");
+  };
+  const logWarn = (message: string, context?: Record<string, unknown>) => {
+    if (logger?.warn) logger.warn(message, context);
+    else console.warn(message, context ?? "");
+  };
+  if (logger?.info) {
+    logger.info("[agent] expandPrompts: called", { count, loggerPresent: true });
+  } else {
+    console.log("[agent] expandPrompts: called (no logger)", { count });
+  }
+
   try {
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-    if (!supabaseUrl || !serviceRoleKey) return numberedFallback(basePrompt, count);
+    if (!supabaseUrl || !serviceRoleKey) {
+      logError("[agent] expandPrompts: missing SUPABASE_URL or SERVICE_ROLE_KEY, using fallback");
+      return numberedFallback(basePrompt, count);
+    }
 
     const response = await fetch(`${supabaseUrl}/functions/v1/ai-prompt`, {
       method: "POST",
@@ -164,15 +191,46 @@ async function expandPrompts(basePrompt: string, count: number): Promise<string[
         temperature: 0.9,
       }),
     });
-    if (!response.ok) return numberedFallback(basePrompt, count);
+    if (!response.ok) {
+      const body = await response.text().catch(() => "<unreadable>");
+      logError("[agent] expandPrompts: ai-prompt HTTP error, using fallback", {
+        status: response.status,
+        statusText: response.statusText,
+        body: body.slice(0, 500),
+        count,
+      });
+      return numberedFallback(basePrompt, count);
+    }
     const data = await response.json() as { prompts?: string[] };
     if (Array.isArray(data.prompts) && data.prompts.length > 0) {
       const prompts = data.prompts.slice(0, count);
+      const uniqueNormalized = new Set(
+        prompts.map((p) => p.replace(/\s+/g, " ").trim().toLowerCase()),
+      );
+      if (logger?.info) {
+        logger.info("[agent] expandPrompts: ai-prompt returned", {
+          requested: count,
+          returned: data.prompts.length,
+          uniqueNormalized: uniqueNormalized.size,
+          firstTwoHeads: prompts.slice(0, 2).map((p) => p.slice(0, 120)),
+        });
+      }
+      if (prompts.length < count) {
+        logWarn("[agent] expandPrompts: ai-prompt returned partial result, padding with basePrompt", {
+          returned: prompts.length,
+          requested: count,
+        });
+      }
       while (prompts.length < count) prompts.push(basePrompt);
       return prompts;
     }
-  } catch {
-    // Fall back
+    logError("[agent] expandPrompts: ai-prompt returned no prompts, using fallback", {
+      responseKeys: Object.keys(data ?? {}),
+      count,
+    });
+  } catch (err) {
+    const message = err instanceof Error ? `${err.name}: ${err.message}` : String(err);
+    logError("[agent] expandPrompts: threw, using fallback", { error: message, count });
   }
   return numberedFallback(basePrompt, count);
 }
@@ -276,6 +334,7 @@ export async function executeCreateTask(
   supabaseAdmin: SupabaseAdmin,
   generationContext?: GenerationContext,
   timelineId = "",
+  logger?: ExpandPromptsLogger,
 ): Promise<Pick<ToolResult, "result">> {
   const imageContext = generationContext?.image ?? null;
   const travelContext = generationContext?.travel ?? null;
@@ -457,7 +516,7 @@ export async function executeCreateTask(
     const targetCount = Math.min(requestedCount, MAX_BATCH_VARIATIONS);
     const expandedPrompts = ensureDistinctPrompts(
       prompt,
-      await expandPrompts(prompt, targetCount),
+      await expandPrompts(prompt, targetCount, logger),
       targetCount,
     );
     let queuedCount = 0;
