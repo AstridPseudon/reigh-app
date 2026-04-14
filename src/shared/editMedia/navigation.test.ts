@@ -13,7 +13,7 @@ vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
   normalizeAndPresentError: (...args: unknown[]) => mocks.normalizeAndPresentError(...args),
 }));
 
-import { navigateToGenerationById } from './navigation';
+import { navigateToGenerationById } from '@/domains/generation/navigation';
 
 describe('editMedia/navigation navigateToGenerationById', () => {
   beforeEach(() => {

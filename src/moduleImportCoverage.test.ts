@@ -147,7 +147,6 @@ const moduleLoaders = [
   () => import('@/tools/travel-between-images/components/Timeline/hooks/drag/useEmptyStateDrop'),
   () => import('@/tools/travel-between-images/components/Timeline/hooks/drag/useEndpointDrag'),
   () => import('@/tools/travel-between-images/components/Timeline/hooks/useGlobalEvents'),
-  () => import('@/tools/travel-between-images/components/Timeline/hooks/usePairSettingsHandler'),
   () => import('@/tools/travel-between-images/components/Timeline/hooks/segment/usePendingFrames'),
   () => import('@/tools/travel-between-images/components/Timeline/hooks/usePositionManagement'),
   () => import('@/tools/travel-between-images/components/Timeline/hooks/segment/useSegmentDeletion'),

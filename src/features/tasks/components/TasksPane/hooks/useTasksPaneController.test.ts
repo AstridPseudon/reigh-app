@@ -133,7 +133,7 @@ describe('useTasksPaneController', () => {
       allProjects: true,
       allProjectIds: ['project-1', 'project-2'],
     });
-    expect(mocks.useTaskStatusCounts).toHaveBeenCalledWith('project-1');
+    expect(mocks.useTaskStatusCounts).toHaveBeenCalledWith('project-1', { allProjectIds: ['project-1', 'project-2'] });
     expect(mocks.useAllTaskTypes).toHaveBeenCalledWith('project-1');
     expect(mocks.useTasksPaneCancelPending).toHaveBeenCalledWith({
       selectedProjectId: 'project-1',
@@ -241,7 +241,7 @@ describe('useTasksPaneController', () => {
       }),
     );
 
-    expect(mocks.useTaskStatusCounts).toHaveBeenCalledWith(null);
+    expect(mocks.useTaskStatusCounts).toHaveBeenCalledWith(null, undefined);
     expect(mocks.useAllTaskTypes).toHaveBeenCalledWith(null);
     expect(mocks.usePaginatedTasks).toHaveBeenCalledWith({
       projectId: null,

@@ -1,9 +1,20 @@
 // @vitest-environment jsdom
 
-import { isValidElement } from 'react';
+import { isValidElement, type ReactNode } from 'react';
 import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useVideoLightboxRenderModel } from './useVideoLightboxRenderModel';
+
+const routerWrapper = ({ children }: { children: ReactNode }) => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return (
+    <MemoryRouter>
+      <QueryClientProvider client={client}>{children}</QueryClientProvider>
+    </MemoryRouter>
+  );
+};
 
 const mocks = vi.hoisted(() => ({
   handleDownload: vi.fn(),
@@ -206,7 +217,7 @@ describe('useVideoLightboxRenderModel', () => {
         createSharedState(),
         editModel,
       ),
-    );
+     { wrapper: routerWrapper });
 
     expect(result.current.lightboxStateValue.variants.pendingTaskCount).toBe(3);
   });
@@ -228,7 +239,7 @@ describe('useVideoLightboxRenderModel', () => {
         createSharedState(),
         editModel,
       ),
-    );
+     { wrapper: routerWrapper });
 
     expect(result.current.lightboxStateValue.variants.onMarkAllViewed).toBe(handleMarkAllViewed);
     result.current.lightboxStateValue.variants.onMarkAllViewed();
@@ -251,7 +262,7 @@ describe('useVideoLightboxRenderModel', () => {
         sharedState,
         createEditModel(),
       ),
-    );
+     { wrapper: routerWrapper });
 
     expect(result.current.lightboxStateValue.media.effectiveVideoUrl).toBe(
       'https://cdn.example.com/specific-video.mp4',
@@ -268,7 +279,7 @@ describe('useVideoLightboxRenderModel', () => {
         createSharedState(),
         createEditModel(),
       ),
-    );
+     { wrapper: routerWrapper });
 
     expect(result.current.lightboxStateValue.navigation.hasNext).toBe(true);
     expect(result.current.lightboxStateValue.navigation.hasPrevious).toBe(false);
@@ -301,7 +312,7 @@ describe('useVideoLightboxRenderModel', () => {
         createSharedState(),
         editModel,
       ),
-    );
+     { wrapper: routerWrapper });
 
     const panel = result.current.controlsPanelContent;
     expect(isValidElement(panel)).toBe(true);
@@ -335,7 +346,7 @@ describe('useVideoLightboxRenderModel', () => {
         createSharedState(),
         editModel,
       ),
-    );
+     { wrapper: routerWrapper });
 
     const panel = result.current.controlsPanelContent;
     expect(isValidElement(panel)).toBe(true);
@@ -361,7 +372,7 @@ describe('useVideoLightboxRenderModel', () => {
         createSharedState(),
         createEditModel(),
       ),
-    );
+     { wrapper: routerWrapper });
 
     expect(result.current.controlsPanelContent).toBeUndefined();
   });

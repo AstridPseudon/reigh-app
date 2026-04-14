@@ -5,7 +5,7 @@ import {
   createUserRecordIfMissing,
   deleteProjectForUser,
   hasUserRecord,
-} from './projectSetupRepository';
+} from '@/features/projects/services/projectSetupRepository';
 
 const mocks = vi.hoisted(() => ({
   getSupabaseClient: vi.fn(),

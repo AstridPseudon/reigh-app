@@ -559,11 +559,11 @@ export function AgentChat() {
     }
 
     void (async () => {
-      setQueue((prev) => (prev[0]?.id === next.id ? prev.slice(1) : prev));
       try {
         await sendNow(next);
+        setQueue((prev) => (prev[0]?.id === next.id ? prev.slice(1) : prev));
       } catch {
-        setQueue((prev) => (prev[0]?.id === next.id ? prev : [next, ...prev]));
+        // Leave the failed head in place; pausedQueueHeadId will prevent further drains.
       }
     })();
   }, [queue, pausedQueueHeadId, isProcessing, sendMessage.isPending, optimisticMessage, activeSessionId, timelineId, sendNow]);

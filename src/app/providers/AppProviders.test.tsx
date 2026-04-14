@@ -30,6 +30,15 @@ vi.mock('@/shared/contexts/UserSettingsContext', () => ({
   }),
 }));
 
+vi.mock('@/shared/hooks/settings/useToolSettings', () => ({
+  useToolSettings: () => ({
+    settings: { lastTimelineId: 'timeline-from-settings' },
+    updateSettings: vi.fn(),
+    resetSettings: vi.fn(),
+    isLoading: false,
+  }),
+}));
+
 vi.mock('@/shared/contexts/ProjectContext', () => ({
   ProjectProvider: passthroughProvider('ProjectProvider'),
 }));

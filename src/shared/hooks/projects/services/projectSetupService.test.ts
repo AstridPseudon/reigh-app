@@ -4,7 +4,7 @@ import {
   createDefaultShotForProject,
   createDefaultShotWithRollback,
   ensureUserRecordExists,
-} from './projectSetupService';
+} from '@/features/projects/services/projectSetupService';
 
 const mocks = vi.hoisted(() => ({
   normalizeAndPresentError: vi.fn(),

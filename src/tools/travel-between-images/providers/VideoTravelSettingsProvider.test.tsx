@@ -1,6 +1,12 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+function renderWithClient(ui: React.ReactElement) {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  return render(<QueryClientProvider client={client}>{ui}</QueryClientProvider>);
+}
 import {
   VideoTravelSettingsProvider,
   useFrameSettings,
@@ -115,7 +121,7 @@ describe('VideoTravelSettingsProvider', () => {
   });
 
   it('stores and restores per-model substate while clearing LTX-incompatible toggles', () => {
-    render(
+    renderWithClient(
       <VideoTravelSettingsProvider
         projectId="project-1"
         shotId="shot-1"
@@ -162,7 +168,7 @@ describe('VideoTravelSettingsProvider', () => {
       modelSettingsByModel: undefined,
     };
 
-    render(
+    renderWithClient(
       <VideoTravelSettingsProvider
         projectId="project-1"
         shotId="shot-1"
@@ -203,7 +209,7 @@ describe('VideoTravelSettingsProvider', () => {
       },
     };
 
-    render(
+    renderWithClient(
       <VideoTravelSettingsProvider
         projectId="project-1"
         shotId="shot-1"

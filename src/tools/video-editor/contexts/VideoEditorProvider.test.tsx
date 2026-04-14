@@ -1,7 +1,8 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { useAgentChatBridge } from '@/shared/contexts/AgentChatContext';
+import { MemoryRouter } from 'react-router-dom';
+import { AgentChatProvider, useAgentChatBridge } from '@/shared/contexts/AgentChatContext';
 import { buildVideoEditorLightboxMedia, VideoEditorProvider } from '@/tools/video-editor/contexts/VideoEditorProvider';
 import { useTimelineChromeContext } from '@/tools/video-editor/contexts/TimelineChromeContext';
 import {
@@ -271,11 +272,15 @@ describe('VideoEditorProvider', () => {
     });
 
     render(
-      <QueryClientProvider client={queryClient}>
-        <VideoEditorProvider dataProvider={provider} timelineId="timeline-1" userId="user-1">
-          <Consumer />
-        </VideoEditorProvider>
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <AgentChatProvider>
+            <VideoEditorProvider dataProvider={provider} timelineId="timeline-1" userId="user-1">
+              <Consumer />
+            </VideoEditorProvider>
+          </AgentChatProvider>
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
 
     expect(screen.getByText('clip-1')).toBeInTheDocument();
@@ -332,11 +337,15 @@ describe('VideoEditorProvider', () => {
     });
 
     render(
-      <QueryClientProvider client={queryClient}>
-        <VideoEditorProvider dataProvider={provider} timelineId="timeline-2" userId="user-1">
-          <Consumer />
-        </VideoEditorProvider>
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={queryClient}>
+          <AgentChatProvider>
+            <VideoEditorProvider dataProvider={provider} timelineId="timeline-2" userId="user-1">
+              <Consumer />
+            </VideoEditorProvider>
+          </AgentChatProvider>
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
 
     fireEvent.click(screen.getByRole('button', { name: 'replace timeline clips' }));

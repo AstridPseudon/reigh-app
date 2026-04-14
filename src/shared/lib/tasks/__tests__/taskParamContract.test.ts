@@ -1,10 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@/shared/lib/errorHandling/runtimeError', () => ({
-  normalizeAndPresentError: vi.fn(),
-}));
-
-import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
 import {
   extractAddInPositionParam,
   extractBasedOnParam,
@@ -14,8 +9,10 @@ import {
 } from '../taskParamContract';
 
 describe('taskParamContract', () => {
+  const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
   beforeEach(() => {
-    vi.mocked(normalizeAndPresentError).mockClear();
+    warnSpy.mockClear();
   });
 
   it('extracts canonical and legacy string fields by precedence', () => {
@@ -60,15 +57,11 @@ describe('taskParamContract', () => {
 
   it('rejects invalid numeric add_in_position values and emits telemetry', () => {
     expect(extractAddInPositionParam({ add_in_position: 2 })).toBe(false);
-    expect(normalizeAndPresentError).toHaveBeenCalledWith(
-      expect.any(Error),
+    expect(warnSpy).toHaveBeenCalledWith(
+      '[TaskParamContract] Invalid add_in_position param encoding',
       expect.objectContaining({
-        context: 'TaskParamContract.addInPosition.invalid',
-        showToast: false,
-        logData: expect.objectContaining({
-          rawType: 'number',
-          rawValue: 2,
-        }),
+        rawType: 'number',
+        rawValue: 2,
       }),
     );
   });

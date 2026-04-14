@@ -1,7 +1,7 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { TouchableTooltip } from './touchableTooltip';
+import { TouchableTooltip } from './composed/touchableTooltip';
 
 const handleTriggerClickMock = vi.fn();
 const handleTooltipOpenChangeMock = vi.fn();

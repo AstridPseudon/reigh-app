@@ -89,7 +89,7 @@ describe('useDeleteGenerationAction', () => {
     expect(mocks.normalizeAndPresentError).toHaveBeenCalledWith(
       expect.any(Error),
       {
-        context: 'useDeleteGenerationAction.confirmDelete',
+        context: 'useDeleteGenerationAction.runDelete',
         toastTitle: 'Delete failed',
       },
     );

@@ -94,7 +94,7 @@ describe('TimelineTrackPrelude', () => {
         shotId: 'shot-1',
         projectId: 'project-1',
         readOnly: false,
-        images: [{ id: 'img-1' }, { id: 'img-2' }] as never[],
+        images: [{ id: 'img-1' }, { id: 'img-2' }, { id: 'img-3' }] as never[],
         imagePositions: new Map([
           ['img-1', 0],
           ['img-2', 61],

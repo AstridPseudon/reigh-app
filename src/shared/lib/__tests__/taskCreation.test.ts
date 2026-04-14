@@ -1,48 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import {
-  expandArrayToCount,
   validateRequiredFields,
   safeParseJson,
-  buildHiresFixParams,
   generateRunId,
   generateTaskId,
   TaskValidationError,
-  processBatchResults,
 } from '../taskCreation';
-
-describe('expandArrayToCount', () => {
-  it('returns empty array for undefined', () => {
-    expect(expandArrayToCount(undefined, 5)).toEqual([]);
-  });
-
-  it('returns empty array for empty array', () => {
-    expect(expandArrayToCount([], 5)).toEqual([]);
-  });
-
-  it('expands single-element array to target count', () => {
-    expect(expandArrayToCount(['a'], 3)).toEqual(['a', 'a', 'a']);
-  });
-
-  it('does not expand single-element when target is 1', () => {
-    expect(expandArrayToCount(['a'], 1)).toEqual(['a']);
-  });
-
-  it('returns array as-is when length matches target', () => {
-    expect(expandArrayToCount(['a', 'b', 'c'], 3)).toEqual(['a', 'b', 'c']);
-  });
-
-  it('truncates array when longer than target', () => {
-    expect(expandArrayToCount(['a', 'b', 'c', 'd'], 2)).toEqual(['a', 'b']);
-  });
-
-  it('returns array as-is when shorter than target (not single)', () => {
-    expect(expandArrayToCount(['a', 'b'], 5)).toEqual(['a', 'b']);
-  });
-
-  it('works with number arrays', () => {
-    expect(expandArrayToCount([42], 3)).toEqual([42, 42, 42]);
-  });
-});
 
 describe('validateRequiredFields', () => {
   it('passes when all fields present', () => {
@@ -144,59 +107,6 @@ describe('safeParseJson', () => {
   });
 });
 
-describe('buildHiresFixParams', () => {
-  it('returns empty object for undefined', () => {
-    expect(buildHiresFixParams(undefined)).toEqual({});
-  });
-
-  it('returns empty object for empty config', () => {
-    expect(buildHiresFixParams({})).toEqual({});
-  });
-
-  it('includes only defined fields', () => {
-    const result = buildHiresFixParams({
-      hires_scale: 2,
-      hires_steps: 10,
-    });
-    expect(result).toEqual({
-      hires_scale: 2,
-      hires_steps: 10,
-    });
-    expect(result).not.toHaveProperty('hires_denoise');
-    expect(result).not.toHaveProperty('num_inference_steps');
-  });
-
-  it('includes all fields when all defined', () => {
-    const result = buildHiresFixParams({
-      num_inference_steps: 20,
-      hires_scale: 2,
-      hires_steps: 10,
-      hires_denoise: 0.5,
-      lightning_lora_strength_phase_1: 0.8,
-      lightning_lora_strength_phase_2: 0.6,
-      additional_loras: { lora1: '0.5' },
-    });
-    expect(result).toEqual({
-      num_inference_steps: 20,
-      hires_scale: 2,
-      hires_steps: 10,
-      hires_denoise: 0.5,
-      lightning_lora_strength_phase_1: 0.8,
-      lightning_lora_strength_phase_2: 0.6,
-      additional_loras: { lora1: '0.5' },
-    });
-  });
-
-  it('excludes empty additional_loras', () => {
-    const result = buildHiresFixParams({
-      hires_scale: 2,
-      additional_loras: {},
-    });
-    expect(result).toEqual({ hires_scale: 2 });
-    expect(result).not.toHaveProperty('additional_loras');
-  });
-});
-
 describe('generateRunId', () => {
   it('returns a string', () => {
     expect(typeof generateRunId()).toBe('string');
@@ -233,37 +143,6 @@ describe('generateTaskId', () => {
     const id1 = generateTaskId('test');
     const id2 = generateTaskId('test');
     expect(id1).not.toBe(id2);
-  });
-});
-
-describe('processBatchResults', () => {
-  it('returns fulfilled results', () => {
-    const results: PromiseSettledResult<unknown>[] = [
-      { status: 'fulfilled', value: { task_id: 't1', status: 'pending' } },
-      { status: 'fulfilled', value: { task_id: 't2', status: 'pending' } },
-    ];
-    const processed = processBatchResults(results, 'Test');
-    expect(processed).toEqual([
-      { task_id: 't1', status: 'pending' },
-      { task_id: 't2', status: 'pending' },
-    ]);
-  });
-
-  it('throws when all fail', () => {
-    const results: PromiseSettledResult<unknown>[] = [
-      { status: 'rejected', reason: new Error('fail 1') },
-      { status: 'rejected', reason: new Error('fail 2') },
-    ];
-    expect(() => processBatchResults(results, 'Test')).toThrow('All batch tasks failed');
-  });
-
-  it('returns only fulfilled when some fail', () => {
-    const results: PromiseSettledResult<unknown>[] = [
-      { status: 'fulfilled', value: { task_id: 't1', status: 'pending' } },
-      { status: 'rejected', reason: new Error('fail') },
-    ];
-    const processed = processBatchResults(results, 'Test');
-    expect(processed).toEqual([{ task_id: 't1', status: 'pending' }]);
   });
 });
 

@@ -60,7 +60,7 @@ import {
   useCreateResource,
   useDeleteResource,
   usePublicLoras,
-} from '../useResources';
+} from '@/features/resources/hooks/useResources';
 
 describe('useListPublicResources', () => {
   beforeEach(() => {

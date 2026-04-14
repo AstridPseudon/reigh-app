@@ -216,7 +216,7 @@ describe('GenerationTokenPanel', () => {
 
     render(<GenerationTokenPanel {...(props as never)} />);
 
-    expect(screen.getByText(/Mac isn't supported yet/i)).toBeInTheDocument();
+    expect(screen.getByText(/Mac processing isn't supported yet/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Process in the cloud/i }));
 
     expect(props.actions.updateGenerationMethodsWithNotification).toHaveBeenCalledWith({

@@ -148,8 +148,8 @@ describe('PanesContext', () => {
       expect(screen.getByTestId('tasksOpen')).toHaveTextContent('false');
       expect(screen.getByTestId('gensHeight')).toHaveTextContent('300');
       expect(screen.getByTestId('effectiveGensHeight')).toHaveTextContent('300');
-      expect(screen.getByTestId('editorHeight')).toHaveTextContent('540');
-      expect(screen.getByTestId('effectiveEditorHeight')).toHaveTextContent('540');
+      expect(screen.getByTestId('editorHeight')).toHaveTextContent('300');
+      expect(screen.getByTestId('effectiveEditorHeight')).toHaveTextContent('300');
       expect(screen.getByTestId('activeTaskId')).toHaveTextContent('null');
     });
 
@@ -181,7 +181,7 @@ describe('PanesContext', () => {
       expect(screen.getByTestId('gensOpen')).toHaveTextContent('true');
     });
 
-    it('keeps the editor at 90% height when it is the only visible top pane', () => {
+    it('keeps the editor at 50% height when it is the only visible top pane', () => {
       render(
         <PanesProvider>
           <PanesConsumer />
@@ -193,7 +193,7 @@ describe('PanesContext', () => {
       });
 
       expect(screen.getByTestId('editorOpen')).toHaveTextContent('true');
-      expect(screen.getByTestId('effectiveEditorHeight')).toHaveTextContent('540');
+      expect(screen.getByTestId('effectiveEditorHeight')).toHaveTextContent('300');
       expect(screen.getByTestId('effectiveGensHeight')).toHaveTextContent('300');
     });
 
@@ -210,12 +210,12 @@ describe('PanesContext', () => {
         screen.getByTestId('openEditor').click();
       });
 
-      expect(screen.getByTestId('effectiveEditorHeight')).toHaveTextContent('540');
+      expect(screen.getByTestId('effectiveEditorHeight')).toHaveTextContent('300');
       expect(screen.getByTestId('effectiveGensHeight')).toHaveTextContent('60');
       expect(
         Number(screen.getByTestId('effectiveEditorHeight').textContent) +
           Number(screen.getByTestId('effectiveGensHeight').textContent)
-      ).toBe(600);
+      ).toBe(360);
     });
 
     it('uses the shrink-to-fit tier when both panes are visible in a 600px viewport', () => {
@@ -279,9 +279,9 @@ describe('PanesContext', () => {
         screen.getByTestId('openEditor').click();
       });
 
-      expect(screen.getByTestId('editorHeight')).toHaveTextContent('225');
-      expect(screen.getByTestId('effectiveEditorHeight')).toHaveTextContent('156');
-      expect(screen.getByTestId('effectiveGensHeight')).toHaveTextContent('94');
+      expect(screen.getByTestId('editorHeight')).toHaveTextContent('125');
+      expect(screen.getByTestId('effectiveEditorHeight')).toHaveTextContent('125');
+      expect(screen.getByTestId('effectiveGensHeight')).toHaveTextContent('125');
       expect(
         Number(screen.getByTestId('effectiveEditorHeight').textContent) +
           Number(screen.getByTestId('effectiveGensHeight').textContent)
@@ -295,14 +295,14 @@ describe('PanesContext', () => {
         </PanesProvider>
       );
 
-      expect(screen.getByTestId('effectiveEditorHeight')).toHaveTextContent('540');
+      expect(screen.getByTestId('effectiveEditorHeight')).toHaveTextContent('300');
       expect(screen.getByTestId('effectiveGensHeight')).toHaveTextContent('300');
 
       act(() => {
         screen.getByTestId('openEditor').click();
       });
 
-      expect(screen.getByTestId('effectiveEditorHeight')).toHaveTextContent('540');
+      expect(screen.getByTestId('effectiveEditorHeight')).toHaveTextContent('300');
       expect(screen.getByTestId('effectiveGensHeight')).toHaveTextContent('300');
 
       act(() => {
@@ -313,7 +313,7 @@ describe('PanesContext', () => {
       expect(screen.getByTestId('effectiveGensHeight')).toHaveTextContent('300');
     });
 
-    it('uses 70% ideal when generations is locked', () => {
+    it('uses 50% ideal when generations is locked', () => {
       Object.defineProperty(window, 'innerHeight', {
         configurable: true,
         writable: true,
@@ -333,12 +333,12 @@ describe('PanesContext', () => {
 
       expect(screen.getByTestId('gensLocked')).toHaveTextContent('true');
       expect(screen.getByTestId('editorLocked')).toHaveTextContent('true');
-      expect(screen.getByTestId('editorHeight')).toHaveTextContent('840');
-      expect(screen.getByTestId('effectiveEditorHeight')).toHaveTextContent('840');
+      expect(screen.getByTestId('editorHeight')).toHaveTextContent('600');
+      expect(screen.getByTestId('effectiveEditorHeight')).toHaveTextContent('600');
       expect(screen.getByTestId('effectiveGensHeight')).toHaveTextContent('300');
     });
 
-    it('uses 90% ideal when generations is not locked', () => {
+    it('uses 50% ideal when generations is not locked', () => {
       render(
         <PanesProvider>
           <PanesConsumer />
@@ -350,8 +350,8 @@ describe('PanesContext', () => {
       });
 
       expect(screen.getByTestId('editorLocked')).toHaveTextContent('true');
-      expect(screen.getByTestId('editorHeight')).toHaveTextContent('540');
-      expect(screen.getByTestId('effectiveEditorHeight')).toHaveTextContent('540');
+      expect(screen.getByTestId('editorHeight')).toHaveTextContent('300');
+      expect(screen.getByTestId('effectiveEditorHeight')).toHaveTextContent('300');
       expect(screen.getByTestId('effectiveGensHeight')).toHaveTextContent('300');
     });
 
