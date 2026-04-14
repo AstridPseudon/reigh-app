@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from 'react';
-import { ArrowDownWideNarrow, ArrowUpWideNarrow, Check, Copy, Loader2, Pencil, Play, Plus, Search, Trash2, X } from 'lucide-react';
+import { ArrowDownWideNarrow, ArrowUpWideNarrow, Check, Copy, Eye, EyeOff, Loader2, Pencil, Play, Plus, Search, Trash2, X } from 'lucide-react';
 import { useShotCreation } from '@/shared/hooks/shotCreation/useShotCreation';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { useShots } from '@/shared/contexts/ShotsContext';
@@ -13,6 +13,7 @@ import {
   isValidDropTarget,
 } from '@/shared/lib/dnd/dragDrop';
 import { VideoGenerationModal } from '@/tools/travel-between-images/components/VideoGenerationModal';
+import { useHiddenShots } from '@/tools/travel-between-images/hooks/useHiddenShots';
 import { getGenerationId } from '@/shared/lib/media/mediaTypeHelpers';
 import { isVideoGeneration, isPositioned } from '@/shared/lib/typeGuards';
 import { getDisplayUrl } from '@/shared/lib/media/mediaUrl';
@@ -32,19 +33,23 @@ function ShotCard({
   shot,
   finalVideo,
   projectId,
+  isHidden,
   onDoubleClick,
   onDuplicate,
   onDelete,
   onRename,
+  onToggleHidden,
   onGenerationDrop,
 }: {
   shot: Shot;
   finalVideo?: ShotFinalVideo;
   projectId: string;
+  isHidden: boolean;
   onDoubleClick: () => void;
   onDuplicate: () => void;
   onDelete: () => void;
   onRename: (name: string) => void;
+  onToggleHidden: () => void;
   onGenerationDrop: (shotId: string, generationId: string, imageUrl: string, thumbUrl?: string) => Promise<void>;
 }) {
   const [isDropTarget, setIsDropTarget] = useState(false);
@@ -126,6 +131,7 @@ function ShotCard({
       onDoubleClick={onDoubleClick}
       className={cn(
         'group relative flex cursor-grab flex-col overflow-hidden rounded-md border border-border bg-card/80 transition-all hover:border-accent active:cursor-grabbing',
+        isHidden && 'opacity-60',
         isDropTarget && 'ring-2 ring-primary scale-[1.02]',
         dropState === 'loading' && 'ring-2 ring-primary/50',
         dropState === 'success' && 'ring-2 ring-green-500',
@@ -151,12 +157,22 @@ function ShotCard({
         </button>
         <button
           type="button"
-          onClick={(e) => { e.stopPropagation(); onDelete(); }}
-          className="rounded bg-background/70 p-0.5 text-muted-foreground backdrop-blur-sm hover:text-destructive"
-          title="Delete"
+          onClick={(e) => { e.stopPropagation(); onToggleHidden(); }}
+          className="rounded bg-background/70 p-0.5 text-muted-foreground backdrop-blur-sm hover:text-foreground"
+          title={isHidden ? 'Unhide' : 'Hide'}
         >
-          <Trash2 className="h-2.5 w-2.5" />
+          {isHidden ? <Eye className="h-2.5 w-2.5" /> : <EyeOff className="h-2.5 w-2.5" />}
         </button>
+        {isHidden && (
+          <button
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onDelete(); }}
+            className="rounded bg-background/70 p-0.5 text-muted-foreground backdrop-blur-sm hover:text-destructive"
+            title="Delete"
+          >
+            <Trash2 className="h-2.5 w-2.5" />
+          </button>
+        )}
       </div>
 
       <div className="relative aspect-video w-full overflow-hidden bg-muted">
@@ -219,6 +235,9 @@ export function ShotsPanelContent({ projectId }: ShotsPanelContentProps) {
   const [sortMode, setSortMode] = useState<SortMode>('ordered');
   const [modalShot, setModalShot] = useState<Shot | null>(null);
   const [newShotDropState, setNewShotDropState] = useState<'idle' | 'loading' | 'success'>('idle');
+  const [showHidden, setShowHidden] = useState(false);
+
+  const { hiddenIds, toggle: toggleHidden } = useHiddenShots(selectedProjectId);
 
   const filteredShots = useMemo(() => {
     if (!shots) return [];
@@ -234,6 +253,16 @@ export function ShotsPanelContent({ projectId }: ShotsPanelContentProps) {
     }
     return result;
   }, [shots, searchQuery, sortMode]);
+
+  const visibleShots = useMemo(() => {
+    if (showHidden) return filteredShots;
+    return filteredShots.filter((shot) => !hiddenIds.has(shot.id));
+  }, [filteredShots, hiddenIds, showHidden]);
+
+  const hiddenCount = useMemo(
+    () => filteredShots.filter((shot) => hiddenIds.has(shot.id)).length,
+    [filteredShots, hiddenIds],
+  );
 
   const handleGenerationDrop = useCallback(async (shotId: string, generationId: string, imageUrl: string, thumbUrl?: string) => {
     if (!selectedProjectId) return;
@@ -345,6 +374,20 @@ export function ShotsPanelContent({ projectId }: ShotsPanelContentProps) {
           >
             <ArrowUpWideNarrow className="h-3 w-3" />
           </button>
+          {hiddenCount > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowHidden((prev) => !prev)}
+              className={cn(
+                'flex items-center gap-1 rounded px-1.5 py-1 text-[10px] text-muted-foreground transition-colors hover:text-foreground',
+                showHidden && 'bg-accent text-foreground',
+              )}
+              title={showHidden ? 'Hide hidden shots' : 'Show hidden shots'}
+            >
+              {showHidden ? <EyeOff className="h-3 w-3" /> : <Eye className="h-3 w-3" />}
+              <span>{showHidden ? 'Hide' : 'Show'} Hidden ({hiddenCount})</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -372,16 +415,18 @@ export function ShotsPanelContent({ projectId }: ShotsPanelContentProps) {
             </div>
             <div className="px-1.5 py-1 text-center text-[10px] text-muted-foreground">New shot</div>
           </div>
-          {filteredShots.map((shot) => (
+          {visibleShots.map((shot) => (
             <div key={shot.id} className="w-[110px] shrink-0">
               <ShotCard
                 shot={shot}
                 finalVideo={finalVideoMap.get(shot.id)}
                 projectId={projectId}
+                isHidden={hiddenIds.has(shot.id)}
                 onDoubleClick={() => setModalShot(shot)}
                 onDuplicate={() => void handleDuplicate(shot.id)}
                 onDelete={() => void handleDelete(shot.id)}
                 onRename={(name) => void handleRename(shot.id, name)}
+                onToggleHidden={() => toggleHidden(shot.id)}
                 onGenerationDrop={(...args) => void handleGenerationDrop(...args)}
               />
             </div>
