@@ -78,6 +78,45 @@ describe('useLoraManager', () => {
     expect(result.current.selectedLoras[0].strength).toBe(0.75);
   });
 
+  it('fires onExplicitLoraEdit for manual add actions', () => {
+    const onExplicitLoraEdit = vi.fn();
+    const { result } = renderHook(() =>
+      useLoraManager([], { onExplicitLoraEdit }),
+    );
+    const mockLora = createMockLora('lora-1', 'My LoRA');
+
+    act(() => {
+      result.current.handleAddLora(mockLora, true);
+    });
+
+    expect(onExplicitLoraEdit).toHaveBeenCalledWith({
+      kind: 'add',
+      lora: expect.objectContaining({
+        id: 'lora-1',
+        name: 'My LoRA',
+      }),
+      current: [
+        expect.objectContaining({
+          id: 'lora-1',
+          name: 'My LoRA',
+        }),
+      ],
+    });
+  });
+
+  it('does not fire onExplicitLoraEdit for non-manual add actions', () => {
+    const onExplicitLoraEdit = vi.fn();
+    const { result } = renderHook(() =>
+      useLoraManager([], { onExplicitLoraEdit }),
+    );
+
+    act(() => {
+      result.current.handleAddLora(createMockLora('lora-1'), false);
+    });
+
+    expect(onExplicitLoraEdit).not.toHaveBeenCalled();
+  });
+
   it('handleAddLora prevents duplicates', () => {
     const { result } = renderHook(() => useLoraManager());
     const mockLora = createMockLora('lora-1');
@@ -123,6 +162,56 @@ describe('useLoraManager', () => {
     });
 
     expect(result.current.selectedLoras[0].strength).toBe(0.5);
+  });
+
+  it('does not fire onExplicitLoraEdit for non-manual strength changes', () => {
+    const onExplicitLoraEdit = vi.fn();
+    const { result } = renderHook(() =>
+      useLoraManager([], { onExplicitLoraEdit }),
+    );
+
+    act(() => {
+      result.current.handleAddLora(createMockLora('lora-1'));
+    });
+
+    onExplicitLoraEdit.mockClear();
+
+    act(() => {
+      result.current.handleLoraStrengthChange('lora-1', 0.5, false);
+    });
+
+    expect(onExplicitLoraEdit).not.toHaveBeenCalled();
+  });
+
+  it('fires onExplicitLoraEdit for default manual strength changes', () => {
+    const onExplicitLoraEdit = vi.fn();
+    const { result } = renderHook(() =>
+      useLoraManager([], { onExplicitLoraEdit }),
+    );
+
+    act(() => {
+      result.current.handleAddLora(createMockLora('lora-1'), false);
+    });
+
+    onExplicitLoraEdit.mockClear();
+
+    act(() => {
+      result.current.handleLoraStrengthChange('lora-1', 0.5);
+    });
+
+    expect(onExplicitLoraEdit).toHaveBeenCalledWith({
+      kind: 'strength',
+      lora: expect.objectContaining({
+        id: 'lora-1',
+        strength: 0.5,
+      }),
+      current: [
+        expect.objectContaining({
+          id: 'lora-1',
+          strength: 0.5,
+        }),
+      ],
+    });
   });
 
   it('markAsUserSet sets hasEverSetLoras', () => {

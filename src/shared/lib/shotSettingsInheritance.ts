@@ -1,6 +1,8 @@
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { STORAGE_KEYS } from '@/shared/lib/storage/storageKeys';
 import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import type { LastEditedLoraValue } from '@/shared/lib/lastEditedLora';
+import { readLastEditedLoraFromLocalStorage, readLastEditedLoraFromProject } from '@/shared/lib/lastEditedLora';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
 import { TOOL_IDS } from '@/shared/lib/tooling/toolIds';
 import { toObjectRecord } from '@/shared/lib/jsonRecord';
@@ -10,8 +12,8 @@ import { compareByCreatedAtDesc } from '@/shared/lib/sorting/createdAtSort';
  * Standardized settings inheritance for new shots
  * This ensures ALL shot creation paths use the same inheritance logic
  * 
- * NOTE: LoRAs are now part of mainSettings (selectedLoras field) and are
- * inherited along with all other shot settings. No separate LoRA handling needed.
+ * NOTE: LoRAs no longer inherit as a full set from the last-opened shot.
+ * New shots seed at most one project-scoped "last edited LoRA".
  * 
  * Join Segments settings are also inherited separately (joinSegmentsSettings)
  * to preserve the user's last Join mode configuration.
@@ -31,13 +33,58 @@ interface InheritedSettings {
   mainSettings: Record<string, unknown> | null;
   uiSettings: Record<string, unknown> | null;
   joinSegmentsSettings: Record<string, unknown> | null; // Join Segments mode settings
+  lastEditedLora: LastEditedLoraValue;
+}
+
+function asSeedLora(value: unknown): Exclude<LastEditedLoraValue, null | undefined> | undefined {
+  const record = toObjectRecord(value);
+  if (!record) {
+    return undefined;
+  }
+
+  const { id, name, path, strength } = record;
+  if (
+    typeof id !== 'string'
+    || typeof name !== 'string'
+    || typeof path !== 'string'
+    || typeof strength !== 'number'
+    || !Number.isFinite(strength)
+  ) {
+    return undefined;
+  }
+
+  return {
+    id,
+    name,
+    path,
+    strength,
+    ...(typeof record.previewImageUrl === 'string' ? { previewImageUrl: record.previewImageUrl } : {}),
+    ...(typeof record.trigger_word === 'string' ? { trigger_word: record.trigger_word } : {}),
+  };
+}
+
+function getSeedLora(
+  mainSettings: Record<string, unknown> | null,
+  lastEditedLora: LastEditedLoraValue,
+): Exclude<LastEditedLoraValue, null | undefined> | null {
+  if (lastEditedLora) {
+    return lastEditedLora;
+  }
+
+  if (lastEditedLora !== undefined) {
+    return null;
+  }
+
+  const mainSettingsLoras = Array.isArray(mainSettings?.loras) ? mainSettings.loras : [];
+  return asSeedLora(mainSettingsLoras[0]) ?? null;
 }
 
 /**
  * Gets inherited settings for a new shot
  * Priority: localStorage (last active) → Database (last created) → Project defaults
  * 
- * LoRAs are included in mainSettings.selectedLoras (unified with other settings)
+ * Main settings still cascade normally, but LoRAs are resolved separately from
+ * the project-level lastEditedLora helper with a soft-migration fallback.
  * Join Segments settings are inherited separately in joinSegmentsSettings
  */
 async function getInheritedSettings(
@@ -48,6 +95,7 @@ async function getInheritedSettings(
   let mainSettings: Record<string, unknown> | null = null;
   let uiSettings: Record<string, unknown> | null = null;
   let joinSegmentsSettings: Record<string, unknown> | null = null;
+  let lastEditedLora = readLastEditedLoraFromLocalStorage(projectId);
 
   // 1. Try to get from localStorage (most recent active shot) - captures unsaved edits
   try {
@@ -135,16 +183,32 @@ async function getInheritedSettings(
     }
   }
 
+  const lastEditedLoraFromLocal = lastEditedLora;
+  if (lastEditedLora === undefined) {
+    lastEditedLora = await readLastEditedLoraFromProject(projectId);
+  }
+
+  console.log('[LoraSeedDebug][getInheritedSettings]', JSON.stringify({
+    projectId,
+    newShotId: params.newShotId,
+    lastEditedLora_fromLocalStorage: lastEditedLoraFromLocal,
+    lastEditedLora_final: lastEditedLora,
+    mainSettings_loras: (mainSettings as { loras?: unknown } | null)?.loras,
+    mainSettings_keys: mainSettings ? Object.keys(mainSettings) : null,
+    shotsCount: params.shots?.length ?? 0,
+  }));
+
   return {
     mainSettings,
     uiSettings,
-    joinSegmentsSettings
+    joinSegmentsSettings,
+    lastEditedLora,
   };
 }
 
 /**
  * Applies inherited settings to a new shot
- * Saves main settings (including LoRAs) to sessionStorage for useShotSettings to pick up
+ * Saves main settings to sessionStorage for useShotSettings to pick up
  * Also saves Join Segments settings to sessionStorage for useJoinSegmentsSettings to pick up
  */
 function applyInheritedSettings(
@@ -152,23 +216,40 @@ function applyInheritedSettings(
   inherited: InheritedSettings
 ): Promise<void> {
   const { newShotId } = params;
-  const { mainSettings, uiSettings, joinSegmentsSettings } = inherited;
+  const { mainSettings, uiSettings, joinSegmentsSettings, lastEditedLora } = inherited;
+  const { loras: _ignoredInheritedLoras, ...mainSettingsWithoutLoras } = mainSettings ?? {};
+  const seedLora = getSeedLora(mainSettings, lastEditedLora);
+
+  console.log('[LoraSeedDebug][applyInheritedSettings]', JSON.stringify({
+    newShotId,
+    hasMainSettings: !!mainSettings,
+    hasUiSettings: !!uiSettings,
+    lastEditedLora,
+    inheritedLoras: _ignoredInheritedLoras,
+    seedLora,
+    willSeedLoras: seedLora ? [seedLora] : [],
+  }));
 
   // Save main settings to sessionStorage for useShotSettings to pick up
-  // LoRAs are included in mainSettings.loras
   if (mainSettings || uiSettings) {
     const defaultsToApply = {
-      ...(mainSettings || {}),
+      ...mainSettingsWithoutLoras,
       _uiSettings: uiSettings || {},
       // Always start with empty prompt fields for new shots (don't inherit)
       prompt: '',  // Main prompt for video generation
       textBeforePrompts: '',
       textAfterPrompts: '',
       pairConfigs: [],
+      loras: seedLora ? [seedLora] : [],
     };
     const storageKey = STORAGE_KEYS.APPLY_PROJECT_DEFAULTS(newShotId);
     sessionStorage.setItem(storageKey, JSON.stringify(defaultsToApply));
-
+    console.log('[LoraSeedDebug][applyInheritedSettings] sessionStorage written', JSON.stringify({
+      storageKey,
+      lorasInPayload: defaultsToApply.loras,
+    }));
+  } else {
+    console.log('[LoraSeedDebug][applyInheritedSettings] no mainSettings/uiSettings → sessionStorage NOT written', JSON.stringify({ newShotId }));
   }
   
   // Save Join Segments settings to sessionStorage for useJoinSegmentsSettings to pick up
@@ -184,8 +265,6 @@ function applyInheritedSettings(
     
   }
   
-  // NOTE: LoRAs no longer need separate DB save - they're part of mainSettings
-  // and will be saved by useShotSettings when it picks up from sessionStorage
   return Promise.resolve();
 }
 

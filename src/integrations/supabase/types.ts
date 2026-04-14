@@ -1545,6 +1545,7 @@ export type Database = {
       shot_final_videos: {
         Row: {
           created_at: string | null
+          duration_seconds: number | null
           id: string | null
           location: string | null
           params: Json | null

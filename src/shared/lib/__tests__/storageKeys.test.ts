@@ -18,6 +18,12 @@ describe('STORAGE_KEYS', () => {
     });
   });
 
+  describe('LAST_EDITED_LORA', () => {
+    it('returns project-scoped key', () => {
+      expect(STORAGE_KEYS.LAST_EDITED_LORA('proj-456')).toBe('last-edited-lora-proj-456');
+    });
+  });
+
   describe('global keys', () => {
     it('GLOBAL_LAST_ACTIVE_SHOT_SETTINGS is a static string', () => {
       expect(STORAGE_KEYS.GLOBAL_LAST_ACTIVE_SHOT_SETTINGS).toBe('global-last-active-shot-settings');

@@ -76,6 +76,32 @@ function makeStaleImageGroupData(): TimelineData {
   );
 }
 
+function makeImageGroupData(): TimelineData {
+  return makeTimelineData(
+    {
+      output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
+      tracks: [
+        { id: 'V1', kind: 'visual', label: 'V1' },
+      ],
+      clips: [
+        { id: 'clip-1', at: 0, track: 'V1', clipType: 'hold', hold: 2 },
+        { id: 'clip-2', at: 2, track: 'V1', clipType: 'hold', hold: 2 },
+      ],
+      pinnedShotGroups: [{
+        shotId: 'shot-1',
+        trackId: 'V1',
+        clipIds: ['clip-1', 'clip-2'],
+        mode: 'images',
+      }],
+    },
+    {
+      assets: {
+        'asset-final': { file: 'video-final.mp4', type: 'video/mp4', generationId: 'final-1' },
+      },
+    },
+  );
+}
+
 function makeStaleVideoGroupData(): TimelineData {
   return makeTimelineData(
     {
@@ -309,6 +335,74 @@ describe('shot-group-commands', () => {
         { clipId: 'clip-2', assetKey: undefined, start: 2, end: 4, meta: { clipType: 'hold', hold: 2 } },
       ],
     }]);
+  });
+
+  it('buildSwitchShotGroupToFinalVideoMutation clamps the video clip to a shorter known duration', () => {
+    const currentData = makeImageGroupData();
+
+    const mutation = buildSwitchShotGroupToFinalVideoMutation({
+      currentData,
+      shotId: 'shot-1',
+      rowId: 'V1',
+      clipIds: ['clip-1', 'clip-2'],
+      assetKey: 'asset-final',
+      durationSeconds: 1.5,
+    });
+
+    expect(mutation).not.toBeNull();
+    expect(mutation?.metaUpdates).toEqual({
+      'clip-3': {
+        asset: 'asset-final',
+        track: 'V1',
+        clipType: 'media',
+        from: 0,
+        to: 1.5,
+        speed: 1,
+        volume: 1,
+        opacity: 1,
+        x: undefined,
+        y: undefined,
+        width: undefined,
+        height: undefined,
+      },
+    });
+    expect(mutation?.rows).toEqual([
+      { id: 'V1', actions: [{ id: 'clip-3', start: 0, end: 1.5, effectId: 'effect-clip-3' }] },
+    ]);
+  });
+
+  it('buildSwitchShotGroupToFinalVideoMutation falls back to the image span when durationSeconds is null', () => {
+    const currentData = makeImageGroupData();
+
+    const mutation = buildSwitchShotGroupToFinalVideoMutation({
+      currentData,
+      shotId: 'shot-1',
+      rowId: 'V1',
+      clipIds: ['clip-1', 'clip-2'],
+      assetKey: 'asset-final',
+      durationSeconds: null,
+    });
+
+    expect(mutation).not.toBeNull();
+    expect(mutation?.metaUpdates).toEqual({
+      'clip-3': {
+        asset: 'asset-final',
+        track: 'V1',
+        clipType: 'media',
+        from: 0,
+        to: 4,
+        speed: 1,
+        volume: 1,
+        opacity: 1,
+        x: undefined,
+        y: undefined,
+        width: undefined,
+        height: undefined,
+      },
+    });
+    expect(mutation?.rows).toEqual([
+      { id: 'V1', actions: [{ id: 'clip-3', start: 0, end: 4, effectId: 'effect-clip-3' }] },
+    ]);
   });
 
   it('buildUpdateShotGroupToLatestVideoMutation self-heals a stale video group trackId in the output', () => {

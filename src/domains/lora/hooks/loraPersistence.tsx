@@ -16,7 +16,7 @@ interface LoraPersistenceManagerHandle {
   availableLoras: LoraModel[];
   handleAddLora: (lora: LoraModel, isManualAction?: boolean, initialStrength?: number) => void;
   handleRemoveLora: (loraId: string, isManualAction?: boolean) => void;
-  handleLoraStrengthChange: (loraId: string, strength: number) => void;
+  handleLoraStrengthChange: (loraId: string, strength: number, isManualAction?: boolean) => void;
   markAsUserSet: () => void;
   setHasEverSetLoras: React.Dispatch<React.SetStateAction<boolean>>;
 }
@@ -140,7 +140,7 @@ export function useLoraPersistence({
 
       savedLoras.forEach((savedLora) => {
         if (currentLoraIds.has(savedLora.id)) {
-          handleLoraStrengthChange(savedLora.id, savedLora.strength);
+          handleLoraStrengthChange(savedLora.id, savedLora.strength, false);
         }
       });
 

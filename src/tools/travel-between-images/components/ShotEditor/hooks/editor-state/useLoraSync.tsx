@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useLoraManager } from '@/domains/lora/hooks/useLoraManager';
 import type { LoraManagerState } from '@/domains/lora/types/loraManager';
 import { SETTINGS_IDS } from '@/shared/lib/settingsIds';
+import { normalizeAndPresentError } from '@/shared/lib/errorHandling/runtimeError';
+import { writeLastEditedLora } from '@/shared/lib/lastEditedLora';
 import type { ActiveLora, LoraModel } from '@/domains/lora/types/lora';
 import { ShotLora, type SelectedModel } from '@/tools/travel-between-images/settings';
 
@@ -59,10 +61,39 @@ export const useLoraSync = ({
     () => selectedLorasFromProps.map(toActiveLora),
     [selectedLorasFromProps],
   );
+  const strengthPersistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  console.log('[LoraSeedDebug][useLoraSync]', JSON.stringify({
+    projectId,
+    selectedLorasFromProps,
+    selectedLorasCount: selectedLoras.length,
+  }));
 
   const handleSelectedLorasChange = useCallback((loras: ActiveLora[]) => {
     onSelectedLorasChange(loras.map(toShotLora));
   }, [onSelectedLorasChange]);
+
+  const persistLastEditedLora = useCallback((lora: ActiveLora | null) => {
+    if (!projectId) {
+      return;
+    }
+
+    void writeLastEditedLora(projectId, lora).catch((error) => {
+      normalizeAndPresentError(error, {
+        context: 'useLoraSync.persistLastEditedLora',
+        showToast: false,
+        logData: { projectId, loraId: lora?.id ?? null },
+      });
+    });
+  }, [projectId]);
+
+  useEffect(() => {
+    return () => {
+      if (strengthPersistTimeoutRef.current) {
+        clearTimeout(strengthPersistTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Disable auto-load: shot settings are the source of truth for selected LoRAs.
   // Without this, the project persistence auto-load fights with intentional removal
@@ -77,6 +108,26 @@ export const useLoraSync = ({
     currentPrompt: batchVideoPrompt,
     selectedLoras,
     onSelectedLorasChange: handleSelectedLorasChange,
+    onExplicitLoraEdit: (event) => {
+      const target = event.kind === 'remove'
+        ? (event.current[event.current.length - 1] ?? null)
+        : event.lora;
+
+      if (strengthPersistTimeoutRef.current) {
+        clearTimeout(strengthPersistTimeoutRef.current);
+        strengthPersistTimeoutRef.current = null;
+      }
+
+      if (event.kind === 'strength') {
+        strengthPersistTimeoutRef.current = setTimeout(() => {
+          persistLastEditedLora(target);
+          strengthPersistTimeoutRef.current = null;
+        }, 500);
+        return;
+      }
+
+      persistLastEditedLora(target);
+    },
     disableAutoLoad: true,
   });
 

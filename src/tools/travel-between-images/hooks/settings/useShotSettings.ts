@@ -9,6 +9,7 @@ import {
   normalizeVideoTravelSettings,
 } from '../../settings';
 import { STORAGE_KEYS } from '@/shared/lib/storage/storageKeys';
+import { readLastEditedLoraFromLocalStorage, readLastEditedLoraFromProject } from '@/shared/lib/lastEditedLora';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { DEFAULT_STEERABLE_MOTION_SETTINGS } from '../../components/ShotEditor/state/types';
@@ -97,27 +98,103 @@ export const useShotSettings = (
     saveImmediate,
     revert,
   } = autoSave;
+  const seededLastEditedLoraShotIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    seededLastEditedLoraShotIdRef.current = null;
+  }, [shotId]);
 
   console.log('[ModeDebug][ShotSettings] shotId=%s status=%s hasShotSettings=%s generationMode=%s hasInherited=%s', shotId, status, hasShotSettings, settings?.generationMode ?? 'NOT SET', !!inheritedSettings);
+  console.log('[LoraSeedDebug][useShotSettings]', JSON.stringify({
+    shotId,
+    status,
+    hasShotSettings,
+    hasInherited: !!inheritedSettings,
+    inheritedLoras: inheritedSettings?.loras,
+    settingsLoras: settings?.loras,
+  }));
 
   // Save inherited settings to DB immediately if we have them
   // CRITICAL: Only save if the shot doesn't already have settings in DB
   // to prevent overwriting existing settings with inherited defaults
   // We use `hasShotSettings` from useToolSettings which checks at the DB level
+  // Apply inherited settings for a brand-new shot.
+  // We use `updateFields` (not `saveImmediate`) because the shared useToolSettings
+  // cascade returns the project-level fallback (often with `loras: []`) for shots
+  // without their own row, and useAutoSaveSettings spreads that fallback over our
+  // inherited defaults — wiping the seeded LoRA from UI state. `updateFields` marks
+  // the settings as pending-write, which causes the RQ loader to skip its overwrite
+  // and keep our inherited seed. It also triggers persistence.
+  // We fire as soon as possible (no status gate) so this happens before the RQ
+  // loader would otherwise overwrite state.
+  const appliedInheritedShotIdRef = useRef<string | null>(null);
   useEffect(() => {
-    // Only save inherited settings if:
-    // 1. We have inherited settings
-    // 2. Status is ready
-    // 3. DB did NOT have existing settings (hasShotSettings is false)
-    if (inheritedSettings && shotId && status === 'ready') {
-      if (!hasShotSettings) {
-        // Persist inherited settings immediately via the canonical auto-save boundary.
-        saveImmediate(inheritedSettings).catch(err => {
-          normalizeAndPresentError(err, { context: 'useShotSettings', showToast: false });
-        });
-      }
+    if (!inheritedSettings || !shotId || hasShotSettings) return;
+    if (appliedInheritedShotIdRef.current === shotId) return;
+    appliedInheritedShotIdRef.current = shotId;
+    try {
+      autoSaveUpdateFields(inheritedSettings);
+    } catch (err) {
+      appliedInheritedShotIdRef.current = null;
+      normalizeAndPresentError(err, { context: 'useShotSettings', showToast: false });
     }
-  }, [inheritedSettings, shotId, status, hasShotSettings, saveImmediate]);
+  }, [inheritedSettings, shotId, hasShotSettings, autoSaveUpdateFields]);
+
+  useEffect(() => {
+    appliedInheritedShotIdRef.current = null;
+  }, [shotId]);
+
+  useEffect(() => {
+    if (
+      !shotId
+      || status !== 'ready'
+      || hasShotSettings
+      || inheritedSettings
+      || !settings
+      || settings.loras.length > 0
+      || seededLastEditedLoraShotIdRef.current === shotId
+    ) {
+      return;
+    }
+
+    seededLastEditedLoraShotIdRef.current = shotId;
+    let cancelled = false;
+
+    const seedUnopenedShotLoras = async () => {
+      try {
+        const localLastEditedLora = readLastEditedLoraFromLocalStorage(projectId);
+        const lastEditedLora = localLastEditedLora === undefined
+          ? await readLastEditedLoraFromProject(projectId)
+          : localLastEditedLora;
+        if (cancelled) {
+          return;
+        }
+
+        // Only persist when we actually have a LoRA to seed. Saving an empty array
+        // here would lock `loras: []` into the shot's DB row and permanently wipe
+        // LoRAs for users who haven't set lastEditedLora yet.
+        if (!lastEditedLora) {
+          return;
+        }
+
+        await saveImmediate({
+          ...settings,
+          loras: [lastEditedLora],
+        });
+      } catch (err) {
+        seededLastEditedLoraShotIdRef.current = null;
+        if (!cancelled) {
+          normalizeAndPresentError(err, { context: 'useShotSettings.seedLastEditedLora', showToast: false });
+        }
+      }
+    };
+
+    void seedUnopenedShotLoras();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hasShotSettings, inheritedSettings, projectId, saveImmediate, settings, shotId, status]);
   
   // Persist settings to localStorage for future inheritance
   useEffect(() => {

@@ -17,6 +17,7 @@ export const useLoraManager = (
     shotId,
     selectedLoras: controlledSelectedLoras,
     onSelectedLorasChange,
+    onExplicitLoraEdit,
     persistenceScope = 'none',
     enableProjectPersistence = false,
     persistenceKey = 'loras',
@@ -106,11 +107,17 @@ export const useLoraManager = (
       isMultiStage,
     };
 
-    setSelectedLoras([...selectedLorasRef.current, newLora]);
+    const nextSelectedLoras = [...selectedLorasRef.current, newLora];
+    setSelectedLoras(nextSelectedLoras);
     if (isManualAction) {
       markAsUserSet();
+      onExplicitLoraEdit?.({
+        kind: 'add',
+        lora: newLora,
+        current: nextSelectedLoras,
+      });
     }
-  }, [markAsUserSet, setSelectedLoras]);
+  }, [markAsUserSet, onExplicitLoraEdit, setSelectedLoras]);
 
   const handleRemoveLora = useCallback((loraIdToRemove: string, isManualAction = true) => {
     const loraToRemove = selectedLorasRef.current.find((lora) => lora.id === loraIdToRemove);
@@ -118,20 +125,44 @@ export const useLoraManager = (
       return;
     }
 
-    setSelectedLoras(selectedLorasRef.current.filter((lora) => lora.id !== loraIdToRemove));
+    const nextSelectedLoras = selectedLorasRef.current.filter((lora) => lora.id !== loraIdToRemove);
+    setSelectedLoras(nextSelectedLoras);
     if (isManualAction) {
       markAsUserSet();
+      onExplicitLoraEdit?.({
+        kind: 'remove',
+        lora: loraToRemove,
+        current: nextSelectedLoras,
+      });
     }
-  }, [markAsUserSet, setSelectedLoras]);
+  }, [markAsUserSet, onExplicitLoraEdit, setSelectedLoras]);
 
-  const handleLoraStrengthChange = useCallback((loraId: string, newStrength: number) => {
-    setSelectedLoras(
-      selectedLorasRef.current.map((lora) => (
-        lora.id === loraId ? { ...lora, strength: newStrength } : lora
-      )),
-    );
-    markAsUserSet();
-  }, [markAsUserSet, setSelectedLoras]);
+  const handleLoraStrengthChange = useCallback((loraId: string, newStrength: number, isManualAction = true) => {
+    let updatedLora: ActiveLora | null = null;
+    const nextSelectedLoras = selectedLorasRef.current.map((lora) => {
+      if (lora.id !== loraId) {
+        return lora;
+      }
+
+      const nextLora: ActiveLora = { ...lora, strength: newStrength };
+      updatedLora = nextLora;
+      return nextLora;
+    });
+
+    if (!updatedLora) {
+      return;
+    }
+
+    setSelectedLoras(nextSelectedLoras);
+    if (isManualAction) {
+      markAsUserSet();
+      onExplicitLoraEdit?.({
+        kind: 'strength',
+        lora: updatedLora,
+        current: nextSelectedLoras,
+      });
+    }
+  }, [markAsUserSet, onExplicitLoraEdit, setSelectedLoras]);
 
   const handleAddTriggerWord = useCallback((triggerWord: string) => {
     if (!enableTriggerWords || !onPromptUpdate) {

@@ -1,11 +1,18 @@
 import type { ReactNode } from 'react';
 import type { ActiveLora, LoraModel } from './lora';
 
+export interface ExplicitLoraEditEvent {
+  kind: 'add' | 'remove' | 'strength';
+  lora: ActiveLora | null;
+  current: ActiveLora[];
+}
+
 export interface LoraManagerOptions {
   projectId?: string;
   shotId?: string;
   selectedLoras?: ActiveLora[];
   onSelectedLorasChange?: (loras: ActiveLora[]) => void;
+  onExplicitLoraEdit?: (event: ExplicitLoraEditEvent) => void;
   persistenceScope?: 'project' | 'shot' | 'none';
   enableProjectPersistence?: boolean;
   persistenceKey?: string;
@@ -21,8 +28,8 @@ export interface LoraManagerState {
   isLoraModalOpen: boolean;
   setIsLoraModalOpen: (open: boolean) => void;
   handleAddLora: (lora: LoraModel, isManualAction?: boolean, initialStrength?: number) => void;
-  handleRemoveLora: (loraId: string) => void;
-  handleLoraStrengthChange: (loraId: string, strength: number) => void;
+  handleRemoveLora: (loraId: string, isManualAction?: boolean) => void;
+  handleLoraStrengthChange: (loraId: string, strength: number, isManualAction?: boolean) => void;
   hasEverSetLoras: boolean;
   shouldApplyDefaults: boolean;
   markAsUserSet: () => void;

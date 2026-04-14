@@ -149,8 +149,63 @@ describe('useLoraPersistence', () => {
 
     expect(handleRemoveLora).toHaveBeenCalledWith('remove-lora', false);
     expect(handleAddLora).toHaveBeenCalledWith(availableLoras[0], false, 0.4);
-    expect(handleLoraStrengthChange).toHaveBeenCalledWith('keep-lora', 0.7);
+    expect(handleLoraStrengthChange).toHaveBeenCalledWith('keep-lora', 0.7, false);
     expect(markAsUserSet).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not emit explicit-edit callbacks when loading saved LoRAs', async () => {
+    const onExplicitLoraEdit = vi.fn();
+    const availableLoras = [
+      { 'Model ID': 'add-lora' } as unknown as LoraModel,
+    ];
+    const selectedLorasRef = {
+      current: [
+        { id: 'remove-lora', strength: 1 },
+        { id: 'keep-lora', strength: 0.2 },
+      ] as ActiveLora[],
+    };
+
+    const manager = createManager({
+      availableLoras,
+      selectedLorasRef,
+      handleAddLora: vi.fn((_lora, isManualAction = true) => {
+        if (isManualAction) {
+          onExplicitLoraEdit({ kind: 'add' });
+        }
+      }),
+      handleRemoveLora: vi.fn((_loraId, isManualAction = true) => {
+        if (isManualAction) {
+          onExplicitLoraEdit({ kind: 'remove' });
+        }
+      }),
+      handleLoraStrengthChange: vi.fn((_loraId, _strength, isManualAction = true) => {
+        if (isManualAction) {
+          onExplicitLoraEdit({ kind: 'strength' });
+        }
+      }),
+    });
+
+    mocks.useToolSettings.mockReturnValue({
+      settings: {
+        loras: [
+          { id: 'keep-lora', strength: 0.7 },
+          { id: 'add-lora', strength: 0.4 },
+        ],
+        hasEverSetLoras: true,
+      },
+      update: vi.fn().mockResolvedValue(undefined),
+      isUpdating: false,
+    });
+
+    const { result } = renderHook(() =>
+      useLoraPersistence(createBaseArgs({ manager })),
+    );
+
+    await act(async () => {
+      await result.current.handleLoadProjectLoras();
+    });
+
+    expect(onExplicitLoraEdit).not.toHaveBeenCalled();
   });
 
   it('returns null header actions when project persistence is disabled', () => {

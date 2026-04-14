@@ -2,26 +2,47 @@
 import { act, renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { useClipResize, type ClipEdgeResizeSession } from './useClipResize';
-import { applyClipEdgeMove, type ClipEdgeResizeContext } from '../lib/resize-math';
+import { resolveClipEdgeResizeContext } from './useClipResizeGesture.helpers';
+import { applyClipEdgeMove, type ClipEdgeResizeContext, type ResizeDir } from '../lib/resize-math';
 import { configToRows, type TimelineData } from '../lib/timeline-data';
 import { getConfigSignature, getStableConfigSignature } from '../lib/config-utils';
 import type { TimelineApplyEdit } from './timeline-state-types';
-import type { TimelineConfig } from '../types';
+import type { AssetRegistryEntry, TimelineConfig } from '../types';
 import type { TimelineAction, TimelineRow } from '../types/timeline-canvas';
+
+type FreeClipInput = {
+  id: string;
+  at: number;
+  hold?: number;
+  clipType?: 'hold' | 'media' | 'text' | 'effect-layer';
+  trackId?: string;
+  asset?: string;
+  from?: number;
+  to?: number;
+  speed?: number;
+};
 
 function makeData(opts: {
   groupClipIds: string[];
   groupMode?: 'images' | 'video';
-  freeClips?: Array<{ id: string; at: number; hold: number }>;
+  freeClips?: FreeClipInput[];
+  tracks?: NonNullable<TimelineConfig['tracks']>;
+  registryAssets?: Record<string, AssetRegistryEntry>;
 }): TimelineData {
-  const { groupClipIds, groupMode = 'images', freeClips = [] } = opts;
-
-  const config: TimelineConfig = {
-    output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
-    tracks: [
+  const {
+    groupClipIds,
+    groupMode = 'images',
+    freeClips = [],
+    tracks = [
       { id: 'V1', kind: 'visual', label: 'V1' },
       { id: 'V2', kind: 'visual', label: 'V2' },
     ],
+    registryAssets = {},
+  } = opts;
+
+  const config: TimelineConfig = {
+    output: { resolution: '1920x1080', fps: 30, file: 'out.mp4' },
+    tracks,
     clips: [
       ...groupClipIds.map((id, index) => ({
         id,
@@ -30,45 +51,109 @@ function makeData(opts: {
         clipType: 'hold' as const,
         hold: 1,
       })),
-      ...freeClips.map((clip) => ({
-        id: clip.id,
-        at: clip.at,
-        track: 'V2' as const,
-        clipType: 'hold' as const,
-        hold: clip.hold,
-      })),
+      ...freeClips.map((clip) => {
+        const clipType = clip.clipType ?? 'hold';
+        return {
+          id: clip.id,
+          at: clip.at,
+          track: clip.trackId ?? 'V2',
+          clipType,
+          ...(clipType === 'hold' ? { hold: clip.hold ?? 1 } : {}),
+          ...(clipType === 'media'
+            ? {
+                asset: clip.asset ?? 'asset-video',
+                from: clip.from ?? 0,
+                to: clip.to ?? 1,
+                speed: clip.speed ?? 1,
+              }
+            : {}),
+          ...(clipType === 'text'
+            ? {
+                hold: clip.hold ?? 1,
+                text: { content: 'Text clip' },
+              }
+            : {}),
+          ...(clipType === 'effect-layer' ? { hold: clip.hold ?? 1 } : {}),
+        };
+      }),
     ],
-    pinnedShotGroups: [
-      {
-        shotId: 'shot-1',
-        trackId: 'V1',
-        clipIds: [...groupClipIds],
-        mode: groupMode,
-      },
-    ],
+    pinnedShotGroups: groupClipIds.length > 0
+      ? [
+          {
+            shotId: 'shot-1',
+            trackId: 'V1',
+            clipIds: [...groupClipIds],
+            mode: groupMode,
+          },
+        ]
+      : undefined,
   };
 
   const rowData = configToRows(config);
   const resolvedConfig = {
     output: { ...config.output },
     tracks: (config.tracks ?? []).map((track) => ({ ...track })),
-    clips: config.clips.map((clip) => ({ ...clip, assetEntry: undefined })),
-    registry: {},
+    clips: config.clips.map((clip) => ({
+      ...clip,
+      assetEntry: clip.asset
+        ? {
+            ...registryAssets[clip.asset],
+            src: registryAssets[clip.asset]?.file ?? '',
+          }
+        : undefined,
+    })),
+    registry: Object.fromEntries(
+      Object.entries(registryAssets).map(([assetId, entry]) => [
+        assetId,
+        { ...entry, src: entry.file },
+      ]),
+    ),
   };
   return {
     config,
     configVersion: 1,
-    registry: { assets: {} },
+    registry: { assets: registryAssets },
     resolvedConfig,
     rows: rowData.rows,
     meta: rowData.meta,
     effects: rowData.effects,
-    assetMap: {},
+    assetMap: Object.fromEntries(Object.entries(registryAssets).map(([assetId, entry]) => [assetId, entry.file])),
     output: { ...config.output },
     tracks: (config.tracks ?? []).map((track) => ({ ...track })),
     clipOrder: rowData.clipOrder,
     signature: getConfigSignature(resolvedConfig),
     stableSignature: getStableConfigSignature(config, { assets: {} }),
+  };
+}
+
+function buildResolvedFreeSession(
+  data: TimelineData,
+  rowId: string,
+  clipId: string,
+  edge: ResizeDir,
+): ClipEdgeResizeSession {
+  const resolved = resolveClipEdgeResizeContext(
+    data.rows,
+    [],
+    {},
+    rowId,
+    clipId,
+    edge,
+    { current: data },
+  );
+  if (!resolved) {
+    throw new Error(`expected resize context for ${clipId}`);
+  }
+
+  return {
+    pointerId: 1,
+    rowId,
+    clipId,
+    edge,
+    cursorOffsetPx: 0,
+    initialBoundaryTime: resolved.initialBoundaryTime,
+    context: resolved.context,
+    siblingTimes: resolved.siblingTimes,
   };
 }
 
@@ -194,6 +279,160 @@ describe('useClipResize — unified clip-edge commit path', () => {
 
     expect(mutation.metaUpdates?.['free-1']).toMatchObject({ hold: expect.closeTo(2.5, 5) });
     expectRowBounds(mutation.rows, 'V2', 'free-1', { start: 5, end: 7.5 });
+  });
+
+  it('clamps visual-track video resize to the asset duration', () => {
+    const data = makeData({
+      groupClipIds: [],
+      freeClips: [{
+        id: 'video-1',
+        at: 5,
+        clipType: 'media',
+        asset: 'asset-video',
+        from: 1,
+        to: 2,
+        speed: 1,
+      }],
+      registryAssets: {
+        'asset-video': { file: 'video.mp4', type: 'video/mp4', duration: 4 },
+      },
+    });
+    const dataRef = { current: data };
+    const applyEdit = vi.fn<Parameters<TimelineApplyEdit>>();
+
+    const { result } = renderHook(() => useClipResize({ dataRef, applyEdit }));
+    const row = getRow(data.rows, 'V2');
+    const action = getAction(data.rows, 'V2', 'video-1');
+    const session = buildResolvedFreeSession(data, 'V2', 'video-1', 'right');
+
+    act(() => {
+      result.current.onActionResizeStart({ action, row, dir: 'right' });
+    });
+    act(() => {
+      result.current.onClipEdgeResizeEnd({
+        session,
+        updates: applyClipEdgeMove(session.context, session.edge, 20).updates,
+        cancelled: false,
+      });
+    });
+
+    expect(applyEdit).toHaveBeenCalledOnce();
+    const [mutation] = applyEdit.mock.calls[0];
+    if (mutation.type !== 'rows') {
+      throw new Error('expected rows mutation');
+    }
+
+    expectRowBounds(mutation.rows, 'V2', 'video-1', { start: 5, end: 8 });
+  });
+
+  it('does not clamp visual-track video resize when asset duration is unknown', () => {
+    const data = makeData({
+      groupClipIds: [],
+      freeClips: [{
+        id: 'video-1',
+        at: 5,
+        clipType: 'media',
+        asset: 'asset-video',
+        from: 0,
+        to: 1,
+        speed: 1,
+      }],
+      registryAssets: {
+        'asset-video': { file: 'video.mp4', type: 'video/mp4' },
+      },
+    });
+    const dataRef = { current: data };
+    const applyEdit = vi.fn<Parameters<TimelineApplyEdit>>();
+
+    const { result } = renderHook(() => useClipResize({ dataRef, applyEdit }));
+    const row = getRow(data.rows, 'V2');
+    const action = getAction(data.rows, 'V2', 'video-1');
+    const session = buildResolvedFreeSession(data, 'V2', 'video-1', 'right');
+
+    act(() => {
+      result.current.onActionResizeStart({ action, row, dir: 'right' });
+    });
+    act(() => {
+      result.current.onClipEdgeResizeEnd({
+        session,
+        updates: applyClipEdgeMove(session.context, session.edge, 20).updates,
+        cancelled: false,
+      });
+    });
+
+    expect(applyEdit).toHaveBeenCalledOnce();
+    const [mutation] = applyEdit.mock.calls[0];
+    if (mutation.type !== 'rows') {
+      throw new Error('expected rows mutation');
+    }
+
+    expectRowBounds(mutation.rows, 'V2', 'video-1', { start: 5, end: 20 });
+  });
+
+  it('does not clamp text clips on visual tracks', () => {
+    const data = makeData({
+      groupClipIds: [],
+      freeClips: [{ id: 'text-1', at: 5, clipType: 'text', hold: 1 }],
+    });
+    const dataRef = { current: data };
+    const applyEdit = vi.fn<Parameters<TimelineApplyEdit>>();
+
+    const { result } = renderHook(() => useClipResize({ dataRef, applyEdit }));
+    const row = getRow(data.rows, 'V2');
+    const action = getAction(data.rows, 'V2', 'text-1');
+    const session = buildResolvedFreeSession(data, 'V2', 'text-1', 'right');
+
+    act(() => {
+      result.current.onActionResizeStart({ action, row, dir: 'right' });
+    });
+    act(() => {
+      result.current.onClipEdgeResizeEnd({
+        session,
+        updates: applyClipEdgeMove(session.context, session.edge, 20).updates,
+        cancelled: false,
+      });
+    });
+
+    expect(applyEdit).toHaveBeenCalledOnce();
+    const [mutation] = applyEdit.mock.calls[0];
+    if (mutation.type !== 'rows') {
+      throw new Error('expected rows mutation');
+    }
+
+    expectRowBounds(mutation.rows, 'V2', 'text-1', { start: 5, end: 20 });
+  });
+
+  it('does not clamp effect-layer clips on visual tracks', () => {
+    const data = makeData({
+      groupClipIds: [],
+      freeClips: [{ id: 'effect-1', at: 5, clipType: 'effect-layer', hold: 1 }],
+    });
+    const dataRef = { current: data };
+    const applyEdit = vi.fn<Parameters<TimelineApplyEdit>>();
+
+    const { result } = renderHook(() => useClipResize({ dataRef, applyEdit }));
+    const row = getRow(data.rows, 'V2');
+    const action = getAction(data.rows, 'V2', 'effect-1');
+    const session = buildResolvedFreeSession(data, 'V2', 'effect-1', 'right');
+
+    act(() => {
+      result.current.onActionResizeStart({ action, row, dir: 'right' });
+    });
+    act(() => {
+      result.current.onClipEdgeResizeEnd({
+        session,
+        updates: applyClipEdgeMove(session.context, session.edge, 20).updates,
+        cancelled: false,
+      });
+    });
+
+    expect(applyEdit).toHaveBeenCalledOnce();
+    const [mutation] = applyEdit.mock.calls[0];
+    if (mutation.type !== 'rows') {
+      throw new Error('expected rows mutation');
+    }
+
+    expectRowBounds(mutation.rows, 'V2', 'effect-1', { start: 5, end: 20 });
   });
 
   it('commits group left-edge resize on first clip, shifting nothing before it', () => {

@@ -40,10 +40,9 @@ interface ResizeUpdateDeps {
 
 const clamp = (value: number, min: number, max: number): number => Math.min(max, Math.max(min, value));
 
-const getAudioResizeLimits = (
+const getMediaResizeLimits = (
   data: TimelineData | null,
   action: TimelineAction,
-  row: TimelineRow,
   dir: ResizeDir,
 ): Pick<FreeClipEdgeResizeContext, 'minStart' | 'maxEnd'> => {
   if (!data?.meta || !data?.tracks) {
@@ -55,9 +54,7 @@ const getAudioResizeLimits = (
     return {};
   }
 
-  const trackKind = data.tracks.find((track) => track.id === row.id)?.kind
-    ?? data.tracks.find((track) => track.id === clipMeta.track)?.kind;
-  if (trackKind !== 'audio') {
+  if (clipMeta.clipType !== 'media') {
     return {};
   }
 
@@ -276,28 +273,6 @@ export const resolveClipEdgeResizeContext = (
     return null;
   }
 
-  const positionedShotGroups = shotGroups.flatMap((group) => {
-    const groupRow = rows[group.rowIndex];
-    if (!groupRow || groupRow.id !== group.rowId) {
-      return [];
-    }
-
-    const lastChild = group.children[group.children.length - 1];
-    if (!lastChild) {
-      return [];
-    }
-
-    const groupKey = getGroupPreviewKey(group.shotId, group.rowId);
-    const preview = resizePreviewSnapshot[groupKey];
-    return [{
-      shotId: group.shotId,
-      rowId: group.rowId,
-      clipIds: group.clipIds,
-      start: preview?.start ?? group.start,
-      end: preview?.end ?? (group.start + lastChild.offset + lastChild.duration),
-    }];
-  });
-
   const groupForAction = shotGroups.find((candidate) => (
     candidate.rowId === rowId && candidate.clipIds.includes(clipId)
   ));
@@ -334,7 +309,7 @@ export const resolveClipEdgeResizeContext = (
       clipId: action.id,
       initialStart: action.start,
       initialEnd: action.end,
-      ...getAudioResizeLimits(dataRef.current, action, row, edge),
+      ...getMediaResizeLimits(dataRef.current, action, edge),
     },
   };
 };

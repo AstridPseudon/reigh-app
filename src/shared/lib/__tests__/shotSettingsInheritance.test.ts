@@ -1,13 +1,23 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { mockSupabase } = vi.hoisted(() => {
+const {
+  mockSupabase,
+  mockReadLastEditedLoraFromLocalStorage,
+  mockReadLastEditedLoraFromProject,
+} = vi.hoisted(() => {
   const mockSupabase = {
     from: vi.fn().mockReturnThis(),
     select: vi.fn().mockReturnThis(),
     eq: vi.fn().mockReturnThis(),
     single: vi.fn().mockResolvedValue({ data: null }),
   };
-  return { mockSupabase };
+  const mockReadLastEditedLoraFromLocalStorage = vi.fn();
+  const mockReadLastEditedLoraFromProject = vi.fn();
+  return {
+    mockSupabase,
+    mockReadLastEditedLoraFromLocalStorage,
+    mockReadLastEditedLoraFromProject,
+  };
 });
 
 vi.mock('@/integrations/supabase/client', () => ({
@@ -18,6 +28,7 @@ vi.mock('@/shared/lib/storage/storageKeys', () => ({
   STORAGE_KEYS: {
     LAST_ACTIVE_SHOT_SETTINGS: (projectId: string) => `last-active-shot-settings-${projectId}`,
     LAST_ACTIVE_UI_SETTINGS: (projectId: string) => `last-active-ui-settings-${projectId}`,
+    LAST_EDITED_LORA: (projectId: string) => `last-edited-lora-${projectId}`,
     LAST_ACTIVE_JOIN_SEGMENTS_SETTINGS: (projectId: string) => `last-active-join-segments-${projectId}`,
     GLOBAL_LAST_ACTIVE_SHOT_SETTINGS: 'global-last-active-shot-settings',
     GLOBAL_LAST_ACTIVE_JOIN_SEGMENTS_SETTINGS: 'global-last-active-join-segments',
@@ -30,6 +41,11 @@ vi.mock('@/shared/lib/tooling/toolIds', () => ({
   TOOL_IDS: {
     TRAVEL_BETWEEN_IMAGES: 'travel-between-images',
   },
+}));
+
+vi.mock('@/shared/lib/lastEditedLora', () => ({
+  readLastEditedLoraFromLocalStorage: (...args: unknown[]) => mockReadLastEditedLoraFromLocalStorage(...args),
+  readLastEditedLoraFromProject: (...args: unknown[]) => mockReadLastEditedLoraFromProject(...args),
 }));
 
 import { inheritSettingsForNewShot } from '../shotSettingsInheritance';
@@ -50,6 +66,8 @@ describe('inheritSettingsForNewShot', () => {
     mockSupabase.select.mockReturnThis();
     mockSupabase.eq.mockReturnThis();
     mockSupabase.single.mockResolvedValue({ data: null });
+    mockReadLastEditedLoraFromLocalStorage.mockReturnValue(undefined);
+    mockReadLastEditedLoraFromProject.mockResolvedValue(undefined);
   });
 
   it('inherits from localStorage when available', async () => {
@@ -67,6 +85,7 @@ describe('inheritSettingsForNewShot', () => {
     expect(parsed.model_name).toBe('local-model');
     expect(parsed.prompt).toBe(''); // Prompts always cleared
     expect(parsed.pairConfigs).toEqual([]);
+    expect(parsed.loras).toEqual([]);
   });
 
   it('falls back to latest shot from shots array', async () => {
@@ -99,6 +118,7 @@ describe('inheritSettingsForNewShot', () => {
     const parsed = parseStored<Record<string, unknown>>(stored);
     expect(parsed.model_name).toBe('recent-model');
     expect(parsed.prompt).toBe('');
+    expect(parsed.loras).toEqual([]);
   });
 
   it('falls back to project DB settings when nothing else available', async () => {
@@ -118,6 +138,7 @@ describe('inheritSettingsForNewShot', () => {
     const stored = sessionStorage.getItem('apply-project-defaults-shot-new');
     const parsed = parseStored<Record<string, unknown>>(stored);
     expect(parsed.model_name).toBe('project-model');
+    expect(parsed.loras).toEqual([]);
   });
 
   it('does not write to sessionStorage when no settings found', async () => {
@@ -161,5 +182,91 @@ describe('inheritSettingsForNewShot', () => {
     expect(parsed.contextFrameCount).toBe(20);
     expect(parsed.prompt).toBe(''); // Prompts cleared
     expect(parsed.negativePrompt).toBe('');
+  });
+
+  it('seeds a single lastEditedLora from project fallback even when main settings came from localStorage', async () => {
+    const mainSettings = {
+      model_name: 'local-model',
+      loras: [
+        { id: 'old-a', name: 'Old A', path: 'old-a.safetensors', strength: 0.4 },
+        { id: 'old-b', name: 'Old B', path: 'old-b.safetensors', strength: 0.8 },
+      ],
+    };
+    mockReadLastEditedLoraFromProject.mockResolvedValue({
+      id: 'edited-lora',
+      name: 'Edited LoRA',
+      path: 'edited.safetensors',
+      strength: 0.6,
+    });
+    localStorage.setItem('last-active-shot-settings-project-1', JSON.stringify(mainSettings));
+
+    await inheritSettingsForNewShot({
+      newShotId: 'shot-new',
+      projectId: 'project-1',
+    });
+
+    const stored = sessionStorage.getItem('apply-project-defaults-shot-new');
+    const parsed = parseStored<Record<string, unknown>>(stored);
+    expect(parsed.loras).toEqual([{
+      id: 'edited-lora',
+      name: 'Edited LoRA',
+      path: 'edited.safetensors',
+      strength: 0.6,
+    }]);
+  });
+
+  it('seeds a single lastEditedLora from localStorage as a one-element array', async () => {
+    mockReadLastEditedLoraFromLocalStorage.mockReturnValue({
+      id: 'edited-lora',
+      name: 'Edited LoRA',
+      path: 'edited.safetensors',
+      strength: 0.6,
+    });
+    localStorage.setItem('last-active-shot-settings-project-1', JSON.stringify({
+      model_name: 'local-model',
+      loras: [
+        { id: 'old-a', name: 'Old A', path: 'old-a.safetensors', strength: 0.4 },
+        { id: 'old-b', name: 'Old B', path: 'old-b.safetensors', strength: 0.8 },
+      ],
+    }));
+
+    await inheritSettingsForNewShot({
+      newShotId: 'shot-new',
+      projectId: 'project-1',
+    });
+
+    const stored = sessionStorage.getItem('apply-project-defaults-shot-new');
+    const parsed = parseStored<Record<string, unknown>>(stored);
+    expect(parsed.loras).toEqual([{
+      id: 'edited-lora',
+      name: 'Edited LoRA',
+      path: 'edited.safetensors',
+      strength: 0.6,
+    }]);
+  });
+
+  it('soft-migrates to the first previous-shot lora when lastEditedLora is absent', async () => {
+    const mainSettings = {
+      model_name: 'local-model',
+      loras: [
+        { id: 'first-lora', name: 'First LoRA', path: 'first.safetensors', strength: 0.3 },
+        { id: 'second-lora', name: 'Second LoRA', path: 'second.safetensors', strength: 0.9 },
+      ],
+    };
+    localStorage.setItem('last-active-shot-settings-project-1', JSON.stringify(mainSettings));
+
+    await inheritSettingsForNewShot({
+      newShotId: 'shot-new',
+      projectId: 'project-1',
+    });
+
+    const stored = sessionStorage.getItem('apply-project-defaults-shot-new');
+    const parsed = parseStored<Record<string, unknown>>(stored);
+    expect(parsed.loras).toEqual([{
+      id: 'first-lora',
+      name: 'First LoRA',
+      path: 'first.safetensors',
+      strength: 0.3,
+    }]);
   });
 });
