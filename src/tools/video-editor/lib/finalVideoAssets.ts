@@ -1,4 +1,5 @@
 import { extractVideoMetadataFromUrl } from '@/shared/lib/media/videoMetadata';
+import { asRecord } from '@/shared/lib/jsonNarrowing';
 import type { AssetRegistryEntry } from '@/tools/video-editor/types';
 
 export interface FinalVideoAssetSource {
@@ -9,7 +10,70 @@ export interface FinalVideoAssetSource {
 }
 
 function readPositiveNumber(value: unknown): number | null {
-  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const parsed = Number(value);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+
+  return null;
+}
+
+function readDurationFromRecord(record: Record<string, unknown> | null | undefined): number | null {
+  if (!record) {
+    return null;
+  }
+
+  const directDuration = readPositiveNumber(record.duration_seconds)
+    ?? readPositiveNumber(record.trimmed_duration)
+    ?? readPositiveNumber(record.duration)
+    ?? readPositiveNumber(record.video_duration)
+    ?? readPositiveNumber(record.original_duration);
+  if (directDuration !== null) {
+    return directDuration;
+  }
+
+  const totalFrames = readPositiveNumber(record.total_frames);
+  const frameRate = readPositiveNumber(record.frame_rate) ?? readPositiveNumber(record.fps);
+  if (totalFrames !== null && frameRate !== null) {
+    return totalFrames / frameRate;
+  }
+
+  return null;
+}
+
+export function getDurationSecondsFromFinalVideoParams(params: unknown): number | null {
+  const root = asRecord(params);
+  if (!root) {
+    return null;
+  }
+
+  const recordsToCheck = [
+    root,
+    asRecord(root.metadata),
+    asRecord(root.orchestrator_details),
+    asRecord(asRecord(root.orchestrator_details)?.metadata),
+    asRecord(root.full_orchestrator_payload),
+    asRecord(asRecord(root.full_orchestrator_payload)?.metadata),
+    asRecord(root.originalParams),
+    asRecord(asRecord(root.originalParams)?.metadata),
+    asRecord(asRecord(root.originalParams)?.orchestrator_details),
+    asRecord(asRecord(asRecord(root.originalParams)?.orchestrator_details)?.metadata),
+  ];
+
+  for (const record of recordsToCheck) {
+    const durationSeconds = readDurationFromRecord(record);
+    if (durationSeconds !== null) {
+      return durationSeconds;
+    }
+  }
+
+  return null;
 }
 
 export function getKnownFinalVideoDurationSeconds(

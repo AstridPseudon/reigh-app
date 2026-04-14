@@ -9,12 +9,14 @@ import { useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getSupabaseClient as supabase } from '@/integrations/supabase/client';
 import { finalVideoQueryKeys } from '@/shared/lib/queryKeys/finalVideos';
+import { getDurationSecondsFromFinalVideoParams } from '@/tools/video-editor/lib/finalVideoAssets';
 
 export interface ShotFinalVideo {
   id: string;
   location: string;
   thumbnailUrl: string | null;
   variantFetchGenerationId: string | null;
+  durationSeconds?: number | null;
 }
 
 export function useShotFinalVideos(projectId: string | null) {
@@ -22,7 +24,7 @@ export function useShotFinalVideos(projectId: string | null) {
     queryKey: finalVideoQueryKeys.byProject(projectId!),
     queryFn: async () => {
       const { data, error } = await supabase().from('shot_final_videos')
-        .select('id, location, thumbnail_url, shot_id, created_at, variant_fetch_generation_id')
+        .select('id, location, thumbnail_url, shot_id, created_at, variant_fetch_generation_id, params')
         .eq('project_id', projectId!)
         .not('location', 'is', null)
         .order('created_at', { ascending: false });
@@ -58,6 +60,9 @@ export function useShotFinalVideos(projectId: string | null) {
             typeof (row as Record<string, unknown>).variant_fetch_generation_id === 'string'
               ? (row as Record<string, unknown>).variant_fetch_generation_id as string
               : null,
+          durationSeconds: getDurationSecondsFromFinalVideoParams(
+            (row as Record<string, unknown>).params,
+          ),
         });
       }
     }
