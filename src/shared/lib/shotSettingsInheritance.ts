@@ -183,20 +183,9 @@ async function getInheritedSettings(
     }
   }
 
-  const lastEditedLoraFromLocal = lastEditedLora;
   if (lastEditedLora === undefined) {
     lastEditedLora = await readLastEditedLoraFromProject(projectId);
   }
-
-  console.log('[LoraSeedDebug][getInheritedSettings]', JSON.stringify({
-    projectId,
-    newShotId: params.newShotId,
-    lastEditedLora_fromLocalStorage: lastEditedLoraFromLocal,
-    lastEditedLora_final: lastEditedLora,
-    mainSettings_loras: (mainSettings as { loras?: unknown } | null)?.loras,
-    mainSettings_keys: mainSettings ? Object.keys(mainSettings) : null,
-    shotsCount: params.shots?.length ?? 0,
-  }));
 
   return {
     mainSettings,
@@ -220,16 +209,6 @@ function applyInheritedSettings(
   const { loras: _ignoredInheritedLoras, ...mainSettingsWithoutLoras } = mainSettings ?? {};
   const seedLora = getSeedLora(mainSettings, lastEditedLora);
 
-  console.log('[LoraSeedDebug][applyInheritedSettings]', JSON.stringify({
-    newShotId,
-    hasMainSettings: !!mainSettings,
-    hasUiSettings: !!uiSettings,
-    lastEditedLora,
-    inheritedLoras: _ignoredInheritedLoras,
-    seedLora,
-    willSeedLoras: seedLora ? [seedLora] : [],
-  }));
-
   // Save main settings to sessionStorage for useShotSettings to pick up
   if (mainSettings || uiSettings) {
     const defaultsToApply = {
@@ -244,12 +223,6 @@ function applyInheritedSettings(
     };
     const storageKey = STORAGE_KEYS.APPLY_PROJECT_DEFAULTS(newShotId);
     sessionStorage.setItem(storageKey, JSON.stringify(defaultsToApply));
-    console.log('[LoraSeedDebug][applyInheritedSettings] sessionStorage written', JSON.stringify({
-      storageKey,
-      lorasInPayload: defaultsToApply.loras,
-    }));
-  } else {
-    console.log('[LoraSeedDebug][applyInheritedSettings] no mainSettings/uiSettings → sessionStorage NOT written', JSON.stringify({ newShotId }));
   }
   
   // Save Join Segments settings to sessionStorage for useJoinSegmentsSettings to pick up

@@ -63,12 +63,6 @@ export const useLoraSync = ({
   );
   const strengthPersistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  console.log('[LoraSeedDebug][useLoraSync]', JSON.stringify({
-    projectId,
-    selectedLorasFromProps,
-    selectedLorasCount: selectedLoras.length,
-  }));
-
   const handleSelectedLorasChange = useCallback((loras: ActiveLora[]) => {
     onSelectedLorasChange(loras.map(toShotLora));
   }, [onSelectedLorasChange]);

@@ -105,14 +105,6 @@ export const useShotSettings = (
   }, [shotId]);
 
   console.log('[ModeDebug][ShotSettings] shotId=%s status=%s hasShotSettings=%s generationMode=%s hasInherited=%s', shotId, status, hasShotSettings, settings?.generationMode ?? 'NOT SET', !!inheritedSettings);
-  console.log('[LoraSeedDebug][useShotSettings]', JSON.stringify({
-    shotId,
-    status,
-    hasShotSettings,
-    hasInherited: !!inheritedSettings,
-    inheritedLoras: inheritedSettings?.loras,
-    settingsLoras: settings?.loras,
-  }));
 
   // Save inherited settings to DB immediately if we have them
   // CRITICAL: Only save if the shot doesn't already have settings in DB
