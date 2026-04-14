@@ -34,6 +34,8 @@ interface ClipActionProps {
   onExpandTinyClip?: (clipId: string) => void;
   onSplitHere?: (clipId: string, clientX: number) => void;
   onSplitClipsAtPlayhead?: (clipIds: string[]) => void;
+  onTrimToMediaEnd?: (clipId: string) => void;
+  onConvertOverhangToHold?: (clipId: string) => void;
   onDeleteClip?: (clipId: string) => void;
   onDeleteClips?: (clipIds: string[]) => void;
   onToggleMuteClips?: (clipIds: string[]) => void;
@@ -55,13 +57,15 @@ interface ClipActionProps {
   onNavigateToShot?: (shot: Shot) => void;
   onOpenGenerateVideo?: (shot: Shot) => void;
   isCreatingShot?: boolean;
+  overhangDurationSeconds?: number;
+  overhangEndFraction?: number;
 }
 
 const menuItemClassName = 'relative flex w-full cursor-default select-none items-center gap-2 rounded-sm px-2 py-1.5 text-sm outline-none transition-colors hover:bg-accent hover:text-accent-foreground';
 const destructiveMenuItemClassName = `${menuItemClassName} hover:bg-destructive hover:text-destructive-foreground`;
 const disabledMenuItemClassName = 'disabled:cursor-wait disabled:opacity-60';
 
-type ClipContextMenuProps = Pick<ClipActionProps, 'isGenerationAsset' | 'isDuplicatingGeneration' | 'onDuplicateGeneration' | 'onUpdateVariant' | 'isVariantStale' | 'onDismissStale' | 'onSplitHere' | 'onToggleMuteClips' | 'onSplitClipsAtPlayhead' | 'onCreateShotFromSelection' | 'onGenerateVideoFromSelection' | 'onNavigateToShot' | 'onOpenGenerateVideo' | 'isCreatingShot' | 'onDeleteClip' | 'onDeleteClips' | 'isInPinnedShotGroup'> & { actionId: string; contextMenu: ContextMenuState; menuRef: React.RefObject<HTMLDivElement>; closeMenu: () => void; hasBatchSelection: boolean; selectedClipIds: string[]; showShotActions: boolean; hasActionsBeforeShotSection: boolean; existingShots?: Shot[]; };
+type ClipContextMenuProps = Pick<ClipActionProps, 'isGenerationAsset' | 'isDuplicatingGeneration' | 'onDuplicateGeneration' | 'onUpdateVariant' | 'isVariantStale' | 'onDismissStale' | 'onSplitHere' | 'onSplitClipsAtPlayhead' | 'onTrimToMediaEnd' | 'onConvertOverhangToHold' | 'overhangDurationSeconds' | 'onToggleMuteClips' | 'onCreateShotFromSelection' | 'onGenerateVideoFromSelection' | 'onNavigateToShot' | 'onOpenGenerateVideo' | 'isCreatingShot' | 'onDeleteClip' | 'onDeleteClips' | 'isInPinnedShotGroup'> & { actionId: string; contextMenu: ContextMenuState; menuRef: React.RefObject<HTMLDivElement>; closeMenu: () => void; hasBatchSelection: boolean; selectedClipIds: string[]; showShotActions: boolean; hasActionsBeforeShotSection: boolean; existingShots?: Shot[]; };
 type ClipContextMenuItemProps = { icon: React.ComponentType<{ className?: string }>; onClick: () => void; children: React.ReactNode; disabled?: boolean; destructive?: boolean; suffix?: React.ReactNode; };
 
 function ClipContextMenuItem({ icon: Icon, onClick, children, disabled = false, destructive = false, suffix }: ClipContextMenuItemProps) {
@@ -141,11 +145,16 @@ function ClipContextMenu(props: ClipContextMenuProps) {
 
   const pos = adjusted ?? props.contextMenu;
   const visibleExistingShots = (props.existingShots ?? []).filter((shot) => shot.id !== createdShot?.id);
+  const hasOverhang = typeof props.overhangDurationSeconds === 'number' && props.overhangDurationSeconds > 0.0001;
   const hasAssetStateActions = !props.hasBatchSelection && Boolean(
     (!props.isInPinnedShotGroup && props.isGenerationAsset && props.onDuplicateGeneration)
     || (props.isGenerationAsset && props.onUpdateVariant)
     || (props.isVariantStale && props.onDismissStale),
   );
+  const hasOverhangActions = !props.hasBatchSelection && hasOverhang && Boolean(
+    props.onTrimToMediaEnd || props.onConvertOverhangToHold,
+  );
+  const showOverhangDivider = hasAssetStateActions && hasOverhangActions;
   const hasGenerationActions = !props.hasBatchSelection && Boolean(
     !props.isInPinnedShotGroup && props.isGenerationAsset && (
       props.onDuplicateGeneration || props.onUpdateVariant
@@ -184,8 +193,18 @@ function ClipContextMenu(props: ClipContextMenuProps) {
           Dismiss reminder
         </ClipContextMenuItem>
       )}
-      {hasAssetStateActions && !props.isInPinnedShotGroup && (
+      {showOverhangDivider && (
         <div className="my-1 h-px bg-border" />
+      )}
+      {!props.hasBatchSelection && hasOverhang && props.onTrimToMediaEnd && (
+        <ClipContextMenuItem icon={Scissors} onClick={() => { props.onTrimToMediaEnd?.(props.actionId); props.closeMenu(); }}>
+          Trim to media end
+        </ClipContextMenuItem>
+      )}
+      {!props.hasBatchSelection && hasOverhang && props.onConvertOverhangToHold && (
+        <ClipContextMenuItem icon={Film} onClick={() => { props.onConvertOverhangToHold?.(props.actionId); props.closeMenu(); }}>
+          Hold last frame
+        </ClipContextMenuItem>
       )}
       {!props.isInPinnedShotGroup && (
         <>
@@ -283,6 +302,8 @@ function ClipActionComponent({
   onExpandTinyClip,
   onSplitHere,
   onSplitClipsAtPlayhead,
+  onTrimToMediaEnd,
+  onConvertOverhangToHold,
   onDeleteClip,
   onDeleteClips,
   onToggleMuteClips,
@@ -304,6 +325,8 @@ function ClipActionComponent({
   isCreatingShot = false,
   audioSrc,
   clipWidth,
+  overhangDurationSeconds,
+  overhangEndFraction,
 }: ClipActionProps) {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -357,11 +380,19 @@ function ClipActionComponent({
         ? <Film className="h-3 w-3" />
         : <ImageIcon className="h-3 w-3" />;
   const hasBatchSelection = isSelected && selectedClipIds.length > 1;
-  const hasPinnedShotGroupAssetActions = !hasBatchSelection && Boolean(
-    (isGenerationAsset && onUpdateVariant)
-    || (isVariantStale && onDismissStale),
+  const hasOverhang = typeof overhangDurationSeconds === 'number'
+    && overhangDurationSeconds > 0.0001
+    && typeof overhangEndFraction === 'number'
+    && overhangEndFraction >= 0
+    && overhangEndFraction < 0.9999;
+  const hasPinnedShotGroupContextActions = !hasBatchSelection && (
+    Boolean(
+      (isGenerationAsset && onUpdateVariant)
+      || (isVariantStale && onDismissStale),
+    )
+    || (hasOverhang && Boolean(onTrimToMediaEnd || onConvertOverhangToHold))
   );
-  const canOpenContextMenu = !isInPinnedShotGroup || hasPinnedShotGroupAssetActions;
+  const canOpenContextMenu = !isInPinnedShotGroup || hasPinnedShotGroupContextActions;
   const handleContextMenu = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -378,6 +409,8 @@ function ClipActionComponent({
     (!hasBatchSelection && isGenerationAsset && !isInPinnedShotGroup && onDuplicateGeneration)
     || (!hasBatchSelection && isGenerationAsset && onUpdateVariant)
     || (!hasBatchSelection && isVariantStale && onDismissStale)
+    || (!hasBatchSelection && hasOverhang && onTrimToMediaEnd)
+    || (!hasBatchSelection && hasOverhang && onConvertOverhangToHold)
     || (!hasBatchSelection && onSplitHere)
     || (hasBatchSelection && onToggleMuteClips)
     || (hasBatchSelection && onSplitClipsAtPlayhead)
@@ -435,6 +468,15 @@ function ClipActionComponent({
         onContextMenu={handleContextMenu}
       >
         {waveform ? <WaveformOverlay waveform={waveform} /> : null}
+        {hasOverhang && (
+          <div
+            aria-hidden="true"
+            data-overhang-overlay="true"
+            className="pointer-events-none absolute inset-y-0 right-0 z-[1] border-l border-amber-300/80 bg-[repeating-linear-gradient(135deg,rgba(251,191,36,0.2)_0px,rgba(251,191,36,0.2)_8px,rgba(120,53,15,0.28)_8px,rgba(120,53,15,0.28)_16px)]"
+            style={{ left: `${Math.min(100, Math.max(0, overhangEndFraction * 100))}%` }}
+            title={`Media ends ${overhangDurationSeconds.toFixed(2)}s before the clip ends`}
+          />
+        )}
         {thumbnailSrc ? (
           <div className="relative z-10 h-full w-10 shrink-0">
             <img src={thumbnailSrc} alt="" className="h-full w-full object-cover opacity-80" draggable={false} />
@@ -479,7 +521,7 @@ function ClipActionComponent({
             role="button"
             onClick={(e) => {
               e.stopPropagation();
-              if (isInPinnedShotGroup && !hasPinnedShotGroupAssetActions) {
+              if (isInPinnedShotGroup && !hasPinnedShotGroupContextActions) {
                 return;
               }
               const { clientX, clientY } = e;
@@ -535,6 +577,9 @@ function ClipActionComponent({
           isVariantStale={isVariantStale}
           onDismissStale={onDismissStale}
           onSplitHere={onSplitHere}
+          onTrimToMediaEnd={onTrimToMediaEnd}
+          onConvertOverhangToHold={onConvertOverhangToHold}
+          overhangDurationSeconds={overhangDurationSeconds}
           onToggleMuteClips={onToggleMuteClips}
           onSplitClipsAtPlayhead={onSplitClipsAtPlayhead}
           showShotActions={showShotActions}
@@ -564,6 +609,8 @@ function areClipActionPropsEqual(prev: ClipActionProps, next: ClipActionProps): 
   if (prev.thumbnailSrc !== next.thumbnailSrc) return false;
   if (prev.audioSrc !== next.audioSrc) return false;
   if (prev.clipWidth !== next.clipWidth) return false;
+  if (prev.overhangDurationSeconds !== next.overhangDurationSeconds) return false;
+  if (prev.overhangEndFraction !== next.overhangEndFraction) return false;
   if (prev.isVideoClip !== next.isVideoClip) return false;
   if (prev.isTaskActive !== next.isTaskActive) return false;
   if (prev.isVariantStale !== next.isVariantStale) return false;
@@ -595,6 +642,8 @@ function areClipActionPropsEqual(prev: ClipActionProps, next: ClipActionProps): 
     && prev.onExpandTinyClip === next.onExpandTinyClip
     && prev.onSplitHere === next.onSplitHere
     && prev.onSplitClipsAtPlayhead === next.onSplitClipsAtPlayhead
+    && prev.onTrimToMediaEnd === next.onTrimToMediaEnd
+    && prev.onConvertOverhangToHold === next.onConvertOverhangToHold
     && prev.onDeleteClip === next.onDeleteClip
     && prev.onDeleteClips === next.onDeleteClips
     && prev.onToggleMuteClips === next.onToggleMuteClips

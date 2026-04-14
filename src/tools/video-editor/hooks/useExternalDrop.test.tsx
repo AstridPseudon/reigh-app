@@ -741,4 +741,123 @@ describe('useExternalDrop', () => {
     }]);
     expect(options).toEqual({ selectedClipId: createdClipId, selectedTrackId: 'V1' });
   });
+
+  it('retries final video duration resolution once before falling back to five seconds', async () => {
+    mockUseShots.mockReturnValue({
+      shots: [{
+        id: 'shot-1',
+        name: 'Shot 1',
+        images: [
+          { generation_id: 'gen-1', imageUrl: 'https://example.com/1.png', thumbUrl: 'https://example.com/1-thumb.png', contentType: 'image/png', type: 'image' },
+        ],
+      }],
+      isLoading: false,
+      error: null,
+      refetchShots: vi.fn(),
+    });
+    mockUseFinalVideoAvailable.mockReturnValue({
+      finalVideoMap: new Map([[
+        'shot-1',
+        {
+          id: 'final-1',
+          location: 'https://example.com/final.mp4',
+          thumbnailUrl: 'https://example.com/final-thumb.jpg',
+        },
+      ]]),
+      dismissFinalVideo: vi.fn(),
+    });
+    mockExtractVideoMetadataFromUrl
+      .mockResolvedValueOnce({
+        duration_seconds: undefined,
+      })
+      .mockResolvedValueOnce({
+        duration_seconds: 3.5,
+        frame_rate: 30,
+        total_frames: 105,
+        width: 1920,
+        height: 1080,
+        file_size: 0,
+      });
+
+    const dataRef = {
+      current: makeDropTestData(),
+    } as React.MutableRefObject<DropTestData>;
+    const pendingOpsRef = { current: 0 } as React.MutableRefObject<number>;
+    const applyEdit = vi.fn();
+    const registerGenerationAsset = vi.fn((generation: GenerationDropData & { durationSeconds?: number }) => {
+      const assetId = `asset-${generation.generationId}`;
+      dataRef.current.registry.assets[assetId] = {
+        file: generation.imageUrl,
+        type: generation.variantType === 'video' ? 'video/mp4' : 'image/png',
+        ...(typeof generation.durationSeconds === 'number' ? { duration: generation.durationSeconds } : {}),
+      };
+      return assetId;
+    });
+
+    const coordinator = {
+      update: vi.fn(),
+      showSecondaryGhosts: vi.fn(),
+      end: vi.fn(),
+      lastPosition: {
+        time: 12,
+        rowIndex: 0,
+        trackId: 'V1',
+        trackKind: 'visual',
+        trackName: 'V1',
+        isNewTrack: false,
+        isNewTrackTop: false,
+        isReject: false,
+        newTrackKind: null,
+        screenCoords: {
+          rowTop: 0,
+          rowLeft: 0,
+          rowWidth: 0,
+          rowHeight: 0,
+          clipLeft: 0,
+          clipWidth: 0,
+          ghostCenter: 0,
+        },
+      },
+      editAreaRef: { current: null },
+    };
+
+    const { result } = renderHook(() => useExternalDrop({
+      dataRef,
+      pendingOpsRef,
+      scale: 1,
+      scaleWidth: 1,
+      selectedTrackId: null,
+      applyEdit,
+      patchRegistry: vi.fn(),
+      registerAsset: vi.fn(),
+      uploadAsset: vi.fn(),
+      invalidateAssetRegistry: vi.fn(),
+      resolveAssetUrl: vi.fn(),
+      coordinator,
+      registerGenerationAsset,
+      uploadImageGeneration: vi.fn(),
+      uploadVideoGeneration: vi.fn(),
+      handleAssetDrop: vi.fn(),
+    }));
+
+    const event = createDropEvent(
+      createStoredShotPayload({
+        shotId: 'shot-1',
+        shotName: 'Shot 1',
+        imageGenerationIds: ['gen-1'],
+      }),
+      ['application/x-shot', 'text/plain'],
+    );
+
+    await result.current.onTimelineDrop(event);
+
+    expect(mockExtractVideoMetadataFromUrl).toHaveBeenCalledTimes(2);
+    expect(registerGenerationAsset).toHaveBeenCalledWith(expect.objectContaining({
+      durationSeconds: 3.5,
+    }));
+    expect(applyEdit.mock.calls[0][0].rows[0].actions[0]).toEqual(expect.objectContaining({
+      start: 12,
+      end: 15.5,
+    }));
+  });
 });

@@ -237,6 +237,31 @@ describe('ClipAction', () => {
     expect(screen.queryByText('Generate Video')).not.toBeInTheDocument();
   });
 
+  it('shows overhang actions for pinned-shot-group clips when a frozen tail is present', () => {
+    mockUseWaveformData();
+    const props = buildProps({
+      isInPinnedShotGroup: true,
+      selectedClipIds: ['clip-1'],
+      overhangDurationSeconds: 2,
+      overhangEndFraction: 0.6,
+      onTrimToMediaEnd: vi.fn(),
+      onConvertOverhangToHold: vi.fn(),
+      onDeleteClip: vi.fn(),
+      onDeleteClips: vi.fn(),
+    });
+    const { container } = render(<ClipAction {...props} />);
+
+    fireEvent.contextMenu(container.querySelector('[data-clip-id="clip-1"]') as HTMLElement);
+
+    expect(getContextMenu()).not.toBeNull();
+    expect(screen.getByText('Trim to media end')).toBeInTheDocument();
+    expect(screen.getByText('Hold last frame')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Trim to media end'));
+
+    expect(props.onTrimToMediaEnd).toHaveBeenCalledWith('clip-1');
+  });
+
   it('shows only asset-state actions for pinned-shot-group clips when a stale reminder is available', () => {
     mockUseWaveformData();
     const props = buildProps({
@@ -316,6 +341,19 @@ describe('ClipAction', () => {
     expect(mocks.useWaveformData).toHaveBeenLastCalledWith('https://example.com/audio.wav', expect.objectContaining({
       numBuckets: 30,
     }));
+  });
+
+  it('renders a striped overlay for frozen tail overhang', () => {
+    mockUseWaveformData();
+    const { container } = render(<ClipAction {...buildProps({
+      overhangDurationSeconds: 2,
+      overhangEndFraction: 0.6,
+    })} />);
+
+    const overlay = container.querySelector('[data-overhang-overlay="true"]');
+
+    expect(overlay).not.toBeNull();
+    expect(overlay).toHaveAttribute('title', 'Media ends 2.00s before the clip ends');
   });
 
   it('re-renders when audioSrc or clipWidth changes so the memo comparator keeps waveform props fresh', () => {

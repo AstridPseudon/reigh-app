@@ -41,6 +41,18 @@ import { createAutoScroller } from '@/tools/video-editor/lib/auto-scroll';
 import type { Shot } from '@/domains/generation/types';
 import { useFinalVideoAvailable } from '@/tools/video-editor/hooks/useFinalVideoAvailable';
 
+async function resolveFinalVideoDurationSecondsWithRetry(
+  finalVideo: Parameters<typeof resolveFinalVideoDurationSeconds>[0],
+  assets?: TimelineData['registry']['assets'],
+): Promise<number | null> {
+  const firstAttempt = await resolveFinalVideoDurationSeconds(finalVideo, assets);
+  if (typeof firstAttempt === 'number') {
+    return firstAttempt;
+  }
+
+  return resolveFinalVideoDurationSeconds(finalVideo, assets);
+}
+
 async function dispatchTimelineDrop({
   event,
   dataRef,
@@ -114,7 +126,7 @@ async function dispatchTimelineDrop({
   if (shotData) {
     const finalVideo = finalVideoMap.get(shotData.shotId);
     if (finalVideo) {
-      const durationSeconds = await resolveFinalVideoDurationSeconds(finalVideo, dataRef.current?.registry.assets);
+      const durationSeconds = await resolveFinalVideoDurationSecondsWithRetry(finalVideo, dataRef.current?.registry.assets);
       const resolvedTarget = resolveAssetDropTarget({
         dataRef,
         assetKind: 'visual',

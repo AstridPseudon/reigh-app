@@ -39,6 +39,11 @@ import { useSwitchToFinalVideo } from '@/tools/video-editor/hooks/useSwitchToFin
 import { useTimelineScale } from '@/tools/video-editor/hooks/useTimelineScale';
 import { buildDuplicateClipEdit } from '@/tools/video-editor/lib/duplicate-clip';
 import { duplicateGenerationAsset } from '@/tools/video-editor/lib/generation-utils';
+import {
+  clampClipToMediaDuration,
+  convertOverhangToHold,
+  detectClipOverhang,
+} from '@/tools/video-editor/lib/overhang';
 import type { TimelineActionResizeStart, TimelineClipEdgeResizeEnd } from '@/tools/video-editor/hooks/useTimelineState.types';
 import type { ResolvedTimelineClip, TrackDefinition } from '@/tools/video-editor/types';
 import type { TimelineAction, TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
@@ -708,6 +713,93 @@ function TimelineEditorComponent() {
     }
   }, [applyEdit, dataRef, registerGenerationAsset, selectedProjectId]);
 
+  const handleTrimClipToMediaEnd = useCallback((clipId: string) => {
+    const current = dataRef.current;
+    if (!current) {
+      return;
+    }
+
+    const clipMeta = current.meta[clipId];
+    const assetKey = clipMeta?.asset;
+    const assetEntry = assetKey ? current.registry.assets[assetKey] : undefined;
+    if (!clipMeta || !assetEntry?.type?.startsWith('video') || typeof assetEntry.duration !== 'number') {
+      return;
+    }
+
+    const sourceRow = current.rows.find((row) => row.actions.some((action) => action.id === clipId));
+    const sourceAction = sourceRow?.actions.find((action) => action.id === clipId);
+    if (!sourceRow || !sourceAction) {
+      return;
+    }
+
+    const clamped = clampClipToMediaDuration({
+      action: sourceAction,
+      clipMeta,
+      sourceDurationSeconds: assetEntry.duration,
+    });
+    if (!clamped) {
+      return;
+    }
+
+    applyEdit({
+      type: 'rows',
+      rows: current.rows.map((row) => {
+        if (row.id !== sourceRow.id) {
+          return row;
+        }
+
+        return {
+          ...row,
+          actions: row.actions.map((action) => (
+            action.id === clipId ? clamped.nextAction : action
+          )),
+        };
+      }),
+      metaUpdates: {
+        [clipId]: clamped.metaPatch,
+      },
+    }, {
+      selectedClipId: clipId,
+      selectedTrackId: clipMeta.track,
+      semantic: true,
+    });
+  }, [applyEdit, dataRef]);
+
+  const handleConvertClipOverhangToHold = useCallback((clipId: string) => {
+    const current = dataRef.current;
+    if (!current) {
+      return;
+    }
+
+    const clipMeta = current.meta[clipId];
+    const assetKey = clipMeta?.asset;
+    const assetEntry = assetKey ? current.registry.assets[assetKey] : undefined;
+    if (!clipMeta || !assetEntry?.type?.startsWith('video') || typeof assetEntry.duration !== 'number') {
+      return;
+    }
+
+    const conversion = convertOverhangToHold({
+      current,
+      clipId,
+      sourceDurationSeconds: assetEntry.duration,
+      frameRate: assetEntry.fps,
+    });
+    if (!conversion) {
+      return;
+    }
+
+    applyEdit({
+      type: 'rows',
+      rows: conversion.rows,
+      metaUpdates: conversion.metaUpdates,
+      clipOrderOverride: conversion.clipOrderOverride,
+    }, {
+      selectedClipId: conversion.holdClipId,
+      selectedTrackId: conversion.trackId,
+      semantic: true,
+    });
+  }, [applyEdit, dataRef]);
+
   const getActionRender = useCallback((action: TimelineAction, _row: TimelineRow, clipWidth: number) => {
     const clipMeta = data?.meta[action.id];
     if (!clipMeta) {
@@ -724,8 +816,16 @@ function TimelineEditorComponent() {
     const isDismissed = assetKey ? dismissedAssetKeys.has(assetKey) : false;
     const isGenAsset = assetKey ? generationAssetKeys.has(assetKey) : false;
     const isTaskActive = assetKey && !shotGroupClipIds.has(action.id) ? activeTaskAssetKeys.has(assetKey) : false;
-    const assetType = assetKey ? data?.registry?.assets[assetKey]?.type : undefined;
+    const assetEntry = assetKey ? data?.registry?.assets[assetKey] : undefined;
+    const assetType = assetEntry?.type;
     const isVideoClip = typeof assetType === 'string' && assetType.startsWith('video');
+    const clipOverhang = isVideoClip
+      ? detectClipOverhang({
+          clipMeta,
+          timelineDurationSeconds: action.end - action.start,
+          sourceDurationSeconds: assetEntry?.duration,
+        })
+      : null;
 
     return (
       <ClipAction
@@ -746,6 +846,8 @@ function TimelineEditorComponent() {
         onExpandTinyClip={handleExpandTinyClip}
         onSplitHere={handleSplitClipHere}
         onSplitClipsAtPlayhead={handleSplitClipsAtPlayhead}
+        onTrimToMediaEnd={clipOverhang ? handleTrimClipToMediaEnd : undefined}
+        onConvertOverhangToHold={clipOverhang ? handleConvertClipOverhangToHold : undefined}
         onDeleteClips={handleDeleteClips}
         onDeleteClip={handleDeleteClip}
         onToggleMuteClips={handleToggleMuteClips}
@@ -763,6 +865,8 @@ function TimelineEditorComponent() {
         onNavigateToShot={handleNavigateToShot}
         onOpenGenerateVideo={handleOpenGenerateVideo}
         isCreatingShot={isCreating}
+        overhangDurationSeconds={clipOverhang?.overhangTimelineDurationSeconds}
+        overhangEndFraction={clipOverhang?.mediaEndFraction}
       />
     );
   }, [
@@ -783,11 +887,13 @@ function TimelineEditorComponent() {
     handleClipSelect,
     handleDeleteClip,
     handleDeleteClips,
+    handleConvertClipOverhangToHold,
     handleGenerateVideoFromSelection,
     handleNavigateToShot,
     handleOpenGenerateVideo,
     handleSplitClipHere,
     handleSplitClipsAtPlayhead,
+    handleTrimClipToMediaEnd,
     handleToggleMuteClips,
     isCreating,
     isClipSelected,
