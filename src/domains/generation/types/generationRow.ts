@@ -9,6 +9,7 @@ import type { PersistedGenerationParams } from './generationParams';
 export interface PersistedGenerationRow {
   id: string;
   generation_id?: string;
+  variant_fetch_generation_id?: string | null;
   location?: string | null;
   type?: string | null;
   createdAt?: string;

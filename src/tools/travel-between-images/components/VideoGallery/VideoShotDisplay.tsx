@@ -347,6 +347,7 @@ export const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({
       {isFinalVideoLightboxOpen && finalVideoRow && (
         <MediaLightbox
           media={finalVideoRow}
+          variantFetchGenerationIdOverride={finalVideo.variantFetchGenerationId ?? undefined}
           onClose={() => setFinalVideoLightboxOpen(false)}
           navigation={{
             showNavigation: false,
@@ -364,4 +365,3 @@ export const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({
     </>
   );
 };
-

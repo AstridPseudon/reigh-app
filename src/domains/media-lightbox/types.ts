@@ -240,6 +240,7 @@ export interface VideoLightboxVideoProps {
 export interface VideoLightboxProps {
   media?: GenerationRow;
   parentGenerationIdOverride?: string;
+  variantFetchGenerationIdOverride?: string;
   onClose: () => void;
   segmentSlotMode?: SegmentSlotModeData;
   readOnly?: boolean;

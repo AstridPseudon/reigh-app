@@ -28,6 +28,8 @@ export interface ExpectedSegmentData {
 
 export interface RawGenerationDbRow {
   id: string;
+  generation_id?: string | null;
+  variant_fetch_generation_id?: string | null;
   location?: string | null;
   thumbnail_url?: string | null;
   type?: string | null;

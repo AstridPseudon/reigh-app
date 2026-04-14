@@ -90,6 +90,7 @@ describe('useFinalVideoSectionController', () => {
       readOnly: true,
       preloadedParent: {
         id: 'parent-1',
+        variant_fetch_generation_id: 'child-variant-source-1',
         location: '/final.mp4',
       } as never,
     }));
@@ -117,7 +118,8 @@ describe('useFinalVideoSectionController', () => {
       result.current.handleLightboxClose();
     });
 
-    expect(mocks.useMarkVariantViewed.mock.results[0]?.value.markAllViewed).toHaveBeenCalledWith('parent-1');
+    expect(mocks.useVariantBadges).toHaveBeenCalledWith(['child-variant-source-1'], true);
+    expect(mocks.useMarkVariantViewed.mock.results[0]?.value.markAllViewed).toHaveBeenCalledWith('child-variant-source-1');
     expect(onDelete).toHaveBeenCalledWith('parent-1');
     expect(result.current.isLightboxOpen).toBe(false);
     expect(result.current.shouldShowSkeleton).toBe(false);

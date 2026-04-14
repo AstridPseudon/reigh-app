@@ -89,6 +89,7 @@ export const MediaLightbox: React.FC<MediaLightboxProps> = (props) => {
         media={media}
         segmentSlotMode={segmentSlotMode}
         parentGenerationIdOverride={props.parentGenerationIdOverride}
+        variantFetchGenerationIdOverride={props.variantFetchGenerationIdOverride}
         videoProps={videoProps}
       />
     );
@@ -105,6 +106,7 @@ export const MediaLightbox: React.FC<MediaLightboxProps> = (props) => {
         media={media}
         segmentSlotMode={segmentSlotMode}
         parentGenerationIdOverride={props.parentGenerationIdOverride}
+        variantFetchGenerationIdOverride={props.variantFetchGenerationIdOverride}
         videoProps={videoProps}
       />
     );
@@ -119,4 +121,3 @@ export const MediaLightbox: React.FC<MediaLightboxProps> = (props) => {
     />
   );
 };
-

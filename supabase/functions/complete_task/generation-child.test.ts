@@ -7,6 +7,8 @@ const mocks = vi.hoisted(() => ({
   insertGeneration: vi.fn(),
   createVariant: vi.fn(),
   derivePredecessorVariantId: vi.fn(),
+  createVariantOnParent: vi.fn(),
+  getChildVariantViewedAt: vi.fn(),
 }));
 
 vi.mock('./params.ts', () => ({
@@ -26,8 +28,8 @@ vi.mock('./generation-core.ts', async () => {
 });
 
 vi.mock('./generation-parent.ts', () => ({
-  createVariantOnParent: vi.fn(),
-  getChildVariantViewedAt: vi.fn(),
+  createVariantOnParent: (...args: unknown[]) => mocks.createVariantOnParent(...args),
+  getChildVariantViewedAt: (...args: unknown[]) => mocks.getChildVariantViewedAt(...args),
 }));
 
 vi.mock('./taskParamNormalizer.ts', () => ({
@@ -76,6 +78,11 @@ describe('complete_task/generation-child exports', () => {
     }));
     mocks.createVariant.mockResolvedValue({ id: 'variant-child-original' });
     mocks.derivePredecessorVariantId.mockResolvedValue(null);
+    mocks.createVariantOnParent.mockImplementation(async (_supabase: unknown, generationId: string) => ({
+      id: generationId,
+      variant_id: `variant-${generationId}`,
+    }));
+    mocks.getChildVariantViewedAt.mockResolvedValue(new Date().toISOString());
   });
 
   it('exports child generation handlers', () => {
@@ -88,10 +95,15 @@ describe('complete_task/generation-child exports', () => {
   it('creates a child original variant for single-item completions', async () => {
     const taskUpdateEq = vi.fn().mockResolvedValue({ error: null });
     const taskUpdate = vi.fn().mockReturnValue({ eq: taskUpdateEq });
+    const parentVariantEq = vi.fn().mockResolvedValue({ count: 0, error: null });
+    const parentVariantSelect = vi.fn().mockReturnValue({ eq: parentVariantEq });
     const supabase = {
       from: vi.fn((table: string) => {
         if (table === 'tasks') {
           return { update: taskUpdate };
+        }
+        if (table === 'generation_variants') {
+          return { select: parentVariantSelect };
         }
         throw new Error(`Unexpected table ${table}`);
       }),
@@ -142,8 +154,108 @@ describe('complete_task/generation-child exports', () => {
       null,
       expect.any(String),
     );
+    expect(mocks.createVariantOnParent).toHaveBeenCalledWith(
+      supabase,
+      'parent-1',
+      'https://example.com/segment.mp4',
+      'https://example.com/segment.jpg',
+      expect.objectContaining({
+        task_type: 'individual_travel_segment',
+      }),
+      'task-child',
+      expect.any(String),
+      expect.objectContaining({
+        created_from: 'single_item_completion',
+        is_single_item: true,
+      }),
+      null,
+      true,
+    );
     expect(taskUpdate).toHaveBeenCalledWith({ generation_created: true });
     expect(taskUpdateEq).toHaveBeenCalledWith('id', 'task-child');
+  });
+
+  it('syncs single-item reruns onto the parent when reusing an existing child generation', async () => {
+    const generationEq = vi.fn()
+      .mockReturnThis();
+    const generationQuery = {
+      select: vi.fn().mockReturnThis(),
+      eq: generationEq,
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: { id: 'child-existing' }, error: null }),
+    };
+    const parentVariantEq = vi.fn().mockResolvedValue({ count: 0, error: null });
+    const parentVariantSelect = vi.fn().mockReturnValue({ eq: parentVariantEq });
+    const supabase = {
+      from: vi.fn((table: string) => {
+        if (table === 'generations') {
+          return generationQuery;
+        }
+        if (table === 'generation_variants') {
+          return { select: parentVariantSelect };
+        }
+        throw new Error(`Unexpected table ${table}`);
+      }),
+    };
+
+    const result = await handleChildGeneration({
+      supabase: supabase as never,
+      taskId: 'task-rerun',
+      taskData: {
+        task_type: 'travel_segment',
+        project_id: 'project-1',
+        params: { pair_shot_generation_id: 'pair-shot-1' },
+        content_type: 'video',
+        tool_type: 'travel-between-images',
+        variant_type: 'travel_segment',
+      },
+      publicUrl: 'https://example.com/rerun.mp4',
+      thumbnailUrl: 'https://example.com/rerun.jpg',
+      parentGenerationId: 'parent-1',
+      childOrder: 0,
+      isSingleItem: true,
+      logger: { info: vi.fn(), debug: vi.fn(), warn: vi.fn() },
+    } as never);
+
+    expect(result).toMatchObject({ id: 'child-existing' });
+    expect(mocks.createVariantOnParent).toHaveBeenNthCalledWith(
+      1,
+      supabase,
+      'child-existing',
+      'https://example.com/rerun.mp4',
+      'https://example.com/rerun.jpg',
+      expect.objectContaining({
+        task_type: 'travel_segment',
+      }),
+      'task-rerun',
+      'travel_segment',
+      expect.objectContaining({
+        created_from: 'segment_variant_at_position',
+        segment_index: 0,
+      }),
+      null,
+      false,
+      expect.any(String),
+    );
+    expect(mocks.createVariantOnParent).toHaveBeenNthCalledWith(
+      2,
+      supabase,
+      'parent-1',
+      'https://example.com/rerun.mp4',
+      'https://example.com/rerun.jpg',
+      expect.objectContaining({
+        task_type: 'travel_segment',
+      }),
+      'task-rerun',
+      'travel_segment',
+      expect.objectContaining({
+        created_from: 'single_item_completion',
+        is_single_item: true,
+      }),
+      null,
+      true,
+    );
   });
 });
 

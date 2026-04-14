@@ -89,6 +89,7 @@ export const FinalVideoSection: React.FC<FinalVideoSectionProps> = (props) => {
       {isLightboxOpen && parentVideoRow && (
         <MediaLightbox
           media={parentVideoRow}
+          variantFetchGenerationIdOverride={parentVideoRow.variant_fetch_generation_id ?? undefined}
           onClose={handleLightboxClose}
           navigation={{
             showNavigation: false,

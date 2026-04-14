@@ -106,6 +106,7 @@ interface VideoLightboxEnvironmentOptions {
   media?: GenerationRow;
   tasksPaneOpen?: boolean;
   tasksPaneWidth?: number;
+  variantFetchGenerationIdOverride?: string;
   videoProps?: {
     fetchVariantsForSelf?: boolean;
     initialVideoTrimMode?: boolean;
@@ -116,7 +117,7 @@ export function useVideoLightboxEnvironment(
   options: VideoLightboxEnvironmentOptions,
   modeModel: VideoLightboxModeModel,
 ) {
-  const { media, tasksPaneOpen, tasksPaneWidth } = options;
+  const { media, tasksPaneOpen, tasksPaneWidth, variantFetchGenerationIdOverride } = options;
   const fetchVariantsForSelf = options.videoProps?.fetchVariantsForSelf;
   const initialVideoTrimMode = options.videoProps?.initialVideoTrimMode;
 
@@ -145,9 +146,10 @@ export function useVideoLightboxEnvironment(
   const [variantParamsToLoad, setVariantParamsToLoad] = useState<Record<string, unknown> | null>(null);
 
   const actualGenerationId = getGenerationId(media) || null;
-  const variantFetchGenerationId = fetchVariantsForSelf
-    ? actualGenerationId
-    : (media?.parent_generation_id || actualGenerationId);
+  const variantFetchGenerationId = variantFetchGenerationIdOverride
+    || (fetchVariantsForSelf
+      ? actualGenerationId
+      : (media?.parent_generation_id || actualGenerationId));
 
   const [videoEditSubMode, setVideoEditSubModeLocal] = useState<VideoEditSubMode | null>(() => {
     return resolveInitialVideoEditSubMode(selectedProjectId, initialVideoTrimMode);

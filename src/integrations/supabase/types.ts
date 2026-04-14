@@ -1554,6 +1554,7 @@ export type Database = {
           thumbnail_url: string | null
           type: string | null
           updated_at: string | null
+          variant_fetch_generation_id: string | null
         }
         Relationships: [
           {

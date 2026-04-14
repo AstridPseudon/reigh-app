@@ -14,6 +14,7 @@ export interface ShotFinalVideo {
   id: string;
   location: string;
   thumbnailUrl: string | null;
+  variantFetchGenerationId: string | null;
 }
 
 export function useShotFinalVideos(projectId: string | null) {
@@ -21,7 +22,7 @@ export function useShotFinalVideos(projectId: string | null) {
     queryKey: finalVideoQueryKeys.byProject(projectId!),
     queryFn: async () => {
       const { data, error } = await supabase().from('shot_final_videos')
-        .select('id, location, thumbnail_url, shot_id, created_at')
+        .select('id, location, thumbnail_url, shot_id, created_at, variant_fetch_generation_id')
         .eq('project_id', projectId!)
         .not('location', 'is', null)
         .order('created_at', { ascending: false });
@@ -53,6 +54,10 @@ export function useShotFinalVideos(projectId: string | null) {
           id,
           location,
           thumbnailUrl: row.thumbnail_url || null,
+          variantFetchGenerationId:
+            typeof (row as Record<string, unknown>).variant_fetch_generation_id === 'string'
+              ? (row as Record<string, unknown>).variant_fetch_generation_id as string
+              : null,
         });
       }
     }

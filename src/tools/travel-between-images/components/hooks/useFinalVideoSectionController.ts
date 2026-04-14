@@ -141,15 +141,16 @@ export function useFinalVideoSectionController({
     }
     return parentGenerations.find((parent) => parent.id === selectedParentId) || null;
   }, [parentGenerations, selectedParentId]);
+  const variantGenerationId = selectedParent?.variant_fetch_generation_id ?? selectedParentId;
 
   const hasFinalOutput = Boolean(selectedParent?.location);
 
   const { getBadgeData } = useVariantBadges(
-    selectedParentId ? [selectedParentId] : [],
-    Boolean(selectedParentId && hasFinalOutput),
+    variantGenerationId ? [variantGenerationId] : [],
+    Boolean(variantGenerationId && hasFinalOutput),
   );
 
-  const rawBadgeData = selectedParentId ? getBadgeData(selectedParentId) : null;
+  const rawBadgeData = variantGenerationId ? getBadgeData(variantGenerationId) : null;
   const badgeData: FinalVideoVariantBadgeData | null = rawBadgeData
     ? {
         derivedCount: rawBadgeData.derivedCount,
@@ -160,10 +161,10 @@ export function useFinalVideoSectionController({
 
   const { markAllViewed } = useMarkVariantViewed();
   const handleMarkAllVariantsViewed = useCallback(() => {
-    if (selectedParentId) {
-      markAllViewed(selectedParentId);
+    if (variantGenerationId) {
+      markAllViewed(variantGenerationId);
     }
-  }, [selectedParentId, markAllViewed]);
+  }, [variantGenerationId, markAllViewed]);
 
   const parentVideoRow = useMemo(() => {
     if (!selectedParent) {

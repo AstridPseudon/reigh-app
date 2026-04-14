@@ -100,12 +100,21 @@ SELECT DISTINCT ON (g.id)
   g.params,
   g.starred,
   g.project_id,
-  sg.shot_id
+  sg.shot_id,
+  CASE
+    WHEN timeline_img.positioned_image_count <= 2
+      AND child_agg.child_count = 1
+      AND child_agg.child_location IS NOT NULL
+      AND child_agg.child_location != ''
+      THEN child_agg.child_id
+    ELSE g.id
+  END as variant_fetch_generation_id
 FROM generations g
 JOIN shot_generations sg ON sg.generation_id = g.id
 LEFT JOIN LATERAL (
   SELECT
     COUNT(*)::integer as child_count,
+    MAX(c.id::text)::uuid as child_id,
     MAX(c.location) as child_location,
     MAX(c.thumbnail_url) as child_thumbnail_url
   FROM generations c
@@ -136,6 +145,8 @@ COMMENT ON VIEW shot_final_videos IS
 ID while resolving the playable URL and thumbnail from the single child segment
 when the shot has <=2 positioned timeline images (matching the client-side
 selectTimelineImages filter). When the user adds a 3rd image, the view
-automatically falls back to the parent''s own location.';
+automatically falls back to the parent''s own location. variant_fetch_generation_id
+points at the generation whose variants should be shown for the currently
+playable media.';
 
 COMMIT;

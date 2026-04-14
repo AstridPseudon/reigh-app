@@ -34,6 +34,28 @@ function asString(value: unknown): string | null {
   return typeof value === 'string' && value.length > 0 ? value : null;
 }
 
+async function syncSingleItemOutputToParent(
+  ctx: HandlerContext,
+  parentGenerationId: string,
+  reason: string,
+): Promise<void> {
+  try {
+    await createSingleItemVariant(ctx, parentGenerationId);
+    ctx.logger?.info('Synced single-segment output to parent', {
+      task_id: ctx.taskId,
+      parent_generation_id: parentGenerationId,
+      reason,
+    });
+  } catch (error) {
+    ctx.logger?.warn('Failed to sync single-segment output to parent', {
+      task_id: ctx.taskId,
+      parent_generation_id: parentGenerationId,
+      reason,
+      error,
+    });
+  }
+}
+
 export async function handleChildGeneration(ctx: HandlerContext): Promise<unknown | null> {
   const { supabase, taskId, taskData, publicUrl, thumbnailUrl, logger, parentGenerationId, childOrder, isSingleItem } = ctx;
 
@@ -104,6 +126,10 @@ export async function handleChildGeneration(ctx: HandlerContext): Promise<unknow
         false,
         variantViewedAt
       );
+
+      if (variantViewedAt) {
+        await syncSingleItemOutputToParent(normalizedCtx, parentGenerationId, 'existing-child-variant');
+      }
 
       if (variantResult) return variantResult;
       console.warn('Failed to create variant; falling through to new generation');
@@ -340,6 +366,10 @@ export async function createChildGenerationRecord(
     { ...generationParams, source_task_id: taskId, created_from: createdFrom },
     true, 'original', null, autoViewedAt
   );
+
+  if (isSingleItemCase) {
+    await syncSingleItemOutputToParent(ctx, parentGenerationId, 'new-child-original');
+  }
 
   await supabase.from('tasks').update({ generation_created: true }).eq('id', taskId);
 

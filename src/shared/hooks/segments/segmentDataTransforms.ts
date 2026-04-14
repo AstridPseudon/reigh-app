@@ -10,6 +10,10 @@ export function coerceRawGenerationDbRow(value: unknown): RawGenerationDbRow | n
 
   return {
     id: record.id,
+    ...(asNullableString(record.generation_id) !== undefined ? { generation_id: asNullableString(record.generation_id) } : {}),
+    ...(asNullableString(record.variant_fetch_generation_id) !== undefined
+      ? { variant_fetch_generation_id: asNullableString(record.variant_fetch_generation_id) }
+      : {}),
     ...(asNullableString(record.location) !== undefined ? { location: asNullableString(record.location) } : {}),
     ...(asNullableString(record.thumbnail_url) !== undefined ? { thumbnail_url: asNullableString(record.thumbnail_url) } : {}),
     ...(asNullableString(record.type) !== undefined ? { type: asNullableString(record.type) } : {}),
@@ -96,6 +100,8 @@ export function transformToGenerationRow(gen: RawGenerationDbRow): GenerationRow
 
   return {
     id: gen.id,
+    generation_id: gen.generation_id ?? undefined,
+    variant_fetch_generation_id: gen.variant_fetch_generation_id ?? null,
     location,
     imageUrl: location,
     thumbUrl: gen.thumbnail_url || location,
