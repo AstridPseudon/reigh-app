@@ -1,4 +1,4 @@
-import { act, renderHook } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { Shot } from '@/domains/generation/types';
 import { toast } from '@/shared/components/ui/runtime/sonner';
@@ -13,12 +13,19 @@ import { TimelineEventBus } from '@/tools/video-editor/hooks/useTimelineEventBus
 import { useTimelineCommit } from '@/tools/video-editor/hooks/useTimelineCommit';
 import type { TimelineRow } from '@/tools/video-editor/types/timeline-canvas';
 import type { AssetRegistry, TimelineConfig } from '@/tools/video-editor/types';
+import { extractVideoMetadataFromUrl } from '@/shared/lib/media/videoMetadata';
 
 vi.mock('@/shared/components/ui/runtime/sonner', () => ({
   toast: {
     error: vi.fn(),
   },
 }));
+
+vi.mock('@/shared/lib/media/videoMetadata', () => ({
+  extractVideoMetadataFromUrl: vi.fn(),
+}));
+
+const mockedExtractVideoMetadataFromUrl = vi.mocked(extractVideoMetadataFromUrl);
 
 const makePinnedGroup = (args: {
   shotId: string;
@@ -466,7 +473,15 @@ describe('useTimelineCommit pinned shot reconciliation', () => {
 });
 
 describe('useSwitchToFinalVideo', () => {
-  it('snapshots image clips before switching to video and writes pinnedShotGroupsOverride in one edit', () => {
+  it('snapshots image clips before switching to video and writes pinnedShotGroupsOverride in one edit', async () => {
+    mockedExtractVideoMetadataFromUrl.mockResolvedValue({
+      duration_seconds: 8,
+      frame_rate: 30,
+      total_frames: 240,
+      width: 1920,
+      height: 1080,
+      file_size: 0,
+    });
     const applyEdit = vi.fn();
     const patchRegistry = vi.fn();
     const registerAsset = vi.fn(async () => undefined);
@@ -503,11 +518,13 @@ describe('useSwitchToFinalVideo', () => {
       registerAsset,
     }));
 
-    act(() => {
-      result.current.switchToFinalVideo({ shotId: 'shot-1', clipIds: ['clip-1', 'clip-2'], rowId: 'V1' });
+    await act(async () => {
+      await result.current.switchToFinalVideo({ shotId: 'shot-1', clipIds: ['clip-1', 'clip-2'], rowId: 'V1' });
     });
 
-    expect(applyEdit).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(applyEdit).toHaveBeenCalledTimes(1);
+    });
     const mutation = applyEdit.mock.calls[0][0];
     expect(mutation.type).toBe('rows');
     expect(mutation.metaDeletes).toEqual(['clip-1', 'clip-2']);
@@ -526,14 +543,22 @@ describe('useSwitchToFinalVideo', () => {
       {
         id: 'V1',
         actions: [
-          { id: 'clip-3', start: 4, end: 14, effectId: 'effect-clip-3' },
+          { id: 'clip-3', start: 4, end: 12, effectId: 'effect-clip-3' },
         ],
       },
     ]);
     expect(patchRegistry).toHaveBeenCalledTimes(1);
   });
 
-  it('updates a video-mode shot group to the latest final video in one edit', () => {
+  it('updates a video-mode shot group to the latest final video in one edit', async () => {
+    mockedExtractVideoMetadataFromUrl.mockResolvedValue({
+      duration_seconds: 6,
+      frame_rate: 30,
+      total_frames: 180,
+      width: 1920,
+      height: 1080,
+      file_size: 0,
+    });
     const applyEdit = vi.fn();
     const patchRegistry = vi.fn();
     const registerAsset = vi.fn(async () => undefined);
@@ -573,20 +598,30 @@ describe('useSwitchToFinalVideo', () => {
       registerAsset,
     }));
 
-    act(() => {
-      result.current.updateToLatestVideo({ shotId: 'shot-1', rowId: 'V1' });
+    await act(async () => {
+      await result.current.updateToLatestVideo({ shotId: 'shot-1', rowId: 'V1' });
     });
 
-    expect(patchRegistry).toHaveBeenCalledTimes(1);
-    expect(registerAsset).toHaveBeenCalledTimes(1);
-    expect(applyEdit).toHaveBeenCalledTimes(1);
+    await waitFor(() => {
+      expect(patchRegistry).toHaveBeenCalledTimes(1);
+      expect(registerAsset).toHaveBeenCalledTimes(1);
+      expect(applyEdit).toHaveBeenCalledTimes(1);
+    });
 
     const mutation = applyEdit.mock.calls[0][0];
     expect(mutation.type).toBe('rows');
-    expect(mutation.rows).toEqual(dataRef.current.rows);
+    expect(mutation.rows).toEqual([
+      {
+        id: 'V1',
+        actions: [
+          { id: 'clip-3', start: 7, end: 13, effectId: 'effect-clip-3' },
+        ],
+      },
+    ]);
     expect(mutation.metaUpdates).toEqual({
       'clip-3': {
         asset: expect.any(String),
+        to: 6,
       },
     });
     expect(mutation.pinnedShotGroupsOverride).toEqual([expect.objectContaining({

@@ -2,6 +2,10 @@ import { useCallback } from 'react';
 import { toast } from '@/shared/components/ui/runtime/sonner';
 import { generateUUID } from '@/shared/lib/taskCreation/ids';
 import {
+  buildFinalVideoAssetEntry,
+  resolveFinalVideoDurationSeconds,
+} from '@/tools/video-editor/lib/finalVideoAssets';
+import {
   buildSwitchShotGroupToFinalVideoMutation,
   buildSwitchShotGroupToImagesMutation,
   buildUpdateShotGroupToLatestVideoMutation,
@@ -15,7 +19,6 @@ import type {
   TimelineUnpatchRegistry,
 } from '@/tools/video-editor/hooks/timeline-state-types';
 import type { ShotFinalVideo } from '@/tools/video-editor/hooks/useFinalVideoAvailable';
-import type { AssetRegistryEntry } from '@/tools/video-editor/types';
 
 interface UseSwitchToFinalVideoArgs {
   applyEdit: TimelineApplyEdit;
@@ -28,21 +31,21 @@ interface UseSwitchToFinalVideoArgs {
 
 function registerFinalVideoAsset(
   finalVideo: ShotFinalVideo,
+  currentData: TimelineDataRef['current'],
   patchRegistry: TimelinePatchRegistry,
   registerAsset: TimelineRegisterAsset,
-): { assetKey: string; persistPromise: Promise<void> } {
-  const assetKey = generateUUID();
-  const assetEntry: AssetRegistryEntry = {
-    file: finalVideo.location,
-    type: 'video/mp4',
-    generationId: finalVideo.id,
-    ...(finalVideo.thumbnailUrl ? { thumbnailUrl: finalVideo.thumbnailUrl } : {}),
-  };
-  patchRegistry(assetKey, assetEntry, finalVideo.location);
-  return {
-    assetKey,
-    persistPromise: registerAsset(assetKey, assetEntry),
-  };
+): Promise<{ assetKey: string; durationSeconds: number | null; persistPromise: Promise<void> }> {
+  return (async () => {
+    const durationSeconds = await resolveFinalVideoDurationSeconds(finalVideo, currentData?.registry.assets);
+    const assetKey = generateUUID();
+    const assetEntry = buildFinalVideoAssetEntry(finalVideo, durationSeconds);
+    patchRegistry(assetKey, assetEntry, finalVideo.location);
+    return {
+      assetKey,
+      durationSeconds,
+      persistPromise: registerAsset(assetKey, assetEntry),
+    };
+  })();
 }
 
 function buildRestoreShotGroupVideoMutation({
@@ -115,19 +118,25 @@ export function useSwitchToFinalVideo({
   unpatchRegistry,
   registerAsset,
 }: UseSwitchToFinalVideoArgs) {
-  const switchToFinalVideo = useCallback(({ shotId, clipIds, rowId }: { shotId: string; clipIds: string[]; rowId: string }) => {
+  const switchToFinalVideo = useCallback(async ({ shotId, clipIds, rowId }: { shotId: string; clipIds: string[]; rowId: string }) => {
     const finalVideo = finalVideoMap.get(shotId);
     if (!finalVideo) {
       return;
     }
 
-    const { assetKey, persistPromise } = registerFinalVideoAsset(finalVideo, patchRegistry, registerAsset);
+    const { assetKey, durationSeconds, persistPromise } = await registerFinalVideoAsset(
+      finalVideo,
+      dataRef.current,
+      patchRegistry,
+      registerAsset,
+    );
     const mutation = buildSwitchShotGroupToFinalVideoMutation({
       currentData: dataRef.current,
       shotId,
       rowId,
       clipIds,
       assetKey,
+      durationSeconds,
     });
     if (!mutation) {
       void persistPromise.catch((error) => {
@@ -154,7 +163,7 @@ export function useSwitchToFinalVideo({
     });
   }, [applyEdit, dataRef, finalVideoMap, patchRegistry, registerAsset, unpatchRegistry]);
 
-  const updateToLatestVideo = useCallback(({ shotId, rowId }: { shotId: string; rowId: string }) => {
+  const updateToLatestVideo = useCallback(async ({ shotId, rowId }: { shotId: string; rowId: string }) => {
     const finalVideo = finalVideoMap.get(shotId);
     if (!finalVideo) {
       return;
@@ -167,13 +176,19 @@ export function useSwitchToFinalVideo({
     const oldVideoGenerationId = oldVideoAssetKey
       ? dataRef.current?.registry.assets[oldVideoAssetKey]?.generationId
       : undefined;
-    const { assetKey, persistPromise } = registerFinalVideoAsset(finalVideo, patchRegistry, registerAsset);
+    const { assetKey, durationSeconds, persistPromise } = await registerFinalVideoAsset(
+      finalVideo,
+      dataRef.current,
+      patchRegistry,
+      registerAsset,
+    );
     const mutation = buildUpdateShotGroupToLatestVideoMutation({
       currentData: dataRef.current,
       shotId,
       rowId,
       assetKey,
       targetGenerationId: finalVideo.id,
+      durationSeconds,
     });
     if (!mutation) {
       void persistPromise.catch((error) => {

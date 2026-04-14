@@ -213,6 +213,33 @@ function getClipDuration(meta: ClipMeta, action: TimelineAction): number {
   return Math.max(0.05, action.end - action.start);
 }
 
+function getTimelineDurationFromSourceDuration({
+  sourceDurationSeconds,
+  from = 0,
+  speed = 1,
+}: {
+  sourceDurationSeconds?: number;
+  from?: number;
+  speed?: number;
+}): number | null {
+  if (
+    typeof sourceDurationSeconds !== 'number'
+    || !Number.isFinite(sourceDurationSeconds)
+    || sourceDurationSeconds <= 0
+  ) {
+    return null;
+  }
+
+  const safeFrom = Number.isFinite(from) ? Math.max(0, from) : 0;
+  const safeSpeed = Number.isFinite(speed) && speed > 0 ? speed : 1;
+  const remainingSourceDuration = sourceDurationSeconds - safeFrom;
+  if (remainingSourceDuration <= 0) {
+    return 0.05;
+  }
+
+  return Math.max(0.05, remainingSourceDuration / safeSpeed);
+}
+
 function snapshotClipMeta(meta: ClipMeta): PinnedShotImageClipSnapshot['meta'] {
   return {
     clipType: meta.clipType,
@@ -245,12 +272,14 @@ export function buildSwitchShotGroupToFinalVideoMutation({
   rowId,
   clipIds,
   assetKey,
+  durationSeconds,
 }: {
   currentData: TimelineData | null;
   shotId: string;
   rowId: string;
   clipIds: string[];
   assetKey: string;
+  durationSeconds?: number | null;
 }) {
   if (!currentData || clipIds.length === 0) {
     return null;
@@ -299,7 +328,11 @@ export function buildSwitchShotGroupToFinalVideoMutation({
   const videoClipId = getNextClipId(currentData.meta);
   const targetTrack = currentData.tracks.find((track) => track.id === resolvedTrackId);
   const isManualVisualTrack = targetTrack?.kind === 'visual' && targetTrack.fit === 'manual';
-  const duration = endTime - startTime;
+  const imageSpanDuration = endTime - startTime;
+  const duration = Math.min(
+    imageSpanDuration,
+    getTimelineDurationFromSourceDuration({ sourceDurationSeconds: durationSeconds ?? undefined }) ?? imageSpanDuration,
+  );
   const videoMeta: ClipMeta = {
     asset: assetKey,
     track: resolvedTrackId,
@@ -364,12 +397,14 @@ export function buildUpdateShotGroupToLatestVideoMutation({
   rowId,
   assetKey,
   targetGenerationId,
+  durationSeconds,
 }: {
   currentData: TimelineData | null;
   shotId: string;
   rowId: string;
   assetKey: string;
   targetGenerationId: string;
+  durationSeconds?: number | null;
 }) {
   if (!currentData) {
     return null;
@@ -392,12 +427,42 @@ export function buildUpdateShotGroupToLatestVideoMutation({
     return null;
   }
 
+  const currentDuration = Math.max(0.05, videoAction.end - videoAction.start);
+  const nextDuration = Math.min(
+    currentDuration,
+    getTimelineDurationFromSourceDuration({
+      sourceDurationSeconds: durationSeconds ?? undefined,
+      from: typeof videoMeta.from === 'number' ? videoMeta.from : 0,
+      speed: typeof videoMeta.speed === 'number' ? videoMeta.speed : 1,
+    }) ?? currentDuration,
+  );
+  const hasDurationChange = Math.abs(nextDuration - currentDuration) > 0.0001;
+  const nextRows = hasDurationChange
+    ? currentData.rows.map((row) => {
+        if (row.id !== resolvedTrackId) {
+          return row;
+        }
+
+        return {
+          ...row,
+          actions: row.actions.map((action) => (
+            action.id === videoClipId
+              ? { ...action, end: action.start + nextDuration }
+              : action
+          )),
+        };
+      })
+    : currentData.rows;
+  const from = typeof videoMeta.from === 'number' ? videoMeta.from : 0;
+  const speed = typeof videoMeta.speed === 'number' && videoMeta.speed > 0 ? videoMeta.speed : 1;
+
   return {
     type: 'rows' as const,
-    rows: currentData.rows,
+    rows: nextRows,
     metaUpdates: {
       [videoClipId]: {
         asset: assetKey,
+        ...(hasDurationChange ? { to: from + nextDuration * speed } : {}),
       },
     },
     pinnedShotGroupsOverride: buildPinnedShotGroupsOverride(currentData, {

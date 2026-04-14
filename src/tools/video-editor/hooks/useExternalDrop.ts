@@ -8,6 +8,7 @@ import {
 import { useShots } from '@/shared/contexts/ShotsContext';
 import { getMediaUrl, getThumbnailUrl } from '@/shared/lib/media/mediaTypeHelpers';
 import { inferDragKind } from '@/tools/video-editor/lib/drop-position';
+import { resolveFinalVideoDurationSeconds } from '@/tools/video-editor/lib/finalVideoAssets';
 import type { DragCoordinator } from '@/tools/video-editor/hooks/useDragCoordinator';
 import {
   buildAssetDropEdit,
@@ -38,6 +39,7 @@ import { buildPinnedShotGroupsOverride } from '@/tools/video-editor/lib/shot-gro
 import type { TrackKind } from '@/tools/video-editor/types';
 import { createAutoScroller } from '@/tools/video-editor/lib/auto-scroll';
 import type { Shot } from '@/domains/generation/types';
+import { useFinalVideoAvailable } from '@/tools/video-editor/hooks/useFinalVideoAvailable';
 
 async function dispatchTimelineDrop({
   event,
@@ -56,6 +58,7 @@ async function dispatchTimelineDrop({
   dropAsset,
   handleAddTextAt,
   shots,
+  finalVideoMap,
 }: {
   event: React.DragEvent<HTMLDivElement>;
   dataRef: React.MutableRefObject<TimelineData | null>;
@@ -73,6 +76,7 @@ async function dispatchTimelineDrop({
   dropAsset: UseAssetManagementResult['handleAssetDrop'];
   handleAddTextAt?: (trackId: string, time: number) => void;
   shots: Shot[] | undefined;
+  finalVideoMap: Map<string, { id: string; location: string; thumbnailUrl: string | null; durationSeconds?: number | null }>;
 }) {
   const insertAtTop = Boolean(dropPosition.isNewTrackTop);
 
@@ -108,6 +112,76 @@ async function dispatchTimelineDrop({
 
   const shotData = getShotDropData(event);
   if (shotData) {
+    const finalVideo = finalVideoMap.get(shotData.shotId);
+    if (finalVideo) {
+      const durationSeconds = await resolveFinalVideoDurationSeconds(finalVideo, dataRef.current?.registry.assets);
+      const resolvedTarget = resolveAssetDropTarget({
+        dataRef,
+        assetKind: 'visual',
+        trackId: dropPosition.isNewTrack ? undefined : dropPosition.trackId,
+        selectedTrackId,
+        forceNewTrack: dropPosition.isNewTrack,
+        insertAtTop,
+        time: dropPosition.time,
+        duration: durationSeconds ?? 5,
+      });
+      if (!resolvedTarget) {
+        return;
+      }
+
+      const assetKey = registerGenerationAsset({
+        generationId: finalVideo.id,
+        variantType: 'video',
+        imageUrl: finalVideo.location,
+        thumbUrl: finalVideo.thumbnailUrl ?? finalVideo.location,
+        ...(typeof durationSeconds === 'number' ? { durationSeconds } : {}),
+        metadata: {
+          content_type: 'video/mp4',
+        },
+      });
+      if (!assetKey) {
+        return;
+      }
+
+      const nextEdit = buildAssetDropEdit({
+        current: resolvedTarget.current,
+        assetKey,
+        trackId: resolvedTarget.trackId,
+        time: resolvedTarget.snappedTime ?? dropPosition.time,
+      });
+      if (!nextEdit) {
+        return;
+      }
+
+      const nextData: TimelineData = {
+        ...resolvedTarget.current,
+        rows: nextEdit.rows,
+        meta: {
+          ...resolvedTarget.current.meta,
+          ...nextEdit.metaUpdates,
+        },
+        clipOrder: nextEdit.clipOrderOverride,
+      };
+
+      applyEdit({
+        type: 'rows',
+        rows: nextEdit.rows,
+        metaUpdates: nextEdit.metaUpdates,
+        clipOrderOverride: nextEdit.clipOrderOverride,
+        pinnedShotGroupsOverride: buildPinnedShotGroupsOverride(nextData, {
+          shotId: shotData.shotId,
+          trackId: resolvedTarget.trackId,
+          clipIds: [nextEdit.clipId],
+          mode: 'video',
+          videoAssetKey: assetKey,
+        }),
+      }, {
+        selectedClipId: nextEdit.clipId,
+        selectedTrackId: resolvedTarget.trackId,
+      });
+      return;
+    }
+
     const shot = shots?.find((candidate) => candidate.id === shotData.shotId);
     const shotImages = shotData.imageGenerationIds
       .map((generationId) => shot?.images?.find((image) => image.generation_id === generationId))
@@ -284,6 +358,7 @@ export function useExternalDrop({
   onSeekToTime,
 }: UseExternalDropArgs): UseExternalDropResult {
   const { shots } = useShots();
+  const { finalVideoMap } = useFinalVideoAvailable();
   const externalDragFrameRef = useRef<number | null>(null);
   const autoScrollerRef = useRef<ReturnType<typeof createAutoScroller> | null>(null);
   const latestExternalDragRef = useRef<{
@@ -397,6 +472,7 @@ export function useExternalDrop({
       dropAsset,
       handleAddTextAt,
       shots,
+      finalVideoMap,
     });
     onSeekToTime?.(dropPosition.time);
   }, [
@@ -411,9 +487,12 @@ export function useExternalDrop({
     resolveAssetUrl,
     selectedTrackId,
     shots,
+    finalVideoMap,
     handleAddTextAt,
+    onSeekToTime,
     uploadAsset,
     uploadImageGeneration,
+    uploadVideoGeneration,
   ]);
 
   return {
