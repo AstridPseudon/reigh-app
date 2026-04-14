@@ -108,6 +108,7 @@ describe('VideoShotDisplayParts', () => {
         dragHandleProps={{}}
         dragDisabledReason={undefined}
         duplicateIsPending={false}
+        isHidden={true}
         {...callbacks}
       />,
     );
@@ -130,6 +131,7 @@ describe('VideoShotDisplayParts', () => {
         dragHandleProps={{}}
         dragDisabledReason="Locked"
         duplicateIsPending={false}
+        isHidden={true}
         {...callbacks}
       />,
     );
@@ -167,11 +169,10 @@ describe('VideoShotDisplayParts', () => {
 
     fireEvent.click(getTooltipButton(/duplicate shot/i));
     fireEvent.click(screen.getByRole('button', { name: /hide shot/i }));
-    fireEvent.click(getTooltipButton(/delete shot/i));
 
     expect(callbacks.onDuplicate).toHaveBeenCalledTimes(1);
     expect(callbacks.onToggleHidden).toHaveBeenCalledTimes(1);
-    expect(callbacks.onDelete).toHaveBeenCalledTimes(1);
+    expect(screen.queryByLabelText(/delete shot/i)).not.toBeInTheDocument();
     expect(parentClick).not.toHaveBeenCalled();
     expect(screen.getByText('Hide shot')).toBeInTheDocument();
 
@@ -192,6 +193,9 @@ describe('VideoShotDisplayParts', () => {
 
     expect(screen.getByLabelText('Unhide shot')).toBeInTheDocument();
     expect(screen.getByText('Unhide shot')).toBeInTheDocument();
+
+    fireEvent.click(getTooltipButton(/delete shot/i));
+    expect(callbacks.onDelete).toHaveBeenCalledTimes(1);
   });
 
   it('renders the final-video preview and toggles back to shot images', () => {

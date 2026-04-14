@@ -181,18 +181,20 @@ const ActionButtonsRow: React.FC<ActionButtonsRowProps> = ({
         </Tooltip>
       </TooltipProvider>
     )}
-    <TooltipProvider>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button variant="ghost" size="icon" onClick={onDelete} className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-8 w-8" disabled={isTempShot}>
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{isTempShot ? 'Saving...' : 'Delete shot'}</p>
-        </TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
+    {isHidden && (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button variant="ghost" size="icon" onClick={onDelete} className="text-destructive hover:text-destructive-foreground hover:bg-destructive h-8 w-8" disabled={isTempShot}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{isTempShot ? 'Saving...' : 'Delete shot'}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    )}
   </div>
 );
 
