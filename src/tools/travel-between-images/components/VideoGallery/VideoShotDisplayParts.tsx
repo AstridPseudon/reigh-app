@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import type { GenerationRow } from '@/domains/generation/types';
 import { Input } from '@/shared/components/ui/input';
 import { Button } from '@/shared/components/ui/button';
-import { Pencil, Trash2, Check, X, Copy, GripVertical, Loader2, Video, ChevronDown, ChevronUp, Images, Sparkles } from 'lucide-react';
+import { Pencil, Trash2, Check, X, Copy, GripVertical, Loader2, Video, ChevronDown, ChevronUp, Images, Sparkles, Eye, EyeOff } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 import { getDisplayUrl } from '@/shared/lib/media/mediaUrl';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/shared/components/ui/tooltip';
@@ -19,9 +19,11 @@ interface ActionButtonsRowProps {
   };
   dragDisabledReason?: string;
   duplicateIsPending: boolean;
+  isHidden?: boolean;
   onVideoClick: () => void;
   onEditName: (e?: React.MouseEvent) => void;
   onDuplicate: (e?: React.MouseEvent) => void;
+  onToggleHidden?: (e?: React.MouseEvent) => void;
   onDelete: (e?: React.MouseEvent) => void;
 }
 
@@ -32,9 +34,11 @@ const ActionButtonsRow: React.FC<ActionButtonsRowProps> = ({
   dragHandleProps,
   dragDisabledReason,
   duplicateIsPending,
+  isHidden = false,
   onVideoClick,
   onEditName,
   onDuplicate,
+  onToggleHidden,
   onDelete,
 }) => (
   <div className="flex items-center gap-x-1 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
@@ -149,6 +153,34 @@ const ActionButtonsRow: React.FC<ActionButtonsRowProps> = ({
         </TooltipContent>
       </Tooltip>
     </TooltipProvider>
+    {onToggleHidden && (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleHidden(e);
+              }}
+              className="h-8 w-8"
+              disabled={isTempShot}
+              aria-label={isHidden ? 'Unhide shot' : 'Hide shot'}
+            >
+              {isHidden ? (
+                <Eye className="h-4 w-4" />
+              ) : (
+                <EyeOff className="h-4 w-4" />
+              )}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{isTempShot ? 'Saving...' : isHidden ? 'Unhide shot' : 'Hide shot'}</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    )}
     <TooltipProvider>
       <Tooltip>
         <TooltipTrigger asChild>
@@ -465,9 +497,11 @@ interface ShotControlsProps {
   };
   dragDisabledReason?: string;
   duplicateIsPending: boolean;
+  isHidden?: boolean;
   onVideoClick: () => void;
   onEditName: (e?: React.MouseEvent) => void;
   onDuplicate: (e?: React.MouseEvent) => void;
+  onToggleHidden?: (e?: React.MouseEvent) => void;
   onDelete: (e?: React.MouseEvent) => void;
 }
 

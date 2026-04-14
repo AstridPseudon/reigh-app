@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import type { GenerationRow } from '@/domains/generation/types';
@@ -31,7 +31,7 @@ vi.mock('@/shared/components/ui/input', () => ({
 
 vi.mock('@/shared/components/ui/tooltip', () => ({
   TooltipProvider: ({ children }: { children: ReactNode }) => <>{children}</>,
-  Tooltip: ({ children }: { children: ReactNode }) => <>{children}</>,
+  Tooltip: ({ children }: { children: ReactNode }) => <div data-tooltip="true">{children}</div>,
   TooltipTrigger: ({ children }: { children: ReactNode }) => <>{children}</>,
   TooltipContent: ({ children }: { children: ReactNode }) => <>{children}</>,
 }));
@@ -55,6 +55,14 @@ function createImage(id: string, url: string): GenerationRow {
     location: url,
     thumbUrl: url,
   } as GenerationRow;
+}
+
+function getTooltipButton(label: RegExp | string): HTMLButtonElement {
+  const tooltipText = typeof label === 'string'
+    ? screen.getByText(label)
+    : screen.getByText(label);
+
+  return within(tooltipText.closest('[data-tooltip="true"]') as HTMLElement).getByRole('button');
 }
 
 describe('VideoShotDisplayParts', () => {
@@ -104,11 +112,10 @@ describe('VideoShotDisplayParts', () => {
       />,
     );
 
-    const enabledButtons = screen.getAllByRole('button');
-    fireEvent.click(enabledButtons[0]);
-    fireEvent.click(enabledButtons[2]);
-    fireEvent.click(enabledButtons[3]);
-    fireEvent.click(enabledButtons[4]);
+    fireEvent.click(getTooltipButton(/generate video/i));
+    fireEvent.click(getTooltipButton(/edit shot name/i));
+    fireEvent.click(getTooltipButton(/duplicate shot/i));
+    fireEvent.click(getTooltipButton(/delete shot/i));
 
     expect(callbacks.onVideoClick).toHaveBeenCalledTimes(1);
     expect(callbacks.onEditName).toHaveBeenCalledTimes(1);
@@ -131,6 +138,60 @@ describe('VideoShotDisplayParts', () => {
     screen.getAllByRole('button').forEach((button) => {
       expect(button).toBeDisabled();
     });
+  });
+
+  it('renders a hide toggle between duplicate and delete when hidden controls are provided', () => {
+    const callbacks = {
+      onVideoClick: vi.fn(),
+      onEditName: vi.fn(),
+      onDuplicate: vi.fn(),
+      onToggleHidden: vi.fn(),
+      onDelete: vi.fn(),
+    };
+    const parentClick = vi.fn();
+
+    const { rerender } = render(
+      <div onClick={parentClick}>
+        <ShotControls
+          isTempShot={false}
+          displayImagesCount={2}
+          isEditingName={false}
+          dragHandleProps={{}}
+          dragDisabledReason={undefined}
+          duplicateIsPending={false}
+          isHidden={false}
+          {...callbacks}
+        />
+      </div>,
+    );
+
+    fireEvent.click(getTooltipButton(/duplicate shot/i));
+    fireEvent.click(screen.getByRole('button', { name: /hide shot/i }));
+    fireEvent.click(getTooltipButton(/delete shot/i));
+
+    expect(callbacks.onDuplicate).toHaveBeenCalledTimes(1);
+    expect(callbacks.onToggleHidden).toHaveBeenCalledTimes(1);
+    expect(callbacks.onDelete).toHaveBeenCalledTimes(1);
+    expect(parentClick).not.toHaveBeenCalled();
+    expect(screen.getByText('Hide shot')).toBeInTheDocument();
+
+    rerender(
+      <div onClick={parentClick}>
+        <ShotControls
+          isTempShot={false}
+          displayImagesCount={2}
+          isEditingName={false}
+          dragHandleProps={{}}
+          dragDisabledReason={undefined}
+          duplicateIsPending={false}
+          isHidden={true}
+          {...callbacks}
+        />
+      </div>,
+    );
+
+    expect(screen.getByLabelText('Unhide shot')).toBeInTheDocument();
+    expect(screen.getByText('Unhide shot')).toBeInTheDocument();
   });
 
   it('renders the final-video preview and toggles back to shot images', () => {

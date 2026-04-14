@@ -19,6 +19,7 @@ import { useVideoTravelViewMode } from '../hooks/workflow/useVideoTravelViewMode
 import { useVideoTravelDropHandlers } from '../hooks/workflow/useVideoTravelDropHandlers';
 import { useVideoTravelAddToShot } from '../hooks/workflow/useVideoTravelAddToShot';
 import { useVideoLayoutConfig } from '../hooks/video/useVideoLayoutConfig';
+import { useHiddenShots } from '../hooks/useHiddenShots';
 import { VideoTravelListHeader } from '../components/VideoGallery/VideoTravelListHeader';
 import { VideoTravelVideosGallery } from '../components/VideoGallery/VideoTravelVideosGallery';
 
@@ -76,6 +77,7 @@ export function ShotListView({
 
   // Modal state
   const [isCreateShotModalOpen, setIsCreateShotModalOpen] = useState(false);
+  const [showHidden, setShowHidden] = useState(false);
 
   // Skeleton setup for instant modal close
   const skeletonSetupRef = useRef<((imageCount: number) => void) | null>(null);
@@ -148,9 +150,32 @@ export function ShotListView({
     return nameMatches;
   }, [shots, shotSearchQuery]);
 
+  const { hiddenIds, toggle } = useHiddenShots(selectedProjectId);
+
+  const visibleShots = useMemo(() => {
+    if (!filteredShots) {
+      return filteredShots;
+    }
+
+    if (showHidden) {
+      return filteredShots;
+    }
+
+    return filteredShots.filter((shot) => !hiddenIds.has(shot.id));
+  }, [filteredShots, hiddenIds, showHidden]);
+
+  const hiddenCount = useMemo(() => {
+    if (!filteredShots) {
+      return 0;
+    }
+
+    return filteredShots.filter((shot) => hiddenIds.has(shot.id)).length;
+  }, [filteredShots, hiddenIds]);
+
   // Search state helpers
   const isSearchActive = useMemo(() => shotSearchQuery.trim().length > 0, [shotSearchQuery]);
   const hasNoSearchResults = isSearchActive && ((filteredShots?.length || 0) === 0);
+  const allHiddenByFilter = !isSearchActive && ((filteredShots?.length ?? 0) > 0) && ((visibleShots?.length ?? 0) === 0);
 
   // Stable filters object for videos query (prevents recreating on every render)
   const videosFilters = useStableObject(() => ({
@@ -304,6 +329,11 @@ export function ShotListView({
           setVideoSortMode,
           setVideoPage,
         }}
+        hidden={{
+          hiddenCount,
+          showHidden,
+          setShowHidden,
+        }}
       />
 
       {/* Content Area */}
@@ -348,13 +378,22 @@ export function ShotListView({
             <p className="mb-4">No shots or parameters match your search.</p>
             <Button variant="outline" size="sm" onClick={clearSearch}>Clear search</Button>
           </div>
+        ) : allHiddenByFilter ? (
+          <div className="px-4 max-w-7xl mx-auto py-10 text-center text-muted-foreground">
+            <p className="mb-4">All shots are hidden. Click Show Hidden ({hiddenCount}) to reveal them.</p>
+            <Button variant="outline" size="sm" onClick={() => setShowHidden(true)}>
+              Show Hidden ({hiddenCount})
+            </Button>
+          </div>
         ) : (
           <div className="max-w-7xl mx-auto">
             <ShotListDisplay
               projectId={selectedProjectId}
               onSelectShot={handleShotSelect}
               onCreateNewShot={handleCreateNewShot}
-              shots={filteredShots}
+              shots={visibleShots}
+              isHidden={(shot) => hiddenIds.has(shot.id)}
+              onToggleHidden={(shot) => toggle(shot.id)}
               sortMode={shotSortMode}
               onSortModeChange={setShotSortMode}
               onGenerationDropOnShot={handleGenerationDropOnShot}

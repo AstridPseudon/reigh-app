@@ -5,6 +5,7 @@ import type { Shot } from '@/domains/generation/types';
 import type { ActiveLora } from '@/domains/lora/types/lora';
 import type { LoraModel } from '@/domains/lora/types/lora';
 import { useProject } from '@/shared/contexts/ProjectContext';
+import { usePanes } from '@/shared/contexts/PanesContext';
 import { useShotNavigation } from '@/shared/hooks/shots/useShotNavigation';
 import { useShotSettings } from '../../hooks/settings/useShotSettings';
 import { useToolSettings } from '@/shared/hooks/settings/useToolSettings';
@@ -220,6 +221,7 @@ export function useVideoGenerationModalController({ isOpen, onClose, shot }: {
   const queryClient = useQueryClient();
   const invalidateGenerations = useEnqueueGenerationsInvalidation();
   const { navigateToShot } = useShotNavigation();
+  const { isShotsPaneLocked, setIsShotsPaneLocked } = usePanes();
   const { updateShotMode } = useProjectGenerationModesCache(selectedProjectId ?? '');
 
   // UI state
@@ -298,9 +300,12 @@ export function useVideoGenerationModalController({ isOpen, onClose, shot }: {
 
   // Navigation callbacks
   const handleNavigateToShot = useCallback(() => {
+    if (isShotsPaneLocked) {
+      setIsShotsPaneLocked(false);
+    }
     onClose();
     navigateToShot(shot);
-  }, [navigateToShot, onClose, shot]);
+  }, [isShotsPaneLocked, setIsShotsPaneLocked, navigateToShot, onClose, shot]);
 
   const handleDialogOpenChange = useCallback(
     (open: boolean) => {

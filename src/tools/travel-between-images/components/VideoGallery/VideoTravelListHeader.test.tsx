@@ -51,6 +51,7 @@ describe('VideoTravelListHeader', () => {
         setVideoSortMode: vi.fn(),
         setVideoPage: vi.fn(),
       },
+      hidden: undefined,
       ...overrides,
     } as React.ComponentProps<typeof VideoTravelListHeader>;
   }
@@ -162,5 +163,41 @@ describe('VideoTravelListHeader', () => {
       'videos',
       expect.objectContaining({ blurTarget: expect.any(HTMLElement) }),
     );
+  });
+
+  it('renders and toggles the show-hidden pill only when hidden shots should be exposed', () => {
+    const setShowHidden = vi.fn();
+    const { rerender } = render(
+      <VideoTravelListHeader
+        {...buildProps({
+          hidden: {
+            hiddenCount: 2,
+            showHidden: false,
+            setShowHidden,
+          },
+        })}
+      />,
+    );
+
+    const showHiddenButton = screen.getByRole('button', { name: /show hidden \(2\)/i });
+    expect(showHiddenButton).toBeInTheDocument();
+
+    fireEvent.click(showHiddenButton);
+    expect(setShowHidden).toHaveBeenCalledWith(true);
+    expect(screen.getByRole('button', { name: /oldest first/i })).toBeInTheDocument();
+
+    rerender(
+      <VideoTravelListHeader
+        {...buildProps({
+          hidden: {
+            hiddenCount: 0,
+            showHidden: false,
+            setShowHidden,
+          },
+        })}
+      />,
+    );
+
+    expect(screen.queryByRole('button', { name: /show hidden/i })).not.toBeInTheDocument();
   });
 });

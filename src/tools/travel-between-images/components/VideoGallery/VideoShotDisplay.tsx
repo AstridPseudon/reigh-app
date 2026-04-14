@@ -22,6 +22,8 @@ interface VideoShotDisplayProps {
   shot: Shot;
   onSelectShot: () => void;
   onDuplicateShot?: () => void;
+  isHidden?: boolean;
+  onToggleHidden?: (e?: React.MouseEvent) => void;
   currentProjectId: string | null;
   dragHandleProps?: {
     disabled?: boolean;
@@ -45,6 +47,8 @@ export const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({
   shot,
   onSelectShot,
   onDuplicateShot,
+  isHidden = false,
+  onToggleHidden,
   currentProjectId,
   dragHandleProps,
   dragDisabledReason,
@@ -241,6 +245,7 @@ export const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({
           'click-ripple group p-4 border rounded-lg bg-card/50 dark:bg-card/70 dark:border-border transition-all duration-700 relative flex flex-col',
           isRippleActive && 'ripple-active',
           isHighlighted && 'ring-4 ring-blue-500 ring-opacity-75 shadow-[0_0_30px_rgba(59,130,246,0.6)] scale-105 animate-pulse',
+          isHidden && 'opacity-50',
           isTempShot
             ? 'opacity-70 cursor-wait animate-pulse'
             : 'hover:bg-card/80 hover:shadow-wes-hover hover:border-primary/30 hover:scale-105 cursor-pointer',
@@ -251,15 +256,22 @@ export const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({
         data-tour={dataTour}
       >
         <div className="flex justify-between items-start mb-3">
-          <ShotMetadata
-            displayName={editableName || shot.name}
-            isEditingName={isEditingName}
-            editableName={editableName}
-            onEditableNameChange={setEditableName}
-            onSaveName={handleSaveName}
-            onCancelEdit={() => cancelNameEdit(shot.name)}
-            generationMode={(shot.settings as Record<string, unknown>)?.generationMode as string | undefined}
-          />
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <ShotMetadata
+              displayName={editableName || shot.name}
+              isEditingName={isEditingName}
+              editableName={editableName}
+              onEditableNameChange={setEditableName}
+              onSaveName={handleSaveName}
+              onCancelEdit={() => cancelNameEdit(shot.name)}
+              generationMode={(shot.settings as Record<string, unknown>)?.generationMode as string | undefined}
+            />
+            {isHidden && (
+              <span className="text-[10px] font-medium uppercase tracking-wider text-amber-700 bg-amber-100 px-1.5 py-0.5 rounded shrink-0">
+                Hidden
+              </span>
+            )}
+          </div>
           <ShotControls
             isTempShot={isTempShot}
             displayImagesCount={displayImages.length}
@@ -267,9 +279,11 @@ export const VideoShotDisplay: React.FC<VideoShotDisplayProps> = ({
             dragHandleProps={dragHandleProps}
             dragDisabledReason={dragDisabledReason}
             duplicateIsPending={duplicateShotMutation.isPending}
+            isHidden={isHidden}
             onVideoClick={() => setVideoModalOpen(true)}
             onEditName={handleNameEditToggle}
             onDuplicate={handleDuplicateShot}
+            onToggleHidden={onToggleHidden}
             onDelete={handleDeleteShot}
           />
         </div>

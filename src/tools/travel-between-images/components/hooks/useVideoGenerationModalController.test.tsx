@@ -10,6 +10,7 @@ const mocks = vi.hoisted(() => ({
   useQueryClient: vi.fn(),
   useEnqueueGenerationsInvalidation: vi.fn(),
   useShotNavigation: vi.fn(),
+  usePanes: vi.fn(),
   useShotSettings: vi.fn(),
   useToolSettings: vi.fn(),
   useProjectGenerationModesCache: vi.fn(),
@@ -47,6 +48,10 @@ vi.mock('@/shared/hooks/invalidation/useGenerationInvalidation', () => ({
 
 vi.mock('@/shared/hooks/shots/useShotNavigation', () => ({
   useShotNavigation: (...args: unknown[]) => mocks.useShotNavigation(...args),
+}));
+
+vi.mock('@/shared/contexts/PanesContext', () => ({
+  usePanes: (...args: unknown[]) => mocks.usePanes(...args),
 }));
 
 vi.mock('../../hooks/settings/useShotSettings', () => ({
@@ -114,6 +119,7 @@ describe('useVideoGenerationModalController', () => {
     mocks.useQueryClient.mockReturnValue({ query: 'client' });
     mocks.useEnqueueGenerationsInvalidation.mockReturnValue(vi.fn());
     mocks.useShotNavigation.mockReturnValue({ navigateToShot: vi.fn() });
+    mocks.usePanes.mockReturnValue({ isShotsPaneLocked: false, setIsShotsPaneLocked: vi.fn() });
     mocks.useToolSettings.mockReturnValue({
       settings: { acceleratedMode: false, randomSeed: true },
       update: vi.fn(),

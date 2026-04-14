@@ -25,6 +25,8 @@ interface ShotListDisplayProps {
   onSelectShot: (shot: Shot) => void;
   onCreateNewShot?: () => void;
   shots?: Shot[];
+  isHidden?: (shot: Shot) => boolean;
+  onToggleHidden?: (shot: Shot) => void;
   sortMode?: 'ordered' | 'newest' | 'oldest';
   onSortModeChange?: (mode: 'ordered' | 'newest' | 'oldest') => void;
   highlightedShotId?: string | null;
@@ -40,6 +42,8 @@ export const ShotListDisplay: React.FC<ShotListDisplayProps> = ({
   onSelectShot,
   onCreateNewShot,
   shots: propShots,
+  isHidden,
+  onToggleHidden,
   sortMode = 'ordered',
   onSortModeChange,
   highlightedShotId,
@@ -120,6 +124,8 @@ export const ShotListDisplay: React.FC<ShotListDisplayProps> = ({
                 shot={shot}
                 onSelectShot={() => onSelectShot(shot)}
                 onDuplicateShot={() => onSortModeChange?.('newest')}
+                isHidden={isHidden?.(shot) ?? false}
+                onToggleHidden={onToggleHidden ? () => onToggleHidden(shot) : undefined}
                 currentProjectId={effectiveProjectId}
                 isDragDisabled={isDragDisabled}
                 disabledReason={sortMode !== 'ordered' ? 'Only available in ordered mode' : undefined}
@@ -142,4 +148,3 @@ export const ShotListDisplay: React.FC<ShotListDisplayProps> = ({
     </DndContext>
   );
 };
-

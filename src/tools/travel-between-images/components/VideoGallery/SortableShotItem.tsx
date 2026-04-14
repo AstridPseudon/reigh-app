@@ -22,6 +22,8 @@ interface SortableShotItemProps {
   shot: Shot;
   onSelectShot: () => void;
   onDuplicateShot?: () => void;
+  isHidden?: boolean;
+  onToggleHidden?: (e?: React.MouseEvent) => void;
   currentProjectId: string | null;
   isDragDisabled?: boolean;
   disabledReason?: string;
@@ -42,6 +44,8 @@ export const SortableShotItem: React.FC<SortableShotItemProps> = ({
   shot,
   onSelectShot,
   onDuplicateShot,
+  isHidden = false,
+  onToggleHidden,
   currentProjectId,
   isDragDisabled = false,
   shouldLoadImages = true,
@@ -101,6 +105,8 @@ export const SortableShotItem: React.FC<SortableShotItemProps> = ({
     shot,
     onSelectShot,
     onDuplicateShot,
+    isHidden,
+    onToggleHidden,
     currentProjectId,
     shouldLoadImages,
     shotIndex,

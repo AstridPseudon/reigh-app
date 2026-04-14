@@ -12,7 +12,7 @@
 import React from 'react';
 import { Button } from '@/shared/components/ui/button';
 import { SegmentedControl, SegmentedControlItem } from '@/shared/components/ui/segmented-control';
-import { Search, ArrowDown, X } from 'lucide-react';
+import { Search, ArrowDown, Eye, EyeOff, X } from 'lucide-react';
 import { cn } from '@/shared/components/ui/contracts/cn';
 
 // =============================================================================
@@ -48,10 +48,17 @@ interface SortProps {
   setVideoPage: (page: number) => void;
 }
 
+interface HiddenProps {
+  hiddenCount: number;
+  showHidden: boolean;
+  setShowHidden: (v: boolean) => void;
+}
+
 interface VideoTravelListHeaderProps {
   viewMode: ViewModeProps;
   search: SearchProps;
   sort: SortProps;
+  hidden?: HiddenProps;
 }
 
 // =============================================================================
@@ -62,6 +69,7 @@ export const VideoTravelListHeader: React.FC<VideoTravelListHeaderProps> = ({
   viewMode,
   search,
   sort,
+  hidden,
 }) => {
   const { showVideosView, setViewMode } = viewMode;
   
@@ -194,16 +202,36 @@ export const VideoTravelListHeader: React.FC<VideoTravelListHeaderProps> = ({
 
         {/* Right side: Sort toggle - always right-aligned */}
         {!showVideosView && (
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-8 text-xs ml-auto"
-            onClick={() => setShotSortMode(shotSortMode === 'oldest' ? 'newest' : 'oldest')}
-            title={`Currently showing ${shotSortMode === 'ordered' ? 'newest' : shotSortMode} first. Click to toggle.`}
-          >
-            <ArrowDown className="h-3.5 w-3.5 mr-1" />
-            {(shotSortMode === 'oldest') ? 'Oldest first' : 'Newest first'}
-          </Button>
+          <div className="ml-auto flex items-center gap-2">
+            {hidden && (hidden.hiddenCount > 0 || hidden.showHidden) && (
+              <Button
+                variant={hidden.showHidden ? 'default' : 'outline'}
+                size="sm"
+                className="h-8 text-xs"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  hidden.setShowHidden(!hidden.showHidden);
+                }}
+              >
+                {hidden.showHidden ? (
+                  <Eye className="h-3.5 w-3.5 mr-1" />
+                ) : (
+                  <EyeOff className="h-3.5 w-3.5 mr-1" />
+                )}
+                Show Hidden ({hidden.hiddenCount})
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              className="h-8 text-xs"
+              onClick={() => setShotSortMode(shotSortMode === 'oldest' ? 'newest' : 'oldest')}
+              title={`Currently showing ${shotSortMode === 'ordered' ? 'newest' : shotSortMode} first. Click to toggle.`}
+            >
+              <ArrowDown className="h-3.5 w-3.5 mr-1" />
+              {(shotSortMode === 'oldest') ? 'Oldest first' : 'Newest first'}
+            </Button>
+          </div>
         )}
 
         {showVideosView && (
