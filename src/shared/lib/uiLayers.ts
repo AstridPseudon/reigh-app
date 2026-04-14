@@ -8,3 +8,11 @@ export const UI_Z_LAYERS = {
   TOAST_VIEWPORT: 100020,
   TASKS_PANE_TAB_BEHIND_LIGHTBOX: 99,
 } as const;
+
+export function hasDialogAbove(zLayer: number): boolean {
+  const dialogOverlays = document.querySelectorAll('[data-dialog-backdrop]');
+  return Array.from(dialogOverlays).some((overlay) => {
+    const zIndex = parseInt(window.getComputedStyle(overlay as Element).zIndex || '0', 10);
+    return zIndex > zLayer;
+  });
+}

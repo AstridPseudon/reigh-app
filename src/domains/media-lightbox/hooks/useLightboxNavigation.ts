@@ -1,4 +1,5 @@
 import { useEffect, useCallback, useRef } from 'react';
+import { UI_Z_LAYERS, hasDialogAbove } from '@/shared/lib/uiLayers';
 
 interface UseLightboxNavigationProps {
   onNext?: () => void;
@@ -85,13 +86,7 @@ export const useLightboxNavigation = ({
      * the keydown event during the bubble phase.
      */
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Check if another dialog/modal is open on top
-      const dialogOverlays = document.querySelectorAll('[data-dialog-backdrop]');
-      const hasHigherZIndexDialog = Array.from(dialogOverlays).some((overlay) => {
-        const zIndex = parseInt(window.getComputedStyle(overlay as Element).zIndex || '0', 10);
-        return zIndex > 100000;
-      });
-      if (hasHigherZIndexDialog) return;
+      if (hasDialogAbove(UI_Z_LAYERS.LIGHTBOX_MODAL)) return;
 
       // Don't intercept arrow keys when user is in a text field
       const active = document.activeElement;
@@ -120,4 +115,3 @@ export const useLightboxNavigation = ({
     activateClickShield,
   };
 };
-

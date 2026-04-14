@@ -3,21 +3,13 @@ import {
   isFloatingOverlayElement,
   shouldAllowTouchThrough,
 } from '@/shared/lib/interactions/elementPolicy';
-import { UI_Z_LAYERS } from '@/shared/lib/uiLayers';
+import { UI_Z_LAYERS, hasDialogAbove } from '@/shared/lib/uiLayers';
 
 interface UseLightboxShellInteractionHandlersArgs {
   hasCanvasOverlay: boolean;
   isRepositionMode: boolean;
   isMobile: boolean;
   onClose: () => void;
-}
-
-function hasHigherZIndexDialog(): boolean {
-  const dialogOverlays = document.querySelectorAll('[data-dialog-backdrop]');
-  return Array.from(dialogOverlays).some((overlay) => {
-    const zIndex = parseInt(window.getComputedStyle(overlay as Element).zIndex || '0', 10);
-    return zIndex > UI_Z_LAYERS.LIGHTBOX_MODAL;
-  });
 }
 
 function targetHasHigherZIndex(target: EventTarget | null): boolean {
@@ -44,7 +36,7 @@ export function useLightboxShellInteractionHandlers({
   const handleOverlayPointerDown = (e: React.PointerEvent) => {
     pointerDownTargetRef.current = e.target;
 
-    if (hasHigherZIndexDialog() || targetHasHigherZIndex(e.target)) {
+    if (hasDialogAbove(UI_Z_LAYERS.LIGHTBOX_MODAL) || targetHasHigherZIndex(e.target)) {
       return;
     }
 
@@ -56,7 +48,7 @@ export function useLightboxShellInteractionHandlers({
   };
 
   const handleOverlayPointerUp = (e: React.PointerEvent) => {
-    if (hasHigherZIndexDialog() || targetHasHigherZIndex(e.target)) {
+    if (hasDialogAbove(UI_Z_LAYERS.LIGHTBOX_MODAL) || targetHasHigherZIndex(e.target)) {
       return;
     }
 
@@ -79,7 +71,7 @@ export function useLightboxShellInteractionHandlers({
   };
 
   const handleOverlayClick = (e: React.MouseEvent) => {
-    if (hasHigherZIndexDialog() || targetHasHigherZIndex(e.target)) {
+    if (hasDialogAbove(UI_Z_LAYERS.LIGHTBOX_MODAL) || targetHasHigherZIndex(e.target)) {
       return;
     }
 
@@ -107,7 +99,7 @@ export function useLightboxShellInteractionHandlers({
     const upTarget = e.target as HTMLElement;
     bgPointerDownTargetRef.current = null;
 
-    if (hasHigherZIndexDialog() || targetHasHigherZIndex(upTarget)) return;
+    if (hasDialogAbove(UI_Z_LAYERS.LIGHTBOX_MODAL) || targetHasHigherZIndex(upTarget)) return;
     if (isRepositionMode) return;
 
     if (
@@ -137,7 +129,7 @@ export function useLightboxShellInteractionHandlers({
   };
 
   const handleTouchCancel = (e: React.TouchEvent) => {
-    if (hasHigherZIndexDialog()) return;
+    if (hasDialogAbove(UI_Z_LAYERS.LIGHTBOX_MODAL)) return;
     e.preventDefault();
     e.stopPropagation();
     if (e.nativeEvent && typeof e.nativeEvent.stopImmediatePropagation === 'function') {
