@@ -210,19 +210,43 @@ export const useLoraManager = (
     persistedLoras: persistenceSettings?.loras,
   }), [hasEverSetLoras, selectedLoras.length, persistenceScope, persistenceSettings?.loras]);
 
-  return {
-    selectedLoras,
-    setSelectedLoras,
-    isLoraModalOpen,
-    setIsLoraModalOpen,
-    handleAddLora,
-    handleRemoveLora,
-    handleLoraStrengthChange,
-    hasEverSetLoras,
-    shouldApplyDefaults,
-    markAsUserSet,
-    ...(enableTriggerWords && { handleAddTriggerWord }),
-    ...(enableProjectPersistence && {
+  const baseManagerState = useMemo(
+    () => ({
+      selectedLoras,
+      setSelectedLoras,
+      isLoraModalOpen,
+      setIsLoraModalOpen,
+      handleAddLora,
+      handleRemoveLora,
+      handleLoraStrengthChange,
+      hasEverSetLoras,
+      shouldApplyDefaults,
+      markAsUserSet,
+      ...(enableTriggerWords && { handleAddTriggerWord }),
+    }),
+    [
+      selectedLoras,
+      setSelectedLoras,
+      isLoraModalOpen,
+      setIsLoraModalOpen,
+      handleAddLora,
+      handleRemoveLora,
+      handleLoraStrengthChange,
+      hasEverSetLoras,
+      shouldApplyDefaults,
+      markAsUserSet,
+      enableTriggerWords,
+      handleAddTriggerWord,
+    ],
+  );
+
+  return useMemo(() => {
+    if (!enableProjectPersistence) {
+      return baseManagerState;
+    }
+
+    return {
+      ...baseManagerState,
       handleSaveProjectLoras,
       handleLoadProjectLoras,
       hasSavedLoras,
@@ -230,6 +254,16 @@ export const useLoraManager = (
       saveSuccess,
       saveFlash,
       renderHeaderActions,
-    }),
-  };
+    };
+  }, [
+    baseManagerState,
+    enableProjectPersistence,
+    handleSaveProjectLoras,
+    handleLoadProjectLoras,
+    hasSavedLoras,
+    isSavingLoras,
+    saveSuccess,
+    saveFlash,
+    renderHeaderActions,
+  ]);
 };

@@ -42,12 +42,22 @@ const DialogOverlay = React.forwardRef<
 ))
 DialogOverlay.displayName = "DialogOverlay"
 
+interface DialogContentProps
+  extends React.ComponentPropsWithoutRef<typeof DialogPrimitive.Popup> {
+  container?: HTMLElement | null
+  overlayClassName?: string
+  zIndexBase?: number
+}
+
 const DialogContent = React.forwardRef<
   HTMLDivElement,
-  React.ComponentPropsWithoutRef<typeof DialogPrimitive.Popup>
->(({ className, children, ...props }, ref) => (
-  <DialogPortal>
-    <DialogOverlay />
+  DialogContentProps
+>(({ className, children, container, overlayClassName, style, zIndexBase, ...props }, ref) => (
+  <DialogPortal container={container ?? undefined}>
+    <DialogOverlay
+      className={overlayClassName}
+      style={zIndexBase !== undefined ? { zIndex: zIndexBase } : undefined}
+    />
     <DialogPrimitive.Popup
       data-pane-control
       data-dialog-content
@@ -56,6 +66,7 @@ const DialogContent = React.forwardRef<
         "fixed left-[50%] top-[50%] z-[100003] grid w-full max-w-lg translate-x-[-50%] translate-y-[-50%] gap-4 border bg-background p-6 shadow-lg duration-200 data-[open]:animate-in data-[ending-style]:animate-out data-[ending-style]:fade-out-0 data-[open]:fade-in-0 data-[ending-style]:zoom-out-95 data-[open]:zoom-in-95 data-[ending-style]:slide-out-to-left-1/2 data-[ending-style]:slide-out-to-top-[48%] data-[open]:slide-in-from-left-1/2 data-[open]:slide-in-from-top-[48%] sm:rounded-lg",
         className
       )}
+      style={zIndexBase !== undefined ? { ...(style ?? {}), zIndex: zIndexBase + 1 } : style}
       {...props}
     >
       {children}

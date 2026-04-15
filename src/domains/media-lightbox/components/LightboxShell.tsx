@@ -132,6 +132,7 @@ export const LightboxShell: React.FC<LightboxShellProps> = ({
 
         <DialogPrimitive.Popup
           ref={contentRef}
+          data-lightbox-popup
           tabIndex={-1}
           onPointerDownCapture={handleBgPointerDownCapture}
           onClickCapture={handleBgClickCapture}

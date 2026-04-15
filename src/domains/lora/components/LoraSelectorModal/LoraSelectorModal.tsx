@@ -6,6 +6,7 @@ import { useExtraLargeModal } from '@/shared/hooks/useModal';
 import { useScrollFade } from '@/shared/hooks/useScrollFade';
 import { useListResources, useCreateResource, useUpdateResource, useDeleteResource } from '@/features/resources/hooks/useResources';
 import { useUserUIState } from '@/shared/hooks/useUserUIState';
+import { UI_Z_LAYERS, getTopDialogElement } from '@/shared/lib/uiLayers';
 
 import { LoraSelectorModalProps } from './types';
 import { CommunityLorasTab } from './components/CommunityLorasTab';
@@ -23,6 +24,7 @@ export const LoraSelectorModal: React.FC<LoraSelectorModalProps> = ({
   selectedLoras,
   loraType,
 }) => {
+  const contentRef = React.useRef<HTMLDivElement | null>(null);
   const myLorasResource = useListResources('lora');
   const createResource = useCreateResource();
   const updateResource = useUpdateResource();
@@ -63,13 +65,51 @@ export const LoraSelectorModal: React.FC<LoraSelectorModalProps> = ({
   });
   const modalHeaderPaddingClass = modal.isMobile ? 'px-2 pt-1 pb-2' : 'px-6 pt-2 pb-2';
   const modalTabRowPaddingClass = `${modal.isMobile ? 'px-2' : 'px-6'} py-2 flex-shrink-0`;
+  const handleOpenChange = React.useCallback((open: boolean) => {
+    if (!open) {
+      onClose();
+    }
+  }, [onClose]);
+
+  React.useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    const handlePointerDown = (event: PointerEvent) => {
+      const content = contentRef.current;
+      const target = event.target as Node | null;
+      if (!content || !target) {
+        return;
+      }
+
+      if (getTopDialogElement() !== content) {
+        return;
+      }
+
+      if (content.contains(target)) {
+        return;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation?.();
+      onClose();
+    };
+
+    document.addEventListener('pointerdown', handlePointerDown, true);
+    return () => document.removeEventListener('pointerdown', handlePointerDown, true);
+  }, [isOpen, onClose]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       {isOpen && (
         <DialogContent
+          ref={contentRef}
           className={modal.className}
           style={modal.style}
+          overlayClassName="!z-[100012]"
+          zIndexBase={UI_Z_LAYERS.LIGHTBOX_MODAL + 2}
         >
           <div className={modal.headerClass}>
             <DialogHeader className={`${modalHeaderPaddingClass} flex-shrink-0`}>

@@ -12,6 +12,18 @@ import { DescriptionModal } from './DescriptionModal';
 
 const PAGE_SIZE = 20;
 
+function useSelectPortalContainer<T extends HTMLElement>() {
+  const sectionRef = React.useRef<T | null>(null);
+  const [container, setContainer] = React.useState<HTMLElement | null>(null);
+
+  React.useLayoutEffect(() => {
+    const nextContainer = sectionRef.current?.closest('[data-dialog-content]') as HTMLElement | null;
+    setContainer(nextContainer ?? null);
+  }, []);
+
+  return { sectionRef, container };
+}
+
 export const CommunityLorasTab: React.FC<CommunityLorasTabProps> = ({
   loras,
   onAddLora,
@@ -31,6 +43,7 @@ export const CommunityLorasTab: React.FC<CommunityLorasTabProps> = ({
   selectedSubFilter,
   setSelectedSubFilter,
 }) => {
+  const { sectionRef, container } = useSelectPortalContainer<HTMLDivElement>();
   const isMobile = useIsMobile();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortOption, setSortOption] = useState<SortOption>('default');
@@ -197,7 +210,7 @@ export const CommunityLorasTab: React.FC<CommunityLorasTabProps> = ({
       <SelectTrigger variant="retro" className="w-[140px]">
         <SelectValue placeholder="Sort by" />
       </SelectTrigger>
-      <SelectContent variant="retro">
+      <SelectContent container={container} variant="retro">
         <SelectItem variant="retro" value="default">Default</SelectItem>
         <SelectItem variant="retro" value="downloads">Downloads</SelectItem>
         <SelectItem variant="retro" value="likes">Likes</SelectItem>
@@ -208,7 +221,7 @@ export const CommunityLorasTab: React.FC<CommunityLorasTabProps> = ({
   );
 
   return (
-    <div className={tabContainerClass}>
+    <div ref={sectionRef} className={tabContainerClass}>
       <div className="flex gap-2 mb-3">
         <Input
           type="text"
@@ -223,7 +236,7 @@ export const CommunityLorasTab: React.FC<CommunityLorasTabProps> = ({
           <SelectTrigger variant="retro" className="w-[120px] ml-auto">
             <SelectValue placeholder="Model" />
           </SelectTrigger>
-          <SelectContent variant="retro">
+          <SelectContent container={container} variant="retro">
             <SelectItem variant="retro" value="all">All Models</SelectItem>
             <SelectItem variant="retro" value="qwen">Qwen</SelectItem>
             <SelectItem variant="retro" value="wan">Wan</SelectItem>
@@ -237,7 +250,7 @@ export const CommunityLorasTab: React.FC<CommunityLorasTabProps> = ({
             <SelectTrigger variant="retro" className="w-[150px]">
               <SelectValue placeholder="Type" />
             </SelectTrigger>
-            <SelectContent variant="retro">
+            <SelectContent container={container} variant="retro">
               {getSubFilterOptions(selectedModelFilter).map(opt => (
                 <SelectItem key={opt.value} variant="retro" value={opt.value}>{opt.label}</SelectItem>
               ))}

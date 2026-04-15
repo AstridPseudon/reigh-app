@@ -17,6 +17,26 @@ import { GenerateButton } from './GenerateButton';
 
 const REPOSITION_DEFAULT_PROMPT = 'match existing content';
 
+function blurActiveElement() {
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
+}
+
+function useSelectPortalContainer<T extends HTMLElement>() {
+  const sectionRef = React.useRef<T | null>(null);
+  const [container, setContainer] = React.useState<HTMLElement | null>(null);
+
+  React.useLayoutEffect(() => {
+    const nextContainer = sectionRef.current?.closest(
+      '[data-lightbox-popup], [data-dialog-content]',
+    ) as HTMLElement | null;
+    setContainer(nextContainer ?? null);
+  }, []);
+
+  return { sectionRef, container };
+}
+
 export interface SharedEditPanelProps {
   state: EditModePanelState;
   isCloudMode?: boolean;
@@ -115,6 +135,8 @@ export const ModelAndLoraSection: React.FC<ModelAndLoraSectionProps> = ({
   editLoraManager,
   availableLoras,
 }) => {
+  const { sectionRef, container } = useSelectPortalContainer<HTMLDivElement>();
+
   if (!editLoraManager && !state.setQwenEditModel) {
     return null;
   }
@@ -122,15 +144,23 @@ export const ModelAndLoraSection: React.FC<ModelAndLoraSectionProps> = ({
   const isKleinModel = state.qwenEditModel?.startsWith('flux-klein-');
 
   return (
-    <div className={state.generationsSpacing}>
+    <div ref={sectionRef} className={state.generationsSpacing}>
       <SectionLabel isMobile={state.isMobile}>{isKleinModel ? 'Model' : 'Model & LoRAs'}</SectionLabel>
       <div className={cn('flex items-center gap-2', state.isMobile ? 'mb-1' : 'mb-2')}>
         {state.setQwenEditModel && (
-          <Select value={state.qwenEditModel} onValueChange={(value) => value && state.setQwenEditModel(value)}>
-            <SelectTrigger variant="retro" className={cn('w-[40%]', state.isMobile ? 'h-7 text-xs' : 'h-10')}>
+          <Select
+            value={state.qwenEditModel}
+            onValueChange={(value) => {
+              value && state.setQwenEditModel(value);
+            }}
+          >
+            <SelectTrigger
+              variant="retro"
+              className={cn('w-[40%]', state.isMobile ? 'h-7 text-xs' : 'h-10')}
+            >
               <SelectValue />
             </SelectTrigger>
-            <SelectContent variant="retro" className="z-[100001]">
+            <SelectContent container={container} variant="retro" className="z-[100001]">
               <SelectItem variant="retro" value="qwen-edit">Qwen-Edit</SelectItem>
               <SelectItem variant="retro" value="qwen-edit-2509">Qwen-Edit-2509</SelectItem>
               <SelectItem variant="retro" value="qwen-edit-2511">Qwen-Edit-2511</SelectItem>
@@ -147,7 +177,10 @@ export const ModelAndLoraSection: React.FC<ModelAndLoraSectionProps> = ({
           <Button
             variant="outline"
             size="sm"
-            onClick={() => editLoraManager.setIsLoraModalOpen(true)}
+            onClick={() => {
+              blurActiveElement();
+              editLoraManager.setIsLoraModalOpen(true);
+            }}
             className={cn(
               'flex h-10 w-[40%] items-center justify-center gap-1 px-2 text-xs',
               state.isMobile && 'h-6 text-[10px]',
@@ -179,12 +212,14 @@ interface LegacyLoraSectionProps {
 }
 
 export const LegacyLoraSection: React.FC<LegacyLoraSectionProps> = ({ state, hasManagedLoras }) => {
+  const { sectionRef, container } = useSelectPortalContainer<HTMLDivElement>();
+
   if (hasManagedLoras || state.qwenEditModel?.startsWith('flux-klein-')) {
     return null;
   }
 
   return (
-    <div>
+    <div ref={sectionRef}>
       <SectionLabel isMobile={state.isMobile}>Style LoRA</SectionLabel>
       <div className="flex items-center gap-2">
         {!state.isMobile && <label className="text-sm font-medium whitespace-nowrap">LoRA:</label>}
@@ -193,7 +228,7 @@ export const LegacyLoraSection: React.FC<LegacyLoraSectionProps> = ({ state, has
             <SelectTrigger variant="retro" className={cn('flex-1', state.isMobile ? 'h-7 text-xs' : 'h-10')}>
               <SelectValue />
             </SelectTrigger>
-            <SelectContent variant="retro" className="z-[100001]">
+            <SelectContent container={container} variant="retro" className="z-[100001]">
               <SelectItem variant="retro" value="none">None</SelectItem>
               <SelectItem variant="retro" value="in-scene">InScene</SelectItem>
               <SelectItem variant="retro" value="next-scene">Next Scene</SelectItem>

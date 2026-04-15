@@ -16,6 +16,18 @@ import { UrlInputSection } from './components/UrlInputSection';
 import { FileUploadSection } from './components/FileUploadSection';
 import { SampleGenerationsSection } from './components/SampleGenerationsSection';
 
+function useSelectPortalContainer<T extends HTMLElement>() {
+  const sectionRef = React.useRef<T | null>(null);
+  const [container, setContainer] = React.useState<HTMLElement | null>(null);
+
+  React.useLayoutEffect(() => {
+    const nextContainer = sectionRef.current?.closest('[data-dialog-content]') as HTMLElement | null;
+    setContainer(nextContainer ?? null);
+  }, []);
+
+  return { sectionRef, container };
+}
+
 export const MyLorasTab: React.FC<MyLorasTabProps> = ({
   myLorasResource,
   createResource,
@@ -25,6 +37,7 @@ export const MyLorasTab: React.FC<MyLorasTabProps> = ({
   onClearEdit,
   defaultIsPublic
 }) => {
+  const { sectionRef, container } = useSelectPortalContainer<HTMLDivElement>();
   const formState = useLoraFormState({ editingLora, defaultIsPublic });
 
   // Get existing filenames from saved LoRAs
@@ -58,7 +71,7 @@ export const MyLorasTab: React.FC<MyLorasTabProps> = ({
   });
 
   return (
-    <div className="space-y-4">
+    <div ref={sectionRef} className="space-y-4">
       {formState.isEditMode && (
         <div className="flex items-center justify-between p-3 bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 rounded-lg">
           <div className="flex items-center gap-2">
@@ -142,7 +155,7 @@ export const MyLorasTab: React.FC<MyLorasTabProps> = ({
                 <SelectTrigger variant="retro" className={formState.supportsMultiStage ? "flex-1" : "w-full"}>
                   <SelectValue placeholder="Select Base Model" />
                 </SelectTrigger>
-                <SelectContent variant="retro">
+                <SelectContent container={container} variant="retro">
                   {BASE_MODEL_OPTIONS.map(opt => (
                     <SelectItem key={opt.value} variant="retro" value={opt.value}>{opt.label}</SelectItem>
                   ))}
@@ -160,7 +173,7 @@ export const MyLorasTab: React.FC<MyLorasTabProps> = ({
                   <SelectTrigger variant="retro" className="w-[180px]">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent variant="retro">
+                  <SelectContent container={container} variant="retro">
                     <SelectItem variant="retro" value="single">Single LoRA</SelectItem>
                     <SelectItem variant="retro" value="multi">High + Low Noise</SelectItem>
                   </SelectContent>

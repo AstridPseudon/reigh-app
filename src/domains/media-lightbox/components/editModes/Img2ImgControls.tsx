@@ -16,6 +16,12 @@ import { LoraSelectorModal } from '@/domains/lora/components';
 import type { LoraModel } from '@/domains/lora/types/lora';
 import type { LoraManagerState } from '@/domains/lora/types/loraManager';
 
+function blurActiveElement() {
+  if (document.activeElement instanceof HTMLElement) {
+    document.activeElement.blur();
+  }
+}
+
 interface Img2ImgControlsProps {
   isMobile: boolean;
   // Form state
@@ -128,7 +134,10 @@ export const Img2ImgControls: React.FC<Img2ImgControlsProps> = ({
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => img2imgLoraManager.setIsLoraModalOpen(true)}
+                onClick={() => {
+                  blurActiveElement();
+                  img2imgLoraManager.setIsLoraModalOpen(true);
+                }}
                 className={cn("h-10 px-2 text-xs flex flex-col items-center justify-center leading-tight", isMobile && "h-6 text-[10px]")}
               >
                 <Plus className={cn(isMobile ? "h-2.5 w-2.5" : "h-3 w-3")} />
