@@ -122,7 +122,7 @@ Respond with ONLY the word "direct" or "rewrite".`;
     let intent: "direct" | "rewrite" = "rewrite"; // default to rewrite for safety
     try {
       const classifyResp = await groq.chat.completions.create({
-        model: "moonshotai/kimi-k2-instruct",
+        model: "openai/gpt-oss-20b",
         messages: [
           { role: "system", content: classifyMsg },
           { role: "user", content: `INPUT: "${transcribedText}"${existingValue ? `\nEXISTING FIELD CONTENT: "${existingValue}"` : ""}` },
@@ -148,7 +148,7 @@ Respond with ONLY the word "direct" or "rewrite".`;
         .trim();
       logger.info('Direct prompt (cleaned)', { preview: promptText.substring(0, 100) });
     } else {
-      // Step 3: Light rewrite via Kimi — stay close to what the user said
+      // Step 3: Light rewrite — stay close to what the user said
       const systemMsg = `You clean up spoken input for AI image generation prompt fields. Your job is to make minimal, conservative edits — NOT to rewrite or embellish.
 
 What you DO:
@@ -187,11 +187,11 @@ RULES:
 
 Output:`;
 
-      logger.info('Calling Kimi API for rewrite...');
+      logger.info('Calling rewrite model...');
 
       try {
         const resp = await groq.chat.completions.create({
-          model: "moonshotai/kimi-k2-instruct",
+          model: "openai/gpt-oss-20b",
           messages: [
             { role: "system", content: systemMsg },
             { role: "user", content: userMsg },
@@ -200,11 +200,11 @@ Output:`;
           max_tokens: 2048,
           top_p: 1,
         });
-        logger.info('Kimi API responded successfully');
+        logger.info('Rewrite model responded successfully');
         promptText = resp.choices[0]?.message?.content?.trim() || transcribedText;
         usage = resp.usage;
-      } catch (kimiError: unknown) {
-        logger.error('Kimi API error', { error: kimiError?.message || String(kimiError) });
+      } catch (rewriteError: unknown) {
+        logger.error('Rewrite model error', { error: rewriteError?.message || String(rewriteError) });
         promptText = transcribedText;
       }
     }

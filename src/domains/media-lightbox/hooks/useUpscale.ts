@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useMemo } from 'react';
 import { GenerationRow } from '@/domains/generation/types';
 import { createTask } from '@/shared/lib/taskCreation';
 import { getGenerationId, getMediaUrl } from '@/shared/lib/media/mediaTypeHelpers';
@@ -107,11 +107,14 @@ export const useUpscale = ({
     }
   }, [media, selectedProjectId, isVideo, mediaUrl, shotId, run]);
 
-  return {
-    isUpscaling,
-    upscaleSuccess,
-    handleUpscale,
-    setActiveVariant,
-    effectiveImageUrl: mediaUrl,
-  };
+  return useMemo(
+    () => ({
+      isUpscaling,
+      upscaleSuccess,
+      handleUpscale,
+      setActiveVariant,
+      effectiveImageUrl: mediaUrl,
+    }),
+    [isUpscaling, upscaleSuccess, handleUpscale, setActiveVariant, mediaUrl],
+  );
 };

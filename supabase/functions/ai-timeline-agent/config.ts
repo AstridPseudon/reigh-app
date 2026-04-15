@@ -1,5 +1,5 @@
 // Triage: fast Groq call to classify difficulty
-export const GROQ_TRIAGE_MODEL = "moonshotai/kimi-k2-instruct-0905";
+export const GROQ_TRIAGE_MODEL = "openai/gpt-oss-20b";
 export const GROQ_TIMEOUT_MS = 15_000;
 
 // Easy / Okay → Kimi K2.5 via Fireworks

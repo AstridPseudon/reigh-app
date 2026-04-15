@@ -1,6 +1,5 @@
 // deno-lint-ignore-file
 import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import Groq from "npm:groq-sdk@0.26.0";
 import {
   enforceRateLimit,
   RATE_LIMITS,
@@ -15,50 +14,54 @@ import {
   ENHANCE_SEGMENT_SYSTEM_PROMPT,
 } from "./templates.ts";
 
-const GROQ_MODEL = "moonshotai/kimi-k2-instruct-0905";
-const GROQ_FALLBACK_MODEL = "llama-3.3-70b-versatile";
-const GROQ_TIMEOUT_MS = 30_000;
+const FIREWORKS_URL = "https://api.fireworks.ai/inference/v1/chat/completions";
+const FIREWORKS_MODEL = "accounts/fireworks/models/kimi-k2p5";
+const FIREWORKS_TIMEOUT_MS = 60_000;
 
-let groqClient: Groq | null = null;
-
-function getGroqClient(): Groq {
-  if (groqClient) {
-    return groqClient;
-  }
-  const apiKey = Deno.env.get("GROQ_API_KEY");
-  if (!apiKey) {
-    throw new Error("[ai-prompt] Missing Groq provider configuration");
-  }
-  groqClient = new Groq({ apiKey, timeout: GROQ_TIMEOUT_MS });
-  return groqClient;
-}
-
-interface GroqChatParams {
-  model: string;
+interface FireworksChatParams {
+  model?: string;
   messages: { role: string; content: string }[];
   temperature: number;
   max_tokens: number;
   top_p?: number;
 }
 
-async function groqWithFallback(
-  groq: Groq,
-  params: GroqChatParams,
-  logger: { info: (msg: string) => void },
-) {
+interface FireworksChatResponse {
+  choices: Array<{ message: { content: string | null } }>;
+  usage?: unknown;
+  model?: string;
+}
+
+function getFireworksApiKey(): string {
+  const apiKey = Deno.env.get("FIREWORKS_API_KEY");
+  if (!apiKey) {
+    throw new Error("[ai-prompt] Missing FIREWORKS_API_KEY");
+  }
+  return apiKey;
+}
+
+async function fireworksChat(params: FireworksChatParams): Promise<FireworksChatResponse> {
+  const apiKey = getFireworksApiKey();
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), FIREWORKS_TIMEOUT_MS);
   try {
-    return await groq.chat.completions.create(params as Parameters<typeof groq.chat.completions.create>[0]);
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err);
-    const isModelError = msg.includes("model") || msg.includes("timeout") || msg.includes("abort") || msg.includes("could not process");
-    if (isModelError && params.model !== GROQ_FALLBACK_MODEL) {
-      logger.info(`[AI-PROMPT] Primary model failed (${msg}), falling back to ${GROQ_FALLBACK_MODEL}`);
-      return await groq.chat.completions.create({
-        ...params,
-        model: GROQ_FALLBACK_MODEL,
-      } as Parameters<typeof groq.chat.completions.create>[0]);
+    const response = await fetch(FIREWORKS_URL, {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json",
+        "Accept": "application/json",
+      },
+      body: JSON.stringify({ model: FIREWORKS_MODEL, ...params }),
+      signal: controller.signal,
+    });
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      throw new Error(`Fireworks ${response.status}: ${text.slice(0, 500)}`);
     }
-    throw err;
+    return await response.json() as FireworksChatResponse;
+  } finally {
+    clearTimeout(timeout);
   }
 }
 
@@ -114,7 +117,6 @@ serve(async (req) => {
   try {
     switch (task) {
       case "generate_prompts": {
-        const groq = getGroqClient();
         const overallPromptText = String(body.overallPromptText ?? "");
         const rulesToRememberText = String(body.rulesToRememberText ?? "");
         const numberToGenerate = Number(body.numberToGenerate ?? 3);
@@ -146,10 +148,9 @@ serve(async (req) => {
           return out;
         };
 
-        logger.info(`[AI-PROMPT] generate_prompts: starting Groq call, model=${GROQ_MODEL}, numberToGenerate=${numberToGenerate}, hasVariationIntent=${Boolean(variationIntent && variationIntent.trim())}`);
-        const groqStart = Date.now();
-        const resp = await groqWithFallback(groq, {
-          model: GROQ_MODEL,
+        logger.info(`[AI-PROMPT] generate_prompts: starting Fireworks call, model=${FIREWORKS_MODEL}, numberToGenerate=${numberToGenerate}, hasVariationIntent=${Boolean(variationIntent && variationIntent.trim())}`);
+        const callStart = Date.now();
+        const resp = await fireworksChat({
           messages: [
             { role: "system", content: systemMsg },
             { role: "user", content: userMsg },
@@ -157,8 +158,8 @@ serve(async (req) => {
           temperature: temperature,
           max_tokens: 4096,
           top_p: 1,
-        }, logger);
-        logger.info(`[AI-PROMPT] generate_prompts: Groq call completed in ${Date.now() - groqStart}ms, model=${resp.model}`);
+        });
+        logger.info(`[AI-PROMPT] generate_prompts: Fireworks call completed in ${Date.now() - callStart}ms, model=${resp.model}`);
         const outputText = resp.choices[0]?.message?.content?.trim() || "";
         const rawLines = outputText.split("\n").map((s) => s.trim()).filter(Boolean);
         let prompts = dedupe(rawLines);
@@ -170,8 +171,7 @@ serve(async (req) => {
           logger.info(`[AI-PROMPT] generate_prompts: unique count below target, retrying with same model at temperature 1.0`);
           const retryStart = Date.now();
           try {
-            const retryResp = await groq.chat.completions.create({
-              model: GROQ_MODEL,
+            const retryResp = await fireworksChat({
               messages: [
                 { role: "system", content: systemMsg },
                 { role: "user", content: userMsg },
@@ -179,7 +179,7 @@ serve(async (req) => {
               temperature: 1.0,
               max_tokens: 4096,
               top_p: 1,
-            } as Parameters<typeof groq.chat.completions.create>[0]);
+            });
             const retryText = retryResp.choices[0]?.message?.content?.trim() || "";
             const retryLines = retryText.split("\n").map((s) => s.trim()).filter(Boolean);
             const retryPrompts = dedupe(retryLines);
@@ -197,7 +197,6 @@ serve(async (req) => {
         return jsonResponse({ prompts, usage });
       }
       case "edit_prompt": {
-        const groq = getGroqClient();
         const originalPromptText = String(body.originalPromptText ?? "");
         const editInstructions = String(body.editInstructions ?? "");
         if (!originalPromptText || !editInstructions) return jsonResponse({ error: "originalPromptText and editInstructions required" }, 400);
@@ -205,8 +204,7 @@ serve(async (req) => {
           originalPromptText,
           editInstructions,
         });
-        const resp = await groqWithFallback(groq, {
-          model: GROQ_MODEL,
+        const resp = await fireworksChat({
           messages: [
             { role: "system", content: systemMsg },
             { role: "user", content: userMsg },
@@ -214,18 +212,16 @@ serve(async (req) => {
           temperature: 0.7,
           max_tokens: 2048,
           top_p: 1,
-        }, logger);
+        });
         const newText = resp.choices[0]?.message?.content?.trim() || originalPromptText;
         return jsonResponse({ success: true, newText, usage: resp.usage });
       }
       case "generate_summary": {
-        const groq = getGroqClient();
         const promptText = String(body.promptText ?? "");
         if (!promptText) return jsonResponse({ error: "promptText required" }, 400);
-        logger.info(`[AI-PROMPT] generate_summary: starting Groq call`);
+        logger.info(`[AI-PROMPT] generate_summary: starting Fireworks call`);
         const summaryStart = Date.now();
-        const resp = await groqWithFallback(groq, {
-          model: GROQ_MODEL,
+        const resp = await fireworksChat({
           messages: [{ role: "user", content: `Create a brief summary of this image prompt in 10 words or less. Output only the summary text with no additional formatting or quotation marks:
 
 "${promptText}"
@@ -234,8 +230,8 @@ Summary:` }],
           temperature: 1.0,
           max_tokens: 50,
           top_p: 1,
-        }, logger);
-        logger.info(`[AI-PROMPT] generate_summary: Groq call completed in ${Date.now() - summaryStart}ms`);
+        });
+        logger.info(`[AI-PROMPT] generate_summary: Fireworks call completed in ${Date.now() - summaryStart}ms`);
         const summary = resp.choices[0]?.message?.content?.trim() || null;
         return jsonResponse({ summary, usage: resp.usage });
       }

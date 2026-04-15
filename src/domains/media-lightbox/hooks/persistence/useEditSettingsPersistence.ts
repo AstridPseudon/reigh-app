@@ -209,9 +209,15 @@ export function useEditSettingsPersistence({
   // Wrapper setters that also update "last used" (except prompt)
   // editMode writes to both generation persistence and user-level last used state.
   const setEditMode = useCallback((mode: EditMode) => {
+    console.log('[EditSettings] setEditMode called', {
+      mode,
+      previousEditMode: effectiveSettings.editMode,
+      hasPersistedSettings: generationSettings.hasPersistedSettings,
+      isReady,
+    });
     genSetEditMode(mode);
     updateLastUsed({ editMode: mode });
-  }, [genSetEditMode, updateLastUsed]);
+  }, [genSetEditMode, updateLastUsed, effectiveSettings.editMode, generationSettings.hasPersistedSettings, isReady]);
 
   const setLoraMode = useCallback((mode: LoraMode) => {
     genSetLoraMode(mode);
@@ -294,60 +300,82 @@ export function useEditSettingsPersistence({
     [loraMode, customLoraUrl],
   );
 
-  return {
-    // Current values (using effective settings to avoid race condition)
-    editMode: effectiveSettings.editMode,
-    loraMode: effectiveSettings.loraMode,
-    customLoraUrl: effectiveSettings.customLoraUrl,
-    numGenerations: effectiveSettings.numGenerations,
-    prompt: effectiveSettings.prompt,
-    // Img2Img values
-    img2imgPrompt: effectiveSettings.img2imgPrompt,
-    img2imgPromptHasBeenSet: effectiveSettings.img2imgPromptHasBeenSet,
-    img2imgStrength: effectiveSettings.img2imgStrength,
-    img2imgEnablePromptExpansion: effectiveSettings.img2imgEnablePromptExpansion,
-    // Advanced settings (hires fix config)
-    advancedSettings: effectiveSettings.advancedSettings ?? DEFAULT_ADVANCED_SETTINGS,
-    // Video enhance settings (interpolation/upscaling)
-    enhanceSettings: effectiveSettings.enhanceSettings ?? DEFAULT_ENHANCE_SETTINGS,
-    // Model selection for cloud mode
-    qwenEditModel: effectiveSettings.qwenEditModel ?? 'qwen-edit',
-    // Generation options
-    createAsGeneration: effectiveSettings.createAsGeneration ?? false,
+  return useMemo(
+    () => ({
+      // Current values (using effective settings to avoid race condition)
+      editMode: effectiveSettings.editMode,
+      loraMode: effectiveSettings.loraMode,
+      customLoraUrl: effectiveSettings.customLoraUrl,
+      numGenerations: effectiveSettings.numGenerations,
+      prompt: effectiveSettings.prompt,
+      // Img2Img values
+      img2imgPrompt: effectiveSettings.img2imgPrompt,
+      img2imgPromptHasBeenSet: effectiveSettings.img2imgPromptHasBeenSet,
+      img2imgStrength: effectiveSettings.img2imgStrength,
+      img2imgEnablePromptExpansion: effectiveSettings.img2imgEnablePromptExpansion,
+      // Advanced settings (hires fix config)
+      advancedSettings: effectiveSettings.advancedSettings ?? DEFAULT_ADVANCED_SETTINGS,
+      // Video enhance settings (interpolation/upscaling)
+      enhanceSettings: effectiveSettings.enhanceSettings ?? DEFAULT_ENHANCE_SETTINGS,
+      // Model selection for cloud mode
+      qwenEditModel: effectiveSettings.qwenEditModel ?? 'qwen-edit',
+      // Generation options
+      createAsGeneration: effectiveSettings.createAsGeneration ?? false,
 
-    // Setters
-    setEditMode,
-    setLoraMode,
-    setCustomLoraUrl,
-    setNumGenerations,
-    setPrompt,
-    setQwenEditModel,
-    // Img2Img setters
-    setImg2imgPrompt,
-    setImg2imgStrength,
-    setImg2imgEnablePromptExpansion,
-    // Advanced settings setter
-    setAdvancedSettings,
-    // Video enhance settings setter
-    setEnhanceSettings,
-    // Generation options setter
-    setCreateAsGeneration,
+      // Setters
+      setEditMode,
+      setLoraMode,
+      setCustomLoraUrl,
+      setNumGenerations,
+      setPrompt,
+      setQwenEditModel,
+      setImg2imgPrompt,
+      setImg2imgStrength,
+      setImg2imgEnablePromptExpansion,
+      setAdvancedSettings,
+      setEnhanceSettings,
+      setCreateAsGeneration,
 
-    // Video/Panel mode (from "last used")
-    videoEditSubMode: lastUsedSettings.lastUsed.videoEditSubMode,
-    panelMode: lastUsedSettings.lastUsed.panelMode,
-    setVideoEditSubMode,
-    setPanelMode,
+      // Video/Panel mode (from "last used")
+      videoEditSubMode: lastUsedSettings.lastUsed.videoEditSubMode,
+      panelMode: lastUsedSettings.lastUsed.panelMode,
+      setVideoEditSubMode,
+      setPanelMode,
 
-    // Computed
-    editModeLoras,
-    flushTextFields,
+      // Computed
+      editModeLoras,
+      flushTextFields,
 
-    // State
-    isLoading: generationSettings.isLoading,
-    isReady,
-    hasPersistedSettings: generationSettings.hasPersistedSettings,
-  };
+      // State
+      isLoading: generationSettings.isLoading,
+      isReady,
+      hasPersistedSettings: generationSettings.hasPersistedSettings,
+    }),
+    [
+      effectiveSettings,
+      setEditMode,
+      setLoraMode,
+      setCustomLoraUrl,
+      setNumGenerations,
+      setPrompt,
+      setQwenEditModel,
+      setImg2imgPrompt,
+      setImg2imgStrength,
+      setImg2imgEnablePromptExpansion,
+      setAdvancedSettings,
+      setEnhanceSettings,
+      setCreateAsGeneration,
+      lastUsedSettings.lastUsed.videoEditSubMode,
+      lastUsedSettings.lastUsed.panelMode,
+      setVideoEditSubMode,
+      setPanelMode,
+      editModeLoras,
+      flushTextFields,
+      generationSettings.isLoading,
+      isReady,
+      generationSettings.hasPersistedSettings,
+    ],
+  );
 }
 
 // Re-export types for convenience

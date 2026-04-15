@@ -389,6 +389,16 @@ function InnerProvider({
   }), [editor, onActionResizeStart, onClipEdgeResizeEnd, onDoubleClickAsset, setLightboxAssetKey]);
 
   const resolvedLightboxMedia = lightboxQuery.data ?? lightboxFallbackMedia;
+  const lightboxOnClose = useCallback(() => {
+    setLightboxAssetKey(null);
+    setLightboxClipId(null);
+  }, []);
+  const lightboxInitialVariantId =
+    lightboxAsset?.variantId ?? resolvedLightboxMedia?.primary_variant_id ?? undefined;
+  const lightboxFeatures = useMemo(
+    () => ({ showDownload: true, showTaskDetails: true }),
+    [],
+  );
 
   return (
     <TimelineEditorDataContextProvider value={editorData}>
@@ -402,12 +412,9 @@ function InnerProvider({
                 <MediaLightbox
                   media={resolvedLightboxMedia}
                   navigation={navResult.navigation}
-                  initialVariantId={lightboxAsset?.variantId ?? resolvedLightboxMedia.primary_variant_id ?? undefined}
-                  onClose={() => {
-                    setLightboxAssetKey(null);
-                    setLightboxClipId(null);
-                  }}
-                  features={{ showDownload: true, showTaskDetails: true }}
+                  initialVariantId={lightboxInitialVariantId}
+                  onClose={lightboxOnClose}
+                  features={lightboxFeatures}
                 />
                 {navResult.indicator ? <VideoEditorLightboxOverlay indicator={navResult.indicator} /> : null}
               </>

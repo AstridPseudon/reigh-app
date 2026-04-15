@@ -9,7 +9,7 @@ const mocks = vi.hoisted(() => ({
   buildEditPromptMessages: vi.fn(),
   buildEnhanceSegmentUserPrompt: vi.fn(),
   toErrorMessage: vi.fn((error: unknown) => (error instanceof Error ? error.message : String(error))),
-  groqChatCreate: vi.fn(),
+  fireworksFetch: vi.fn(),
 }));
 
 vi.mock('../_shared/edgeHandler.ts', () => ({
@@ -43,28 +43,37 @@ vi.mock('./templates.ts', () => ({
   ENHANCE_SEGMENT_SYSTEM_PROMPT: 'enhance-system',
 }));
 
-vi.mock('npm:groq-sdk@0.26.0', () => ({
-  default: class GroqMock {
-    chat = {
-      completions: {
-        create: (payload: unknown) => mocks.groqChatCreate(payload),
-      },
-    };
-
-    constructor(_options?: unknown) {}
-  },
-}));
-
 function stubDenoEnv(): void {
   vi.stubGlobal('Deno', {
     env: {
       get: (key: string) => {
-        if (key === 'GROQ_API_KEY') return 'groq-test-key';
+        if (key === 'FIREWORKS_API_KEY') return 'fireworks-test-key';
         if (key === 'OPENAI_API_KEY') return 'openai-test-key';
         return undefined;
       },
     },
   });
+}
+
+function stubFireworksFetch(): void {
+  vi.stubGlobal('fetch', (url: string, init?: RequestInit) => {
+    if (typeof url === 'string' && url.startsWith('https://api.fireworks.ai/')) {
+      const body = init?.body ? JSON.parse(String(init.body)) : {};
+      return Promise.resolve(mocks.fireworksFetch(body));
+    }
+    throw new Error(`Unexpected fetch: ${url}`);
+  });
+}
+
+function fireworksOk(payload: { content: string; usage?: unknown; model?: string }): Response {
+  return new Response(
+    JSON.stringify({
+      choices: [{ message: { content: payload.content } }],
+      usage: payload.usage,
+      model: payload.model ?? 'accounts/fireworks/models/kimi-k2p5',
+    }),
+    { status: 200, headers: { 'Content-Type': 'application/json' } },
+  );
 }
 
 async function loadHandler() {
@@ -82,6 +91,7 @@ describe('ai-prompt edge entrypoint', () => {
     vi.resetModules();
     __resetServeHandler();
     stubDenoEnv();
+    stubFireworksFetch();
 
     mocks.enforceRateLimit.mockResolvedValue(null);
 
@@ -95,10 +105,9 @@ describe('ai-prompt edge entrypoint', () => {
     });
     mocks.buildEnhanceSegmentUserPrompt.mockReturnValue('enhance user');
 
-    mocks.groqChatCreate.mockResolvedValue({
-      choices: [{ message: { content: 'first\nsecond\nthird' } }],
-      usage: { total_tokens: 123 },
-    });
+    mocks.fireworksFetch.mockReturnValue(
+      fireworksOk({ content: 'first\nsecond\nthird', usage: { total_tokens: 123 } }),
+    );
 
     mocks.bootstrapEdgeHandler.mockResolvedValue({
       ok: true,
@@ -177,14 +186,14 @@ describe('ai-prompt edge entrypoint', () => {
       prompts: ['first', 'second'],
       usage: { total_tokens: 123 },
     });
-    expect(mocks.groqChatCreate).toHaveBeenCalledWith(
+    expect(mocks.fireworksFetch).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'moonshotai/kimi-k2-instruct-0905',
+        model: 'accounts/fireworks/models/kimi-k2p5',
       }),
     );
   });
 
-  it('retries with fallback model when primary returns duplicates', async () => {
+  it('retries at temperature 1.0 when primary returns duplicates', async () => {
     mocks.bootstrapEdgeHandler.mockResolvedValue({
       ok: true,
       value: {
@@ -201,17 +210,9 @@ describe('ai-prompt edge entrypoint', () => {
       },
     });
 
-    mocks.groqChatCreate
-      .mockResolvedValueOnce({
-        choices: [{ message: { content: 'same\nsame\nsame' } }],
-        usage: { total_tokens: 10 },
-        model: 'moonshotai/kimi-k2-instruct-0905',
-      })
-      .mockResolvedValueOnce({
-        choices: [{ message: { content: 'one\ntwo\nthree' } }],
-        usage: { total_tokens: 50 },
-        model: 'llama-3.3-70b-versatile',
-      });
+    mocks.fireworksFetch
+      .mockReturnValueOnce(fireworksOk({ content: 'same\nsame\nsame', usage: { total_tokens: 10 } }))
+      .mockReturnValueOnce(fireworksOk({ content: 'one\ntwo\nthree', usage: { total_tokens: 50 } }));
 
     const handler = await loadHandler();
     const response = await handler(new Request('https://edge.test/ai-prompt', { method: 'POST' }));
@@ -221,11 +222,11 @@ describe('ai-prompt edge entrypoint', () => {
       prompts: ['one', 'two', 'three'],
       usage: { total_tokens: 50 },
     });
-    expect(mocks.groqChatCreate).toHaveBeenCalledTimes(2);
-    expect(mocks.groqChatCreate).toHaveBeenNthCalledWith(
+    expect(mocks.fireworksFetch).toHaveBeenCalledTimes(2);
+    expect(mocks.fireworksFetch).toHaveBeenNthCalledWith(
       2,
       expect.objectContaining({
-        model: 'llama-3.3-70b-versatile',
+        model: 'accounts/fireworks/models/kimi-k2p5',
         temperature: 1.0,
       }),
     );

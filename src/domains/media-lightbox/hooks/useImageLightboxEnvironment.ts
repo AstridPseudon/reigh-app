@@ -58,9 +58,13 @@ export function useImageLightboxEnvironment(props: UseImageLightboxEnvironmentPr
 
   useLayoutEffect(() => {
     const dims = extractDimensionsFromMedia(media, true);
-    if (dims) {
-      setImageDimensions(dims);
-    }
+    if (!dims) return;
+    setImageDimensions((prev) => {
+      if (prev && prev.width === dims.width && prev.height === dims.height) {
+        return prev;
+      }
+      return dims;
+    });
   }, [media]);
 
   const upscaleHook = useUpscale({ media, selectedProjectId, isVideo: false, shotId });

@@ -1,4 +1,4 @@
-import React, { Suspense } from 'react';
+import React, { Suspense, useRef } from 'react';
 import { mapSelectedLorasForModal } from '@/shared/components/lora/mapSelectedLorasForModal';
 import { LoraSelectorModal } from '@/domains/lora/components';
 import { EditPanelLayout } from './EditPanelLayout';
@@ -27,6 +27,18 @@ export const EditModePanel: React.FC<EditModePanelProps> = ({
   imageEditState,
   variantsState,
 }) => {
+  const renderCountRef = useRef(0);
+  renderCountRef.current += 1;
+  const instanceRef = useRef<string>();
+  if (!instanceRef.current) {
+    instanceRef.current = Math.random().toString(36).slice(2, 6);
+  }
+  console.log('[EditModePanel] render', {
+    instance: instanceRef.current,
+    renderCount: renderCountRef.current,
+    currentMediaId,
+  });
+
   const state = useEditModePanelState({
     variant,
     currentMediaId,

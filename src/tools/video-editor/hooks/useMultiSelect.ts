@@ -124,7 +124,7 @@ export function useMultiSelect(): UseMultiSelectResult {
 
   const selectClips = useCallback((clipIds: Iterable<string>) => {
     const nextSelection = buildSelectionSet(clipIds);
-    commitSelection(nextSelection, getPrimaryClipId(nextSelection, null), false);
+    commitSelection(nextSelection, getPrimaryClipId(nextSelection, null), nextSelection.size > 1);
   }, [commitSelection]);
 
   const addToSelection = useCallback((clipIds: Iterable<string>) => {

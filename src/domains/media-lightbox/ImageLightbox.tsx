@@ -14,7 +14,7 @@
  * ImageLightbox or VideoLightbox based on media type.
  */
 
-import React, { useCallback, useMemo } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import type { GenerationRow } from '@/domains/generation/types';
 import type { OverlayViewportConstraints } from '@/shared/lib/layout/overlayViewportConstraints';
 import type {
@@ -319,16 +319,49 @@ function useImageLightboxRenderModel(
 }
 
 export const ImageLightbox: React.FC<ImageLightboxProps> = (props) => {
+  const renderCountRef = useRef(0);
+  renderCountRef.current += 1;
+  const instanceRef = useRef<string>();
+  if (!instanceRef.current) {
+    instanceRef.current = Math.random().toString(36).slice(2, 6);
+  }
+  const prevPropsRef = useRef<unknown>();
+  const changed: string[] = [];
+  if (prevPropsRef.current) {
+    const prev = prevPropsRef.current as Record<string, unknown>;
+    for (const k of Object.keys(props) as Array<keyof typeof props>) {
+      if (prev[k as string] !== (props as Record<string, unknown>)[k as string]) changed.push(k as string);
+    }
+  }
+  prevPropsRef.current = props;
+  console.log(
+    `[ImageLightbox] r${renderCountRef.current} mediaId=${props.media?.id?.slice(0, 8)} changedProps=[${changed.join(', ')}]`,
+  );
+
   const { onClose: onRequestClose } = props;
   const env = useImageLightboxEnvironment(props);
+  const prevEnvRef = useRef<Record<string, unknown> | null>(null);
+  const envChanged: string[] = [];
+  if (prevEnvRef.current) {
+    for (const k of Object.keys(env) as Array<keyof typeof env>) {
+      if (prevEnvRef.current[k as string] !== (env as unknown as Record<string, unknown>)[k as string]) {
+        envChanged.push(k as string);
+      }
+    }
+  }
+  prevEnvRef.current = env as unknown as Record<string, unknown>;
+  if (envChanged.length > 0) {
+    console.log(`[ImageLightbox] env changed r${renderCountRef.current}: ${envChanged.join(', ')}`);
+  }
+  const flushTextFields = env.editSettingsPersistence.flushTextFields;
   const handleClose = useCallback(() => {
-    void env.editSettingsPersistence.flushTextFields();
+    void flushTextFields();
     onRequestClose();
-  }, [env.editSettingsPersistence, onRequestClose]);
-  const propsWithFlushOnClose = {
-    ...props,
-    onClose: handleClose,
-  };
+  }, [flushTextFields, onRequestClose]);
+  const propsWithFlushOnClose = useMemo(
+    () => ({ ...props, onClose: handleClose }),
+    [props, handleClose],
+  );
   const sharedModel = useImageLightboxSharedState(propsWithFlushOnClose, env);
   const editModel = useImageLightboxEditing(propsWithFlushOnClose, env, sharedModel);
   const renderModel = useImageLightboxRenderModel(propsWithFlushOnClose, env, sharedModel, editModel);

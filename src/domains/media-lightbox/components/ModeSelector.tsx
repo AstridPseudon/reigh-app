@@ -107,7 +107,19 @@ export const ModeSelector: React.FC<ModeSelectorProps> = ({
           const button = (
             <button
               key={item.id}
-              onClick={item.onClick}
+              onClick={(e) => {
+                console.log('[ModeSelector] click', {
+                  id: item.id,
+                  activeId,
+                  bodyPointerEvents: document.body.style.pointerEvents,
+                  openOverlays: Array.from(document.querySelectorAll('[data-state="open"]')).map(
+                    (el) => `${el.tagName}.${(el.getAttribute('class') ?? '').slice(0, 40)}`,
+                  ),
+                  activeElement: document.activeElement?.tagName,
+                  defaultPrevented: e.defaultPrevented,
+                });
+                item.onClick();
+              }}
               className={cn(
                 "flex-1 min-w-0 flex items-center justify-center transition-all rounded overflow-hidden",
                 showIconsOnly ? "p-2" : "gap-1.5 px-3 py-1.5 text-sm",

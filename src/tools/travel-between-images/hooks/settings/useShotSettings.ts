@@ -76,13 +76,21 @@ export const useShotSettings = (
     context: 'useShotSettings',
   });
   
+  // Memoize defaults so the reference is stable across renders — an unstable
+  // `defaults` ripples into useAutoSaveSettings' load effects (their deps include
+  // `defaults`), causing the whole settings tree to re-render on every tick.
+  const stableDefaults = useMemo(
+    () => inheritedSettings || createDefaultVideoTravelSettings(),
+    [inheritedSettings],
+  );
+
   // Use the shared auto-save hook with inherited settings as initial defaults
   const autoSave = useAutoSaveSettings<VideoTravelSettings>({
     toolId: TOOL_IDS.TRAVEL_BETWEEN_IMAGES,
     shotId,
     projectId,
     scope: 'shot',
-    defaults: inheritedSettings || createDefaultVideoTravelSettings(),
+    defaults: stableDefaults,
     enabled: !!shotId,
     debounceMs: 300,
   });
