@@ -3,6 +3,7 @@ import { BridgeTransportFailure } from '@/integrations/astrid/transport';
 import {
   bridgeTaskAdmissionRequestSchema,
   runtimeSha256IdSchema,
+  type RuntimeCapability,
 } from '@/tools/video-editor/data/bridgeContract.ts';
 import { normalizeAndPresentAndRethrow } from '@/shared/lib/errorHandling/runtimeError';
 import { NetworkError } from '@/shared/lib/errorHandling/errors';
@@ -73,13 +74,11 @@ export async function ingestProjectInput(
   }
   const originalName = options.originalName ?? source.originalName;
   const contentFingerprint = await sha256Hex(source.bytes);
-  const key = [
-    'reigh.cas',
-    encodeURIComponent(project),
-    contentFingerprint,
-    encodeURIComponent(mediaType),
-    encodeURIComponent(originalName ?? ''),
-  ].join(':');
+  // Runtime's receipt header accepts only a compact ASCII token. Hash the
+  // complete producer identity rather than leaking locator/name characters
+  // (such as ':' or '%') into the transport-level idempotency key.
+  const keyMaterial = [project, contentFingerprint, mediaType, originalName ?? ''].join('\0');
+  const key = `reigh-cas-${await sha256Hex(new TextEncoder().encode(keyMaterial))}`;
   const committed = await getBridgeTaskClient(project).objects.ingest(
     source.bytes,
     mediaType,
@@ -111,9 +110,61 @@ export async function verifyProjectInputObject(project: string, objectId: string
   throw new TaskValidationError(`Input object is not authorized for project: ${objectId}`, 'input_object_ids');
 }
 
+/** Resolve a ready capability from Runtime's public catalog. */
+export async function resolveTaskCapability(project: string, capabilityId: string): Promise<RuntimeCapability> {
+  if (capabilityId.length === 0) {
+    throw new TaskValidationError('capability_id is required', 'capability_id');
+  }
+
+  let cursor: string | undefined;
+  const seenCursors = new Set<string>();
+  const seenCapabilityIds = new Set<string>();
+  let match: RuntimeCapability | undefined;
+  const client = getBridgeTaskClient(project);
+
+  while (true) {
+    if (cursor !== undefined) {
+      if (seenCursors.has(cursor)) {
+        throw new TaskValidationError('capability catalog cursor cycle detected', 'capability_id');
+      }
+      seenCursors.add(cursor);
+    }
+    const page = await client.catalog.list({ cursor });
+    for (const capability of page.items) {
+      if (seenCapabilityIds.has(capability.capability_id)) {
+        throw new TaskValidationError(
+          `capability catalog contains duplicate ID: ${capability.capability_id}`,
+          'capability_id',
+        );
+      }
+      seenCapabilityIds.add(capability.capability_id);
+      if (capability.capability_id === capabilityId) {
+        match = capability;
+      }
+    }
+    if (page.next_cursor === null) break;
+    cursor = page.next_cursor;
+  }
+
+  if (match === undefined) {
+    throw new TaskValidationError(`capability is not registered: ${capabilityId}`, 'capability_id');
+  }
+  if (match.status !== 'ready') {
+    throw new TaskValidationError(
+      `capability is not ready: ${capabilityId} (${match.status})`,
+      'capability_id',
+    );
+  }
+  return match;
+}
+
 /** Bind a capability ID to Runtime's exact ready definition digest. */
 export async function bindTaskCapability(project: string, capabilityId: string, expectedDigest?: string): Promise<string> {
-  return await getBridgeTaskClient(project).catalog.bind(capabilityId, expectedDigest);
+  const capability = await resolveTaskCapability(project, capabilityId);
+  if (expectedDigest !== undefined && expectedDigest !== capability.definition_digest) {
+    throw new TaskValidationError(`capability digest mismatch: ${capabilityId}`, 'capability_digest');
+  }
+  return capability.definition_digest;
 }
 
 async function validateAdmissionAuthority(taskParams: BaseTaskParams): Promise<BaseTaskParams> {

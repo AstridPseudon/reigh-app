@@ -101,6 +101,57 @@ export const runtimeMutationReceiptSchema = z.strictObject({
   created_at: z.string().min(1),
 });
 
+/** Runtime workspace.v1 task resource and mutation/page envelopes. */
+export const workspaceTaskSchema = z.looseObject({
+  task_id: z.string().min(1),
+  run_id: z.string().min(1),
+  project_id: z.string().nullable(),
+  state: z.enum(['queued', 'ready', 'running', 'succeeded', 'failed', 'cancel_requested', 'cancelled', 'retrying']),
+  version: z.number().int().min(1),
+  capability_id: z.string().min(1),
+  capability_digest: runtimeSha256IdSchema,
+  idempotency_key: z.string().min(1),
+  created_at: z.string(),
+  updated_at: z.string(),
+  runtime_epoch: z.number().int().min(1),
+  input_object_ids: z.array(runtimeSha256IdSchema),
+  spec: jsonObject,
+  attempt_id: z.string().nullable().optional(),
+  result: jsonObject.nullable().optional(),
+});
+
+export const workspaceTaskMutationSchema = z.strictObject({
+  data: workspaceTaskSchema,
+  receipt: runtimeMutationReceiptSchema,
+});
+
+export const workspaceTaskPageSchema = runtimePageSchema(workspaceTaskSchema);
+
+/** Runtime workspace.v1 generation and variant read resources. */
+export const workspaceGenerationSchema = z.looseObject({
+  generation_id: z.string().min(1),
+  project_id: z.string().min(1),
+  source_task_id: z.string().nullable().optional(),
+  type: z.string().min(1),
+  status: z.string().min(1),
+  metadata: jsonObject,
+  version: z.number().int().min(1),
+  created_at: z.string(),
+  updated_at: z.string(),
+});
+
+export const workspaceGenerationVariantSchema = z.looseObject({
+  variant_id: z.string().min(1),
+  generation_id: z.string().min(1),
+  object_id: runtimeSha256IdSchema.nullable().optional(),
+  variant_type: z.string().min(1),
+  metadata: jsonObject,
+  created_at: z.string(),
+});
+
+export const workspaceGenerationPageSchema = runtimePageSchema(workspaceGenerationSchema);
+export const workspaceGenerationVariantPageSchema = runtimePageSchema(workspaceGenerationVariantSchema);
+
 export function runtimeMutationSchema<Schema extends z.ZodType>(data: Schema) {
   return z.strictObject({
     data,
@@ -469,6 +520,9 @@ export type BridgeTimelinePayload = z.infer<typeof bridgeTimelinePayloadSchema>;
 export type BridgeAssetRegistryPayload = z.infer<typeof bridgeAssetRegistrySchema>;
 export type RuntimeManagedObject = z.infer<typeof runtimeManagedObjectSchema>;
 export type RuntimeCapability = z.infer<typeof runtimeCapabilitySchema>;
+export type WorkspaceTask = z.infer<typeof workspaceTaskSchema>;
+export type WorkspaceGeneration = z.infer<typeof workspaceGenerationSchema>;
+export type WorkspaceGenerationVariant = z.infer<typeof workspaceGenerationVariantSchema>;
 export type RuntimeMutationReceipt = z.infer<typeof runtimeMutationReceiptSchema>;
 export type BridgeErrorEnvelope = z.infer<typeof bridgeErrorEnvelopeSchema>;
 export type BridgeProjectsPayload = z.infer<typeof bridgeProjectsSchema>;

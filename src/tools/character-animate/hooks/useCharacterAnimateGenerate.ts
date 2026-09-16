@@ -35,6 +35,8 @@ export function useCharacterAnimateGenerate({
   const handleGenerate = async () => {
     if (!characterImage) throw new Error('No character image');
     if (!motionVideo) throw new Error('No motion video');
+    if (!characterImage.file) throw new Error('Character image bytes are unavailable; upload the image again');
+    if (!motionVideo.file) throw new Error('Motion video bytes are unavailable; upload the video again');
     if (!selectedProjectId) throw new Error('No project selected');
 
     setIsGenerating(true);
@@ -49,6 +51,8 @@ export function useCharacterAnimateGenerate({
             project_id: selectedProjectId,
             character_image_url: characterImage.url,
             motion_video_url: motionVideo.url,
+            character_image: characterImage.file,
+            motion_video: motionVideo.file,
             prompt: prompt || defaultPrompt || 'natural expression; preserve outfit details',
             mode: localMode,
             resolution: '480p',

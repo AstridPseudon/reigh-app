@@ -65,8 +65,15 @@ function createWrapper() {
 describe('useCharacterAnimateGenerate', () => {
   const defaultParams = {
     selectedProjectId: 'proj-1',
-    characterImage: { url: 'https://example.com/character.png' },
-    motionVideo: { url: 'https://example.com/motion.mp4', posterUrl: 'poster.jpg' },
+    characterImage: {
+      url: 'https://example.com/character.png',
+      file: new File(['character'], 'character.png', { type: 'image/png' }),
+    },
+    motionVideo: {
+      url: 'https://example.com/motion.mp4',
+      posterUrl: 'poster.jpg',
+      file: new File(['motion'], 'motion.mp4', { type: 'video/mp4' }),
+    },
     prompt: 'dancing character',
     localMode: 'animate' as const,
     defaultPrompt: 'natural expression',

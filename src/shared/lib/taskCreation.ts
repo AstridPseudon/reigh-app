@@ -1,6 +1,12 @@
 export type {
   BaseTaskParams,
   HiresFixApiParams,
+  RuntimeInput,
+  RuntimeInputIngestOptions,
+  RuntimeObjectReceipt,
+  RuntimeSettlementEffect,
+  RuntimeTaskSpec,
+  RuntimeStorageEstimate,
   TaskCreationResult,
 } from './taskCreation/types';
 
@@ -20,6 +26,9 @@ export {
 
 export {
   createTask,
+  ingestProjectInput,
+  bindTaskCapability,
+  resolveTaskCapability,
 } from './taskCreation/createTask';
 
 export {
